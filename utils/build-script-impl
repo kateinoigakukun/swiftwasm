@@ -115,6 +115,7 @@ KNOWN_SETTINGS=(
     skip-build-watchos-device   ""               "set to skip building Swift stdlibs for Apple watchOS devices (i.e. build simulators only)"
     skip-build-watchos-simulator ""              "set to skip building Swift stdlibs for Apple watchOS simulators (i.e. build devices only)"
     skip-build-android          ""               "set to skip building Swift stdlibs for Android"
+    skip-build-wasm             ""               "set to skip building Swift stdlibs for WebAssembly"
     skip-build-lldb             ""               "set to skip building LLDB"
     skip-build-llbuild          ""               "set to skip building llbuild"
     skip-build-libcxx           ""               "set to skip building libcxx"
@@ -150,6 +151,8 @@ KNOWN_SETTINGS=(
     skip-test-watchos-host      ""               "set to skip testing the host parts of the watchOS toolchain"
     skip-test-android           ""               "set to skip testing Swift stdlibs for Android"
     skip-test-android-host      ""               "set to skip testing the host parts of the Android toolchain"
+    skip-test-wasm              ""               "set to skip testing Swift stdlibs for WebAssembly"
+    skip-test-wasm-host         ""               "set to skip testing the host parts of the WebAssembly toolchain"
     validation-test             "0"              "set to run the validation test suite"
     long-test                   "0"              "set to run the long test suite"
     stress-test                 "0"              "set to run the stress test suite"
@@ -422,7 +425,8 @@ function verify_host_is_supported() {
       | watchsimulator-i386     \
       | watchos-armv7k          \
       | android-armv7           \
-      | android-aarch64)
+      | android-aarch64         \
+      | wasm-wasm32)
         ;;
       *)
         echo "Unknown host tools target: ${host}"
@@ -465,6 +469,40 @@ function set_build_options_for_host() {
             SWIFT_HOST_TRIPLE="armv7-unknown-linux-gnueabihf"
             llvm_target_arch="ARM"
             ;;
+        linux-*)
+            SWIFT_HOST_VARIANT="linux"
+            SWIFT_HOST_VARIANT_SDK="LINUX"
+            case ${host} in
+                linux-x86_64)
+                    SWIFT_HOST_VARIANT_ARCH="x86_64"
+                    ;;
+                linux-i686)
+                    SWIFT_HOST_VARIANT_ARCH="i686"
+                    ;;
+                linux-armv6)
+                    SWIFT_HOST_VARIANT_ARCH="armv6"
+                    SWIFT_HOST_TRIPLE="armv6-unknown-linux-gnueabihf"
+                    llvm_target_arch="ARM"
+                    ;;
+                linux-armv7)
+                    SWIFT_HOST_VARIANT_ARCH="armv7"
+                    SWIFT_HOST_TRIPLE="armv7-unknown-linux-gnueabihf"
+                    llvm_target_arch="ARM"
+                    ;;
+                linux-aarch64)
+                    SWIFT_HOST_VARIANT_ARCH="aarch64"
+                    ;;
+                linux-powerpc64)
+                    SWIFT_HOST_VARIANT_ARCH="powerpc64"
+                    ;;
+                linux-powerpc64le)
+                    SWIFT_HOST_VARIANT_ARCH="powerpc64le"
+                    ;;
+                linux-s390x)
+                    SWIFT_HOST_VARIANT_ARCH="s390x"
+                    ;;
+                esac
+        ;;
         macosx-* | iphoneos-* | iphonesimulator-* | \
           appletvos-* | appletvsimulator-* | \
             watchos-* | watchsimulator-*)
