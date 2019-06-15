@@ -46,7 +46,7 @@
         "sourcekit-lsp": {
             "remote": { "id": "apple/sourcekit-lsp" } }
     },
-    "default-branch-scheme": "master",
+    "default-branch-scheme": "wasm",
     "branch-schemes": {
         "wasm": {
             "aliases": ["wasm"],
