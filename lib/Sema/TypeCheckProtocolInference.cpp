@@ -247,10 +247,6 @@ AssociatedTypeInference::inferTypeWitnessesViaValueWitnesses(
       if (!isExtensionUsableForInference(extension))
         continue;
 
-    auto witnessFunc = dyn_cast<AbstractFunctionDecl>(witness);
-    auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
-    auto witnessParams = witnessFunc->getParameters();
-    auto reqParams = reqFunc->getParameters();
     if (!shouldInferViaWitness(checker, allUnresolved, req, witness)) {
       continue;
     }
