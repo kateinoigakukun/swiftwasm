@@ -418,7 +418,6 @@ bool AssociatedTypeInference::shouldInferViaWitness(
   ValueDecl *req,
   ValueDecl *witness)
 {
-  auto &tc = checker.TC;
   assert(witness->getKind() == req->getKind());
   switch (witness->getKind()) {
   case DeclKind::Func: {
