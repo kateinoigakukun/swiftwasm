@@ -23,6 +23,7 @@
 #include "swift/AST/SubstitutionMap.h"
 #include "swift/AST/TypeMatcher.h"
 #include "swift/AST/Types.h"
+#include "swift/AST/ParameterList.h"
 #include "swift/Basic/Defer.h"
 #include "swift/ClangImporter/ClangModule.h"
 #include "llvm/ADT/Statistic.h"
@@ -246,6 +247,13 @@ AssociatedTypeInference::inferTypeWitnessesViaValueWitnesses(
       if (!isExtensionUsableForInference(extension))
         continue;
 
+    auto witnessFunc = dyn_cast<AbstractFunctionDecl>(witness);
+    auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
+    auto witnessParams = witnessFunc->getParameters();
+    auto reqParams = reqFunc->getParameters();
+    if (!shouldInferViaWitness(checker, allUnresolved, req, witness)) {
+      continue;
+    }
     // Try to resolve the type witness via this value witness.
     auto witnessResult = inferTypeWitnessesViaValueWitness(req, witness);
 
@@ -406,6 +414,53 @@ next_witness:;
 }
 
   return result;
+}
+
+bool AssociatedTypeInference::shouldInferViaWitness(
+  ConformanceChecker &checker,
+  const llvm::SetVector<AssociatedTypeDecl *> &allUnresolved,
+  ValueDecl *req,
+  ValueDecl *witness)
+{
+  auto &tc = checker.TC;
+  assert(witness->getKind() == req->getKind());
+  switch (witness->getKind()) {
+  case DeclKind::Func: {
+    auto isSameName = [](TypeRepr *lhs, TypeRepr *rhs) -> bool {
+      assert(lhs->getKind() == rhs->getKind());
+      switch (lhs->getKind()) {
+      case TypeReprKind::SimpleIdent: {
+        auto LIdentRepr = dyn_cast<ComponentIdentTypeRepr>(lhs);
+        auto RIdentRepr = dyn_cast<ComponentIdentTypeRepr>(rhs);
+        return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier();
+      }
+      default:
+        return false;
+      }
+    };
+    bool hasPotentialParam = false;
+    auto witnessFunc = dyn_cast<AbstractFunctionDecl>(witness);
+    auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
+    auto witnessParams = witnessFunc->getParameters();
+    auto reqParams = reqFunc->getParameters();
+    tc.checkDeclAttributes(reqParams->get(0));
+    assert(witnessParams->size() == reqParams->size());
+
+    for (unsigned i = 0; i < witnessParams->size(); i++) {
+      auto reqParam = reqParams->get(i);
+      auto dmt = reqParam->getInterfaceType()->getAs<DependentMemberType>();
+      if (!dmt && !allUnresolved.count(dmt->getAssocType())) {
+        continue;
+      }
+      auto witnessParamTypeRepr = witnessParams->get(i)->getTypeLoc().getTypeRepr();
+      auto reqParamTypeRepr = reqParam->getTypeLoc().getTypeRepr();
+      hasPotentialParam = !isSameName(witnessParamTypeRepr, reqParamTypeRepr);
+    }
+    return hasPotentialParam;
+  }
+  default:
+    return true;
+  }
 }
 
 InferredAssociatedTypes

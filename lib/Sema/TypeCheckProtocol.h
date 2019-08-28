@@ -773,6 +773,12 @@ private:
                    const llvm::SetVector<AssociatedTypeDecl *> &allUnresolved,
                    AssociatedTypeDecl *assocType);
 
+  bool shouldInferViaWitness(
+    ConformanceChecker &checker,
+    const llvm::SetVector<AssociatedTypeDecl *> &allUnresolved,
+    ValueDecl *req,
+    ValueDecl *witness);
+
   /// Infer associated type witnesses for all relevant value requirements.
   ///
   /// \param assocTypes The set of associated types we're interested in.
