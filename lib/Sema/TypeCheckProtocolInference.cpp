@@ -439,7 +439,6 @@ bool AssociatedTypeInference::shouldInferViaWitness(
     auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
     auto witnessParams = witnessFunc->getParameters();
     auto reqParams = reqFunc->getParameters();
-    tc.checkDeclAttributes(reqParams->get(0));
     assert(witnessParams->size() == reqParams->size());
 
     for (unsigned i = 0; i < witnessParams->size(); i++) {
