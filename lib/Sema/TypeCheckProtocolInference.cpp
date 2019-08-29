@@ -443,7 +443,7 @@ bool AssociatedTypeInference::shouldInferViaWitness(
     for (unsigned i = 0; i < witnessParams->size(); i++) {
       auto reqParam = reqParams->get(i);
       auto dmt = reqParam->getInterfaceType()->getAs<DependentMemberType>();
-      if (!dmt && !allUnresolved.count(dmt->getAssocType())) {
+      if (!dmt || !allUnresolved.count(dmt->getAssocType())) {
         continue;
       }
       auto witnessParamTypeRepr = witnessParams->get(i)->getTypeLoc().getTypeRepr();
