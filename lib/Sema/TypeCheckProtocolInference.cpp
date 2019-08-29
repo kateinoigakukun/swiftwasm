@@ -418,11 +418,12 @@ bool AssociatedTypeInference::shouldInferViaWitness(
   ValueDecl *req,
   ValueDecl *witness)
 {
-  assert(witness->getKind() == req->getKind());
+  if (witness->getKind() != req->getKind()) return true;
+
   switch (witness->getKind()) {
   case DeclKind::Func: {
     auto isSameName = [](TypeRepr *lhs, TypeRepr *rhs) -> bool {
-      assert(lhs->getKind() == rhs->getKind());
+      if (lhs->getKind() != rhs->getKind()) return false;
       switch (lhs->getKind()) {
       case TypeReprKind::SimpleIdent: {
         auto LIdentRepr = dyn_cast<ComponentIdentTypeRepr>(lhs);
@@ -433,7 +434,6 @@ bool AssociatedTypeInference::shouldInferViaWitness(
         return false;
       }
     };
-    bool hasPotentialParam = false;
     auto witnessFunc = dyn_cast<AbstractFunctionDecl>(witness);
     auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
     auto witnessParams = witnessFunc->getParameters();
@@ -442,15 +442,20 @@ bool AssociatedTypeInference::shouldInferViaWitness(
 
     for (unsigned i = 0; i < witnessParams->size(); i++) {
       auto reqParam = reqParams->get(i);
+      auto witnessParam = witnessParams->get(i);
+      if (!reqParam->hasInterfaceType()) return true;
       auto dmt = reqParam->getInterfaceType()->getAs<DependentMemberType>();
-      if (!dmt || !allUnresolved.count(dmt->getAssocType())) {
-        continue;
-      }
-      auto witnessParamTypeRepr = witnessParams->get(i)->getTypeLoc().getTypeRepr();
+      if (!dmt || !allUnresolved.count(dmt->getAssocType())) return true;
+      auto witnessParamTypeRepr = witnessParam->getTypeLoc().getTypeRepr();
       auto reqParamTypeRepr = reqParam->getTypeLoc().getTypeRepr();
-      hasPotentialParam = !isSameName(witnessParamTypeRepr, reqParamTypeRepr);
+      if (!witnessParamTypeRepr || !reqParamTypeRepr) return true;
+      if (isSameName(witnessParamTypeRepr, reqParamTypeRepr)) {
+        continue;
+      } else {
+        return true;
+      }
     }
-    return hasPotentialParam;
+    return false;
   }
   default:
     return true;
