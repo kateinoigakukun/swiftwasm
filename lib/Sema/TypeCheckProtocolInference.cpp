@@ -428,7 +428,11 @@ bool AssociatedTypeInference::shouldInferViaWitness(
       case TypeReprKind::SimpleIdent: {
         auto LIdentRepr = dyn_cast<ComponentIdentTypeRepr>(lhs);
         auto RIdentRepr = dyn_cast<ComponentIdentTypeRepr>(rhs);
-        return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier();
+        if (!LIdentRepr->getBoundDecl() || !RIdentRepr->getBoundDecl()) {
+            return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier();
+        }
+        return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier() &&
+               LIdentRepr->getBoundDecl() == RIdentRepr->getBoundDecl();
       }
       default:
         return false;
