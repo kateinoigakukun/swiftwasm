@@ -774,7 +774,6 @@ private:
                    AssociatedTypeDecl *assocType);
 
   bool shouldInferViaWitness(
-    ConformanceChecker &checker,
     const llvm::SetVector<AssociatedTypeDecl *> &allUnresolved,
     ValueDecl *req,
     ValueDecl *witness);

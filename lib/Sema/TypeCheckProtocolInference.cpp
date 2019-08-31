@@ -247,7 +247,7 @@ AssociatedTypeInference::inferTypeWitnessesViaValueWitnesses(
       if (!isExtensionUsableForInference(extension))
         continue;
 
-    if (!shouldInferViaWitness(checker, allUnresolved, req, witness)) {
+    if (!shouldInferViaWitness(allUnresolved, req, witness)) {
       continue;
     }
     // Try to resolve the type witness via this value witness.
@@ -413,7 +413,6 @@ next_witness:;
 }
 
 bool AssociatedTypeInference::shouldInferViaWitness(
-  ConformanceChecker &checker,
   const llvm::SetVector<AssociatedTypeDecl *> &allUnresolved,
   ValueDecl *req,
   ValueDecl *witness)
@@ -422,15 +421,21 @@ bool AssociatedTypeInference::shouldInferViaWitness(
 
   switch (witness->getKind()) {
   case DeclKind::Func: {
+
     auto isSameName = [](TypeRepr *lhs, TypeRepr *rhs) -> bool {
+
       if (lhs->getKind() != rhs->getKind()) return false;
+
       switch (lhs->getKind()) {
       case TypeReprKind::SimpleIdent: {
+
         auto LIdentRepr = dyn_cast<ComponentIdentTypeRepr>(lhs);
         auto RIdentRepr = dyn_cast<ComponentIdentTypeRepr>(rhs);
+
         if (!LIdentRepr->getBoundDecl() || !RIdentRepr->getBoundDecl()) {
             return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier();
         }
+
         return RIdentRepr->getIdentifier() == LIdentRepr->getIdentifier() &&
                LIdentRepr->getBoundDecl() == RIdentRepr->getBoundDecl();
       }
@@ -438,21 +443,35 @@ bool AssociatedTypeInference::shouldInferViaWitness(
         return false;
       }
     };
+
     auto witnessFunc = dyn_cast<AbstractFunctionDecl>(witness);
     auto reqFunc = dyn_cast<AbstractFunctionDecl>(req);
     auto witnessParams = witnessFunc->getParameters();
     auto reqParams = reqFunc->getParameters();
+
     assert(witnessParams->size() == reqParams->size());
+
     if (witnessParams->size() == 0) return true;
+
+
+    // If all parameter type use unresolved assoctype name,
+    // we can't infer the assoctypes from the func interface.
     for (unsigned i = 0; i < witnessParams->size(); i++) {
+
       auto reqParam = reqParams->get(i);
       auto witnessParam = witnessParams->get(i);
+
       if (!reqParam->hasInterfaceType()) return true;
+
       auto dmt = reqParam->getInterfaceType()->getAs<DependentMemberType>();
+
       if (!dmt || !allUnresolved.count(dmt->getAssocType())) return true;
+
       auto witnessParamTypeRepr = witnessParam->getTypeLoc().getTypeRepr();
       auto reqParamTypeRepr = reqParam->getTypeLoc().getTypeRepr();
+
       if (!witnessParamTypeRepr || !reqParamTypeRepr) return true;
+
       if (isSameName(witnessParamTypeRepr, reqParamTypeRepr)) {
         continue;
       } else {
