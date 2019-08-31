@@ -439,7 +439,7 @@ bool AssociatedTypeInference::shouldInferViaWitness(
     auto witnessParams = witnessFunc->getParameters();
     auto reqParams = reqFunc->getParameters();
     assert(witnessParams->size() == reqParams->size());
-
+    if (witnessParams->size() == 0) return true;
     for (unsigned i = 0; i < witnessParams->size(); i++) {
       auto reqParam = reqParams->get(i);
       auto witnessParam = witnessParams->get(i);
