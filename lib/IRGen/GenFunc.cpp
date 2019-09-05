@@ -868,7 +868,7 @@ static llvm::Function *emitPartialApplicationForwarder(IRGenModule &IGM,
   // There's still a placeholder to claim if the target type is thick
   // or there's an error result.
   } else if (outType->getRepresentation()==SILFunctionTypeRepresentation::Thick
-             || outType->hasErrorResult()) {
+             || outType->hasErrorResult() || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     llvm::Value *contextPtr = origParams.claimNext(); (void)contextPtr;
     assert(contextPtr->getType() == IGM.RefCountedPtrTy);
   }
@@ -1166,7 +1166,7 @@ static llvm::Function *emitPartialApplicationForwarder(IRGenModule &IGM,
     args.add(fnContext);
 
   // Pass a placeholder for thin function calls.
-  } else if (origType->hasErrorResult()) {
+  } else if (origType->hasErrorResult() || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     args.add(llvm::UndefValue::get(IGM.RefCountedPtrTy));
   }
 
@@ -1176,7 +1176,7 @@ static llvm::Function *emitPartialApplicationForwarder(IRGenModule &IGM,
     witnessMethodSelfValue.transferInto(args, witnessMethodSelfValue.size());
 
   // Pass down the error result.
-  if (origType->hasErrorResult()) {
+  if (origType->hasErrorResult() || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     llvm::Value *errorResultPtr = origParams.claimNext();
     args.add(errorResultPtr);
   }
@@ -1342,7 +1342,7 @@ Optional<StackAddress> irgen::emitFunctionPartialApplication(
   // context parameter.  When we do that, all of this code will
   // disappear.
   if (hasSingleSwiftRefcountedContext == Yes &&
-      origType->hasErrorResult()) {
+      (origType->hasErrorResult() || IGF.IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm)) {
     hasSingleSwiftRefcountedContext = Thunkable;
   }
   
