@@ -1387,7 +1387,7 @@ void SignatureExpansion::expandParameters() {
   // Error results are last.  We always pass them as a pointer to the
   // formal error type; LLVM will magically turn this into a non-pointer
   // if we set the right attribute.
-  if (FnType->hasErrorResult() || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+  if (FnType->hasErrorResult()) {
     if (claimError())
       IGM.addSwiftErrorAttributes(Attrs, ParamIRTypes.size());
     llvm::Type *errorType = IGM.getStorageType(
