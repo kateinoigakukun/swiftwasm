@@ -385,8 +385,12 @@ class CanType : public Type {
 
 public:
   explicit CanType(TypeBase *P = 0) : Type(P) {
+    assert(isActuallyCanonicalOrNull() &&
+           "Forming a CanType out of a non-canonical type!");
   }
   explicit CanType(Type T) : Type(T) {
+    assert(isActuallyCanonicalOrNull() &&
+           "Forming a CanType out of a non-canonical type!");
   }
 
   void visit(llvm::function_ref<void (CanType)> fn) const {

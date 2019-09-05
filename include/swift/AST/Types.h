@@ -3775,6 +3775,7 @@ private:
   }
 
   SILResultInfo &getMutableErrorResult() {
+    assert(hasErrorResult());
     return *reinterpret_cast<SILResultInfo*>(getEndOfFormalResults());
   }
 
