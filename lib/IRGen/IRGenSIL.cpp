@@ -1427,7 +1427,8 @@ static void emitEntryPointArgumentsNativeCC(IRGenSILFunction &IGF,
   }
 
   // Bind the error result by popping it off the parameter list.
-  if (funcTy->hasErrorResult()) {
+  if (funcTy->hasErrorResult() ||
+      IGF.IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     IGF.setErrorResultSlot(allParamValues.takeLast());
   }
 
@@ -1456,9 +1457,11 @@ static void emitEntryPointArgumentsNativeCC(IRGenSILFunction &IGF,
   // Even if we don't have a 'self', if we have an error result, we
   // should have a placeholder argument here.
   } else if (funcTy->hasErrorResult() ||
+//           IGF.IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm ||
            funcTy->getRepresentation() == SILFunctionTypeRepresentation::Thick)
   {
     llvm::Value *contextPtr = allParamValues.takeLast(); (void) contextPtr;
+    contextPtr->getType()->dump();
     assert(contextPtr->getType() == IGF.IGM.RefCountedPtrTy);
   }
 

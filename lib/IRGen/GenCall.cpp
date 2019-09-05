@@ -1393,6 +1393,17 @@ void SignatureExpansion::expandParameters() {
     llvm::Type *errorType = IGM.getStorageType(
         getSILFuncConventions().getSILType(FnType->getErrorResult()));
     ParamIRTypes.push_back(errorType->getPointerTo());
+      
+  } else if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+    if (claimError())
+      IGM.addSwiftErrorAttributes(Attrs, ParamIRTypes.size());
+    SILType exnType = SILType::getExceptionType(IGM.Context);
+    assert(exnType.isObject());
+    auto errorResult = SILResultInfo(exnType.getASTType(),
+                                     ResultConvention::Owned);
+    llvm::Type *errorType = IGM.getStorageType(
+      getSILFuncConventions().getSILType(errorResult));
+    ParamIRTypes.push_back(errorType->getPointerTo());
   }
 
   // Witness methods have some extra parameter types.
