@@ -2288,6 +2288,8 @@ void IRGenSILFunction::visitFullApplySite(FullApplySite site) {
     } else {
       selfValue = getLoweredAddress(selfArg).getAddress();
     }
+  } else if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+    selfValue = llvm::ConstantPointerNull::get(IGM.RefCountedPtrTy);
   }
 
   Explosion llArgs;    
