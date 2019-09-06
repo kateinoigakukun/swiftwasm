@@ -1359,6 +1359,7 @@ void SignatureExpansion::expandParameters() {
            "adding 'self' added unexpected number of parameters");
   } else {
     auto needsContext = [=]() -> bool {
+      if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) return true;
       switch (FnType->getRepresentation()) {
       case SILFunctionType::Representation::Block:
         llvm_unreachable("adding block parameter in Swift CC expansion?");

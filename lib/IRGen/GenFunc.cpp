@@ -868,7 +868,8 @@ static llvm::Function *emitPartialApplicationForwarder(IRGenModule &IGM,
   // There's still a placeholder to claim if the target type is thick
   // or there's an error result.
   } else if (outType->getRepresentation()==SILFunctionTypeRepresentation::Thick
-             || outType->hasErrorResult() || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+             || outType->hasErrorResult()
+             || IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     llvm::Value *contextPtr = origParams.claimNext(); (void)contextPtr;
     assert(contextPtr->getType() == IGM.RefCountedPtrTy);
   }
@@ -919,7 +920,7 @@ static llvm::Function *emitPartialApplicationForwarder(IRGenModule &IGM,
   }
 
   auto haveContextArgument =
-      calleeHasContext || hasSelfContextParameter(origType);
+      calleeHasContext || hasSelfContextParameter(origType) || (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm);
 
   // Witness method calls expect self, followed by the self type followed by,
   // the witness table at the end of the parameter list. But polymorphic

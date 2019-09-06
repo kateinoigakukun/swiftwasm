@@ -1457,7 +1457,7 @@ static void emitEntryPointArgumentsNativeCC(IRGenSILFunction &IGF,
   // Even if we don't have a 'self', if we have an error result, we
   // should have a placeholder argument here.
   } else if (funcTy->hasErrorResult() ||
-//           IGF.IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm ||
+           IGF.IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm ||
            funcTy->getRepresentation() == SILFunctionTypeRepresentation::Thick)
   {
     llvm::Value *contextPtr = allParamValues.takeLast(); (void) contextPtr;
