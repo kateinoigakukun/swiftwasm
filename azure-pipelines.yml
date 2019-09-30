@@ -21,7 +21,8 @@ jobs:
       chmod +x install_cmake.sh
       sudo mkdir -p /opt/cmake
       sudo ./install_cmake.sh --skip-license --prefix=/opt/cmake
-      sudo ln -sf /opt/cmake/bin/* /usr/bin
+      sudo ln -sf /opt/cmake/bin/* /usr/local/bin
+      cmake --version
     displayName: Install CMake v3.15.3
   - script: |
       mkdir -p swift-source/swift
