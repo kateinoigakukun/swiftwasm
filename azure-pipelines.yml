@@ -51,7 +51,7 @@ jobs:
       artifactName: swiftwasm-sdk
   - task: GitHubRelease@0
     inputs:
-      gitHubConnection: github-release
+      gitHubConnection: swiftwasm-release
       tagSource: manual
       tag: $(Build.BuildNumber)
       assets: |
