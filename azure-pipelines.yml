@@ -1,3 +1,5 @@
+variables:
+  system.debug: true
 jobs:
 - job: Build
   timeoutInMinutes: 0
@@ -22,16 +24,17 @@ jobs:
       sudo ln -sf /opt/cmake/bin/* /usr/bin
     displayName: Install CMake v3.15.3
   - script: |
-      mkdir swift-source
+      mkdir -p swift-source/swift
     displayName: Create swift-source workspace
-    workingDirectory: $(Build.SourcesDirectory)
+    workingDirectory: $(Pipeline.Workspace)
   - checkout: self
+    path: swift-source/swift
   - script: |
       wget -O wasisdk.deb "https://github.com/swiftwasm/wasi-sdk/releases/download/20190421.6/wasi-sdk_3.19gefb17cb478f9.m_amd64.deb"
       sudo dpkg -i wasisdk.deb
       wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
       tar xf icu.tar.xz
-    workingDirectory: $(Build.SourcesDirectory)/swift-source
+    workingDirectory: $(Pipeline.Workspace)/swift-source
     displayName: Install wasi-sdk and icu4c-wasi
   - script: |
       sourcedir="$PWD"
@@ -52,7 +55,7 @@ jobs:
         cp "$sourcedir/swiftwasm.tar.gz" "$BUILD_ARTIFACTSTAGINGDIRECTORY/"
     displayName: Build swiftc
     timeoutInMinutes: 0
-    workingDirectory: $(Build.SourcesDirectory)/swift-source
+    workingDirectory: $(Pipeline.Workspace)/swift-source
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
