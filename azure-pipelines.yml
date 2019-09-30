@@ -17,14 +17,15 @@ jobs:
   - script: |
       mkdir swift-source
     displayName: Create swift-source workspace
+    workingDirectory: $(Build.SourcesDirectory)
   - checkout: self
-    path: swift-source/swift
+    path: swift-source
   - script: |
       wget -O wasisdk.deb "https://github.com/swiftwasm/wasi-sdk/releases/download/20190421.6/wasi-sdk_3.19gefb17cb478f9.m_amd64.deb"
       sudo dpkg -i wasisdk.deb
       wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
       tar xf icu.tar.xz
-    workingDirectory: swift-source
+    workingDirectory: $(Build.SourcesDirectory)/swift-source
     displayName: Install wasi-sdk and icu4c-wasi
   - script: |
       sourcedir="$PWD"
@@ -45,6 +46,7 @@ jobs:
         cp "$sourcedir/swiftwasm.tar.gz" "$BUILD_ARTIFACTSTAGINGDIRECTORY/"
     displayName: Build swiftc
     timeoutInMinutes: 0
+    workingDirectory: $(Build.SourcesDirectory)/swift-source
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
