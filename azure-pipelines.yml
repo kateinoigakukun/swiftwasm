@@ -41,7 +41,7 @@ jobs:
       sourcedir="$PWD"
       cd swift
       utils/update-checkout --clone --scheme wasm
-      utils/build-script --debug --wasm \
+      utils/build-script --release --wasm \
         --llvm-targets-to-build "X86;WebAssembly" \
         --wasm-wasi-sdk "/opt/wasi-sdk" \
         --wasm-icu-uc "todo" \
