@@ -1,7 +1,7 @@
 variables:
   system.debug: true
 jobs:
-- job: Build
+- job: Ubuntu
   timeoutInMinutes: 0
   pool:
     vmImage: 'Ubuntu-16.04'
@@ -55,6 +55,70 @@ jobs:
         --install-destdir="$sourcedir/install" \
         --installable-package="$sourcedir/swiftwasm.tar.gz"
         cp "$sourcedir/swiftwasm.tar.gz" "$BUILD_ARTIFACTSTAGINGDIRECTORY/"
+    displayName: Build swiftc
+    timeoutInMinutes: 0
+    workingDirectory: $(Pipeline.Workspace)/swift-source
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: swiftwasm-sdk
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: swiftwasm-release
+      tagSource: manual
+      tag: $(Build.BuildNumber)
+      assets: |
+        $(Build.ArtifactStagingDirectory)/*
+
+- job: macOS
+  timeoutInMinutes: 0
+  pool:
+    vmImage: 'macOS-10.14'
+  steps:
+  - script: |
+      brew install ninja
+
+    displayName: Install dependencies via apt-get
+  - script: |
+      wget -O cmake-3.15.3-Darwin-x86_64.tar.gz "https://github.com/Kitware/CMake/releases/download/v3.15.3/cmake-3.15.3-Linux-x86_64.s://github.com/Kitware/CMake/releases/download/v3.15.3/cmake-3.15.3-Darwin-x86_64.tar.gz"
+      tar xfvz cmake-3.15.3-Darwin-x86_64.tar.gz
+      sudo ln -sf ./cmake-3.15.3-Darwin-x86_64/CMake.app/Contents/bin/* /usr/local/bin
+      cmake --version
+    displayName: Install CMake v3.15.3
+  - script: |
+      mkdir -p swift-source/swift
+    displayName: Create swift-source workspace
+    workingDirectory: $(Pipeline.Workspace)
+  - checkout: self
+    path: swift-source/swift
+  - script: |
+      wget -O wasisdk.deb "https://github.com/swiftwasm/wasi-sdk/releases/download/20190421.6/wasi-sdk_3.19gefb17cb478f9.m_amd64.deb"
+      sudo dpkg -i wasisdk.deb
+      wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
+      tar xf icu.tar.xz
+    workingDirectory: $(Pipeline.Workspace)/swift-source
+    displayName: Install wasi-sdk and icu4c-wasi
+  - script: |
+      sourcedir="$PWD"
+      cd swift
+      utils/update-checkout --clone --scheme wasm
+      utils/build-script --release --wasm \
+        --llvm-targets-to-build "X86;WebAssembly" \
+        --stdlib-deployment-targets "macosx-x86_64" \
+        --extra-cmake-options="-DSWIFT_WASM_WASI_SDK_PATH=/usr/local/opt/llvm" \
+        --wasm-wasi-sdk "/opt/wasi-sdk" \
+        --wasm-icu-uc "todo" \
+        --wasm-icu-uc-include "$sourcedir/icu_out/include" \
+        --wasm-icu-i18n "todo" \
+        --wasm-icu-i18n-include "todo" \
+        --wasm-icu-data "todo" \
+        --build-swift-static-stdlib \
+        --install-swift \
+        --install-prefix="/opt/swiftwasm-sdk" \
+        --install-destdir="$sourcedir/install" \
+        --installable-package="$sourcedir/swiftwasm-mac.tar.gz"
+
+        cp "$sourcedir/swiftwasm-mac.tar.gz" "$BUILD_ARTIFACTSTAGINGDIRECTORY/"
     displayName: Build swiftc
     timeoutInMinutes: 0
     workingDirectory: $(Pipeline.Workspace)/swift-source
