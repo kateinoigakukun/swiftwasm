@@ -328,6 +328,7 @@ function(_add_variant_c_compile_flags)
      list(APPEND result -isystem;${ICU_UC_INCLUDE_DIR})
    endif()
   endif()
+  message("[katei] SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_UC_INCLUDE=${SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_UC_INCLUDE}")
 
   set(ICU_I18N_INCLUDE_DIR ${SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_I18N_INCLUDE})
   if(NOT "${ICU_I18N_INCLUDE_DIR}" STREQUAL "" AND
