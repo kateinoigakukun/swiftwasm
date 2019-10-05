@@ -105,7 +105,6 @@ function(_add_variant_c_compile_link_flags)
 
   set(result ${${CFLAGS_RESULT_VAR_NAME}})
 
-  message("[katei in AddSwift.cmake] CFLAGS_SDK=${CFLAGS_SDK}")
   is_darwin_based_sdk("${CFLAGS_SDK}" IS_DARWIN)
   if(IS_DARWIN)
     # Check if there's a specific OS deployment version needed for this invocation
@@ -132,7 +131,6 @@ function(_add_variant_c_compile_link_flags)
 
   set(_sysroot "${SWIFT_SDK_${CFLAGS_SDK}_ARCH_${CFLAGS_ARCH}_PATH}")
   if(IS_DARWIN)
-    message("[katei in AddSwift.cmake] Adding isysroot")
     list(APPEND result "-isysroot" "${_sysroot}")
   elseif(NOT SWIFT_COMPILER_IS_MSVC_LIKE AND NOT "${_sysroot}" STREQUAL "/")
     list(APPEND result "--sysroot=${_sysroot}")
@@ -319,7 +317,6 @@ function(_add_variant_c_compile_flags)
     endforeach()
   endif()
 
-  message("[katei in AddSwift] SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_UC_INCLUDE=${SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_UC_INCLUDE}")
   set(ICU_UC_INCLUDE_DIR ${SWIFT_${CFLAGS_SDK}_${CFLAGS_ARCH}_ICU_UC_INCLUDE})
   if(NOT "${ICU_UC_INCLUDE_DIR}" STREQUAL "" AND
      NOT "${ICU_UC_INCLUDE_DIR}" STREQUAL "/usr/include" AND
@@ -2132,8 +2129,7 @@ function(add_swift_target_library name)
 
       foreach(arch ${SWIFT_SDK_${sdk}_ARCHITECTURES})
         set(VARIANT_SUFFIX "-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch}")
-        message("[katei in AddSwift] VARIANT_SUFFIX=-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch}")
-        if(TARGET "swift-stdlib${VARIANT_SUFFIX}" AND
+                if(TARGET "swift-stdlib${VARIANT_SUFFIX}" AND
            TARGET "swift-test-stdlib${VARIANT_SUFFIX}")
           add_dependencies("swift-stdlib${VARIANT_SUFFIX}"
               ${lipo_target}

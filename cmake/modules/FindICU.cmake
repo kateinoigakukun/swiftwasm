@@ -36,6 +36,5 @@ foreach(sdk ANDROID;FREEBSD;LINUX;WINDOWS;HAIKU;WASM)
   endforeach()
 endforeach()
 
-message("[katei in FindICU] ICU_I18N_INCLUDE_DIRS=${ICU_I18N_INCLUDE_DIRS}")
 find_package_handle_standard_args(ICU DEFAULT_MSG ${ICU_REQUIRED})
 mark_as_advanced(${ICU_REQUIRED})
