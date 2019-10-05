@@ -1744,7 +1744,6 @@ function(add_swift_target_library name)
     list(APPEND SWIFTLIB_SWIFT_COMPILE_FLAGS "-warn-implicit-overrides")
   endif()
 
-
   if(NOT SWIFT_BUILD_RUNTIME_WITH_HOST_COMPILER AND NOT BUILD_STANDALONE)
     list(APPEND SWIFTLIB_DEPENDS clang)
   endif()
@@ -2129,7 +2128,7 @@ function(add_swift_target_library name)
 
       foreach(arch ${SWIFT_SDK_${sdk}_ARCHITECTURES})
         set(VARIANT_SUFFIX "-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch}")
-                if(TARGET "swift-stdlib${VARIANT_SUFFIX}" AND
+        if(TARGET "swift-stdlib${VARIANT_SUFFIX}" AND
            TARGET "swift-test-stdlib${VARIANT_SUFFIX}")
           add_dependencies("swift-stdlib${VARIANT_SUFFIX}"
               ${lipo_target}
