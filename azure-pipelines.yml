@@ -43,6 +43,8 @@ jobs:
       utils/update-checkout --clone --scheme wasm
       utils/build-script --release --wasm \
         --llvm-targets-to-build "X86;WebAssembly" \
+        --build-swift-dynamic-sdk-overlay false \
+        --build-swift-static-sdk-overlay false \
         --wasm-wasi-sdk "/opt/wasi-sdk" \
         --wasm-icu-uc "todo" \
         --wasm-icu-uc-include "$sourcedir/icu_out/include" \
@@ -111,9 +113,6 @@ jobs:
         --verbose \
         --skip-build-benchmarks # Avoid to use darwin platform SDK \
         --llvm-targets-to-build "X86;WebAssembly" \
-        --extra-cmake-options=" \
-          -DSWIFT_BUILD_DYNAMIC_SDK_OVERLAY=NO \
-        " \
         --wasm-wasi-sdk "$sourcedir/wasi-sdk" \
         --wasm-icu-uc "todo" \
         --wasm-icu-uc-include "$sourcedir/icu_out/include" \

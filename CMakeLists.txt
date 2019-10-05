@@ -74,7 +74,7 @@ else()
 endif()
 
 if(SWIFT_BUILD_DYNAMIC_SDK_OVERLAY OR SWIFT_BUILD_STATIC_SDK_OVERLAY)
-  set(SWIFT_BUILD_SDK_OVERLAY FALSE)
+  set(SWIFT_BUILD_SDK_OVERLAY TRUE)
 else()
   set(SWIFT_BUILD_SDK_OVERLAY FALSE)
 endif()
@@ -811,7 +811,7 @@ if(swift_build_wasm AND NOT "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "WASM")
   #  message(FATAL_ERROR "A Darwin or Linux host is required to build the Swift runtime for Android")
   #endif()
 
-  if (NOT ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+  if (NOT ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin"))
     # WebAssembly: hack: use llvm-ar for creating static libraries; Ubuntu's GNU ar doesn't work with wasm-ld
     set(CMAKE_AR "${SWIFT_WASM_WASI_SDK_PATH}/bin/llvm-ar")
   endif()
