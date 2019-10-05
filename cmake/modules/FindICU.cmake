@@ -13,13 +13,11 @@ foreach(MODULE ${ICU_FIND_COMPONENTS})
 
   pkg_check_modules(PC_ICU_${MODULE} QUIET icu-${module})
   if(NOT PKG_CONFIG_FOUND)
-    message("[katei] not PKG_CONFIG_FOUND")
     # PkgConfig doesn't exist on this system, so we manually provide hints via CMake.
     set(PC_ICU_${MODULE}_INCLUDE_DIRS "${ICU_${MODULE}_INCLUDE_DIRS}")
     set(PC_ICU_${MODULE}_LIBRARY_DIRS "${ICU_${MODULE}_LIBRARY_DIRS}")
   endif()
 
-  message("[katei] PC_ICU_${MODULE}_INCLUDE_DIRS=${PC_ICU_${MODULE}_INCLUDE_DIRS}")
   find_path(ICU_${MODULE}_INCLUDE_DIRS unicode
     HINTS ${PC_ICU_${MODULE}_INCLUDE_DIRS})
   find_library(ICU_${MODULE}_LIBRARIES NAMES icu${module} ${ICU_${MODULE}_LIB_NAME}
@@ -38,5 +36,6 @@ foreach(sdk ANDROID;FREEBSD;LINUX;WINDOWS;HAIKU;WASM)
   endforeach()
 endforeach()
 
-#find_package_handle_standard_args(ICU DEFAULT_MSG ${ICU_REQUIRED})
-#mark_as_advanced(${ICU_REQUIRED})
+message("[katei in FindICU] ICU_I18N_INCLUDE_DIRS=${ICU_I18N_INCLUDE_DIRS}")
+find_package_handle_standard_args(ICU DEFAULT_MSG ${ICU_REQUIRED})
+mark_as_advanced(${ICU_REQUIRED})

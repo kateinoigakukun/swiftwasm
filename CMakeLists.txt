@@ -30,7 +30,7 @@ include(SwiftUtils)
 include(CheckSymbolExists)
 
 # WebAssembly: hack: use llvm-ar for creating static libraries; Ubuntu's GNU ar doesn't work with wasm-ld
-set(CMAKE_AR "${SWIFT_WASM_WASI_SDK_PATH}/bin/llvm-ar")
+# set(CMAKE_AR "${SWIFT_WASM_WASI_SDK_PATH}/bin/llvm-ar")
 
 #
 # User-configurable options that control the inclusion and default build
@@ -587,6 +587,7 @@ include(SwiftCheckCXXNativeRegex)
 check_cxx_native_regex(SWIFT_HAVE_WORKING_STD_REGEX)
 
 # If SWIFT_HOST_VARIANT_SDK not given, try to detect from the CMAKE_SYSTEM_NAME.
+message("[katei in CMakeLists.txt] SWIFT_HOST_VARIANT_SDK=${SWIFT_HOST_VARIANT_SDK}")
 if(SWIFT_HOST_VARIANT_SDK)
   set(SWIFT_HOST_VARIANT_SDK_default "${SWIFT_HOST_VARIANT_SDK}")
 else()
@@ -831,6 +832,10 @@ precondition(SWIFT_CONFIGURED_SDKS MESSAGE "No SDKs selected.")
 precondition(SWIFT_HOST_VARIANT_SDK MESSAGE "No SDK for host tools.")
 precondition(SWIFT_HOST_VARIANT_ARCH MESSAGE "No arch for host tools")
 
+message("[katei in CMakeList.txt] SWIFT_PRIMARY_VARIANT_SDK=${SWIFT_PRIMARY_VARIANT_SDK}")
+message("[katei in CMakeList.txt] SWIFT_PRIMARY_VARIANT_ARCH=${SWIFT_PRIMARY_VARIANT_ARCH}")
+message("[katei in CMakeList.txt] SWIFT_SDK_${SWIFT_PRIMARY_VARIANT_SDK}_LIB_SUBDIR=${SWIFT_SDK_${SWIFT_PRIMARY_VARIANT_SDK}_LIB_SUBDIR}")
+message("[katei in CMakeList.txt] SWIFT_SDK_${SWIFT_PRIMARY_VARIANT_SDK}_LIB_SUBDIR-SWIFT_PRIMARY_VARIANT_ARCH=-${SWIFT_SDK_${SWIFT_PRIMARY_VARIANT_SDK}_LIB_SUBDIR}-${SWIFT_PRIMARY_VARIANT_ARCH}")
 set(SWIFT_PRIMARY_VARIANT_SUFFIX
     "-${SWIFT_SDK_${SWIFT_PRIMARY_VARIANT_SDK}_LIB_SUBDIR}-${SWIFT_PRIMARY_VARIANT_ARCH}")
 
