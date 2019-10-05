@@ -111,7 +111,7 @@ jobs:
       utils/update-checkout --clone --scheme wasm
       utils/build-script --release --wasm \
         --verbose \
-        --skip-build-benchmarks # Avoid to use darwin platform SDK \
+        --skip-build-benchmarks \
         --llvm-targets-to-build "X86;WebAssembly" \
         --wasm-wasi-sdk "$sourcedir/wasi-sdk" \
         --wasm-icu-uc "todo" \
