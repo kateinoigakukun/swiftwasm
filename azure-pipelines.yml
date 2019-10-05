@@ -92,8 +92,13 @@ jobs:
   - checkout: self
     path: swift-source/swift
   - script: |
-      wget -O wasisdk.deb "https://github.com/swiftwasm/wasi-sdk/releases/download/20190421.6/wasi-sdk_3.19gefb17cb478f9.m_amd64.deb"
-      sudo dpkg -i wasisdk.deb
+      wget -O wasi-sdk.tar.gz https://github.com/swiftwasm/wasi-sdk/releases/download/20190421.6/wasi-sdk-3.19gefb17cb478f9.m-linux.tar.gz
+      tar xfz wasi-sdk.tar.gz
+      mv wasi-sdk-3.19gefb17cb478f9+m/opt/wasi-sdk ./wasi-sdk
+      # Link sysroot/usr/include to sysroot/include because Darwin sysroot doesn't 
+      # find header files in sysroot/include but sysroot/usr/include
+      mkdir wasi-sdk/share/sysroot/usr/
+      ln -s ../include wasi-sdk/share/sysroot/usr/include
       wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
       tar xf icu.tar.xz
     workingDirectory: $(Pipeline.Workspace)/swift-source
@@ -103,10 +108,13 @@ jobs:
       cd swift
       utils/update-checkout --clone --scheme wasm
       utils/build-script --release --wasm \
+        --verbose \
+        --skip-build-benchmarks # Avoid to use darwin platform SDK \
         --llvm-targets-to-build "X86;WebAssembly" \
-        --stdlib-deployment-targets "macosx-x86_64" \
-        --extra-cmake-options="-DSWIFT_WASM_WASI_SDK_PATH=/usr/local/opt/llvm" \
-        --wasm-wasi-sdk "/opt/wasi-sdk" \
+        --extra-cmake-options=" \
+          -DSWIFT_BUILD_DYNAMIC_SDK_OVERLAY=NO \
+        " \
+        --wasm-wasi-sdk "$sourcedir/wasi-sdk" \
         --wasm-icu-uc "todo" \
         --wasm-icu-uc-include "$sourcedir/icu_out/include" \
         --wasm-icu-i18n "todo" \
