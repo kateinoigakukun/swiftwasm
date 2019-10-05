@@ -41,6 +41,7 @@ jobs:
       sourcedir="$PWD"
       cd swift
       utils/update-checkout --clone --scheme wasm
+      git checkout $BUILD_SOURCEBRANCHNAME || git checkout $SYSTEM_PULLREQUEST_SOURCEBRANCH
       utils/build-script --release --wasm \
         --llvm-targets-to-build "X86;WebAssembly" \
         --build-swift-dynamic-sdk-overlay false \
@@ -109,9 +110,12 @@ jobs:
       sourcedir="$PWD"
       cd swift
       utils/update-checkout --clone --scheme wasm
+      git checkout $BUILD_SOURCEBRANCHNAME || git checkout $SYSTEM_PULLREQUEST_SOURCEBRANCH
       utils/build-script --release --wasm \
         --verbose \
         --skip-build-benchmarks \
+        --build-swift-dynamic-sdk-overlay false \
+        --build-swift-static-sdk-overlay false \
         --llvm-targets-to-build "X86;WebAssembly" \
         --wasm-wasi-sdk "$sourcedir/wasi-sdk" \
         --wasm-icu-uc "todo" \
