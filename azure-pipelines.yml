@@ -41,6 +41,7 @@ jobs:
       sourcedir="$PWD"
       cd swift
       utils/update-checkout --clone --scheme wasm
+      git checkout $BUILD_SOURCEBRANCHNAME
       utils/build-script --release --wasm \
         --llvm-targets-to-build "X86;WebAssembly" \
         --build-swift-dynamic-sdk-overlay false \
@@ -109,6 +110,7 @@ jobs:
       sourcedir="$PWD"
       cd swift
       utils/update-checkout --clone --scheme wasm
+      git checkout $BUILD_SOURCEBRANCHNAME
       utils/build-script --release --wasm \
         --verbose \
         --skip-build-benchmarks \
