@@ -130,7 +130,7 @@ jobs:
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
       artifactName: swiftwasm-sdk-macos
-- job: Upload Artifacts
+- job: UploadArtifacts
   dependsOn:
     - Ubuntu
     - macOS
