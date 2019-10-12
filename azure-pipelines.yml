@@ -64,14 +64,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
-      artifactName: swiftwasm-sdk
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: swiftwasm-release
-      tagSource: manual
-      tag: $(Build.BuildNumber)-linux
-      assets: |
-        $(Build.ArtifactStagingDirectory)/*
+      artifactName: swiftwasm-sdk-linux
 
 - job: macOS
   timeoutInMinutes: 0
@@ -136,11 +129,15 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
-      artifactName: swiftwasm-sdk
+      artifactName: swiftwasm-sdk-macos
+- job: Upload Artifacts
+  dependsOn:
+    - Ubuntu
+    - macOS
+  steps:
   - task: GitHubRelease@0
     inputs:
       gitHubConnection: swiftwasm-release
       tagSource: manual
-      tag: $(Build.BuildNumber)-osx
-      assets: |
-        $(Build.ArtifactStagingDirectory)/*
+      tag: $(Build.BuildNumber)
+      assets: $(Build.ArtifactStagingDirectory)/*
