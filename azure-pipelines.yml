@@ -135,6 +135,11 @@ jobs:
     - Ubuntu
     - macOS
   steps:
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      downloadType: 'specific'
+      itemPattern: '**'
+      downloadPath: $(Build.ArtifactStagingDirectory)
   - task: GitHubRelease@0
     inputs:
       gitHubConnection: swiftwasm-release
