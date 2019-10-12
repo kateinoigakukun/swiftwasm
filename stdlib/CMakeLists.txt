@@ -5,6 +5,7 @@ list(APPEND CMAKE_MODULE_PATH
 
 include(AddSwiftStdlib)
 
+set(CMAKE_OSX_SYSROOT "${SWIFT_WASM_WASI_SDK_PATH}")
 # Create convenience targets for the Swift standard library.
 
 # NOTE(compnerd) save the original compiler for the host swiftReflection that

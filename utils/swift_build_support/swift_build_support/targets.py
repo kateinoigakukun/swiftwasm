@@ -228,10 +228,6 @@ class StdlibDeploymentTarget(object):
             if machine == 'x86_64':
                 return StdlibDeploymentTarget.Haiku.x86_64
 
-        elif system == 'Wasm':
-            if machine == 'wasm32':
-                return StdlibDeploymentTarget.Wasm.wasm32
-
         raise NotImplementedError('System "%s" with architecture "%s" is not '
                                   'supported' % (system, machine))
 
