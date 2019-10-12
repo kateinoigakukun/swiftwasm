@@ -51,7 +51,7 @@
         "wasm": {
             "aliases": ["wasm"],
             "repos": {
-                "llvm": "70750031c843e6b28e8c7cd16115b085ade9f512",
+                "llvm": "836189318a65e736953a0300fe5b4c9f3438e8c9",
                 "clang": "a99d2299e8ec916acc771277ad8e92d6eebb9715",
                 "swift": "swiftwasm",
                 "lldb": "74401cca6e9787b935a528806770990d6360cf0e",
