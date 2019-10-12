@@ -69,7 +69,7 @@ jobs:
     inputs:
       gitHubConnection: swiftwasm-release
       tagSource: manual
-      tag: $(Build.BuildNumber)
+      tag: $(Build.BuildNumber)-linux
       assets: |
         $(Build.ArtifactStagingDirectory)/*
 
@@ -141,6 +141,6 @@ jobs:
     inputs:
       gitHubConnection: swiftwasm-release
       tagSource: manual
-      tag: $(Build.BuildNumber)
+      tag: $(Build.BuildNumber)-osx
       assets: |
         $(Build.ArtifactStagingDirectory)/*
