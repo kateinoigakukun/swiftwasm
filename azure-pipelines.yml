@@ -65,13 +65,6 @@ jobs:
     inputs:
       pathtoPublish: $(Build.ArtifactStagingDirectory)
       artifactName: swiftwasm-sdk-linux
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: swiftwasm-release
-      tagSource: manual
-      tag: $(Build.BuildNumber)
-      assets: |
-        $(Build.ArtifactStagingDirectory)/*
 
 - job: macOS
   timeoutInMinutes: 0
