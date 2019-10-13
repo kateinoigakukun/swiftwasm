@@ -1,5 +1,6 @@
 # All libraries in this directory tree are overlays that depend on Darwin SDK.
 
+set(CMAKE_OSX_SYSROOT "/Applications/Xcode-11.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk")
 set(SWIFT_SDK_OVERLAY_LIBRARY_BUILD_TYPES)
 if(SWIFT_BUILD_DYNAMIC_SDK_OVERLAY)
   list(APPEND SWIFT_SDK_OVERLAY_LIBRARY_BUILD_TYPES SHARED)
