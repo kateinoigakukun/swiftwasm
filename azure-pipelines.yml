@@ -145,4 +145,4 @@ jobs:
       gitHubConnection: swiftwasm-release
       tagSource: manual
       tag: $(Build.BuildNumber)
-      assets: $(Build.ArtifactStagingDirectory)/*
+      assets: $(Build.ArtifactStagingDirectory)/*/*
