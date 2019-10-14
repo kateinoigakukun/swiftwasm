@@ -202,6 +202,10 @@ foreach(sdk ${SWIFT_CONFIGURED_SDKS})
     set(arch_subdir "${SWIFT_SDK_${sdk}_LIB_SUBDIR}/${arch}")
     set(arch_suffix "${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch}")
 
+    if(sdk STREQUAL WASM)
+      set(CMAKE_OSX_SYSROOT "${SWIFT_WASM_WASI_SDK_PATH}")
+    endif()
+
     if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF" OR
        "${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "COFF")
       # TODO(compnerd) switch to the generator expression when cmake is upgraded
