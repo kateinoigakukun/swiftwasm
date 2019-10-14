@@ -657,13 +657,6 @@ endif()
 # Configure SDKs.
 #
 
-if(XCODE)
-  # FIXME: Cannot cross-compile the standard library using Xcode.  Xcode
-  # insists on passing -mmacosx-version-min to the compiler, and we need
-  # to pass -mios-version-min.  Clang sees both options and complains.
-  set(SWIFT_SDKS "OSX")
-endif()
-
 # FIXME: the parameters we specify in SWIFT_SDKS are lacking architecture specifics,
 # so we need to hard-code it. For example, the SDK for Android is just 'ANDROID',
 # which we assume below to be armv7.
