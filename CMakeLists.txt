@@ -29,9 +29,6 @@ ENABLE_LANGUAGE(C)
 include(SwiftUtils)
 include(CheckSymbolExists)
 
-# WebAssembly: hack: use llvm-ar for creating static libraries; Ubuntu's GNU ar doesn't work with wasm-ld
-set(CMAKE_AR "${SWIFT_WASM_WASI_SDK_PATH}/bin/llvm-ar")
-
 #
 # User-configurable options that control the inclusion and default build
 # behavior for components which may not strictly be necessary (tools, examples,
@@ -660,13 +657,6 @@ endif()
 # Configure SDKs.
 #
 
-if(XCODE)
-  # FIXME: Cannot cross-compile the standard library using Xcode.  Xcode
-  # insists on passing -mmacosx-version-min to the compiler, and we need
-  # to pass -mios-version-min.  Clang sees both options and complains.
-  set(SWIFT_SDKS "OSX")
-endif()
-
 # FIXME: the parameters we specify in SWIFT_SDKS are lacking architecture specifics,
 # so we need to hard-code it. For example, the SDK for Android is just 'ANDROID',
 # which we assume below to be armv7.
@@ -813,6 +803,11 @@ if(swift_build_wasm AND NOT "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "WASM")
   #if (NOT ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin" OR "${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux"))
   #  message(FATAL_ERROR "A Darwin or Linux host is required to build the Swift runtime for Android")
   #endif()
+
+  if (NOT ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin"))
+    # WebAssembly: hack: use llvm-ar for creating static libraries; Ubuntu's GNU ar doesn't work with wasm-ld
+    set(CMAKE_AR "${SWIFT_WASM_WASI_SDK_PATH}/bin/llvm-ar")
+  endif()
 
   if("${SWIFT_SDK_WASM_ARCHITECTURES}" STREQUAL "")
     set(SWIFT_SDK_WASM_ARCHITECTURES wasm32)
