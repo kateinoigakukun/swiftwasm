@@ -666,6 +666,10 @@ public:
   bool emitLifetimeExtendingUse(llvm::Value *Var) {
     llvm::Type *ArgTys;
     auto *Ty = Var->getType();
+    // Avoid to emit when Wasm because of lack of register.
+    if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+      return false;
+    }
     // Vectors, Pointers and Floats are expected to fit into a register.
     if (Ty->isPointerTy() || Ty->isFloatingPointTy() || Ty->isVectorTy())
       ArgTys = {Ty};
