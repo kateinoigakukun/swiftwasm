@@ -197,14 +197,14 @@ add_swift_target_library(swiftImageRegistrationObjectCOFF
                   TARGET_SDKS ${COFF_SDKS}
                   INSTALL_IN_COMPONENT none)
 
+if(WASM IN_LIST SWIFT_CONFIGURED_SDKS)
+  set(CMAKE_OSX_SYSROOT "${SWIFT_WASM_WASI_SDK_PATH}")
+endif()
+
 foreach(sdk ${SWIFT_CONFIGURED_SDKS})
   foreach(arch ${SWIFT_SDK_${sdk}_ARCHITECTURES})
     set(arch_subdir "${SWIFT_SDK_${sdk}_LIB_SUBDIR}/${arch}")
     set(arch_suffix "${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch}")
-
-    if(sdk STREQUAL WASM)
-      set(CMAKE_OSX_SYSROOT "${SWIFT_WASM_WASI_SDK_PATH}")
-    endif()
 
     if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF" OR
        "${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "COFF")
