@@ -2505,9 +2505,12 @@ TypeConverter::checkFunctionForABIDifferences(SILFunctionType *fnTy1,
   auto rep1 = fnTy1->getRepresentation(), rep2 = fnTy2->getRepresentation();
   if (rep1 != rep2) {
     if (rep1 == SILFunctionTypeRepresentation::Thin &&
-        rep2 == SILFunctionTypeRepresentation::Thick)
+        rep2 == SILFunctionTypeRepresentation::Thick) {
+      if (M.getASTContext().LangOpts.Target.isOSBinFormatWasm()) {
+        return ABIDifference::NeedsThunk;
+      }
       return ABIDifference::ThinToThick;
-
+    }
     return ABIDifference::NeedsThunk;
   }
 
