@@ -2644,12 +2644,25 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
       return ABIDifference::NeedsThunk;
   }
 
+  // There is no ABI compatibility between non-throws and throws on WebAssembly,
+  // so need thunk.
+  if (M.getASTContext().LangOpts.Target.isOSBinFormatWasm()) {
+    if (!fnTy1->hasErrorResult() && fnTy2->hasErrorResult()) {
+      return ABIDifference::NeedsThunk;
+    }
+  }
+
   auto rep1 = fnTy1->getRepresentation(), rep2 = fnTy2->getRepresentation();
   if (rep1 != rep2) {
     if (rep1 == SILFunctionTypeRepresentation::Thin &&
-        rep2 == SILFunctionTypeRepresentation::Thick)
+        rep2 == SILFunctionTypeRepresentation::Thick) {
+      // There is no ABI compatibility between thin and thick on WebAssembly,
+      // so need thunk.
+      if (M.getASTContext().LangOpts.Target.isOSBinFormatWasm()) {
+        return ABIDifference::NeedsThunk;
+      }
       return ABIDifference::ThinToThick;
-
+    }
     return ABIDifference::NeedsThunk;
   }
 
