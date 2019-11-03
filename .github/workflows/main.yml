@@ -49,6 +49,7 @@ jobs:
             -DSWIFT_SDKS='WASM;LINUX' \
             -DSWIFT_BUILD_SOURCEKIT=FALSE \
             -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
+            -DCMAKE_AR='$sourcedir/wasi-sdk/bin/llvm-ar' \
           " \
           --build-stdlib-deployment-targets "wasm-wasm32" \
           --build-swift-static-stdlib \
@@ -96,6 +97,7 @@ jobs:
             -DSWIFT_OSX_x86_64_ICU_STATICLIB=TRUE \
             -DSWIFT_BUILD_SOURCEKIT=FALSE \
             -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
+            -DCMAKE_AR='$sourcedir/build/Ninja-ReleaseAssert/llvm-macosx-x86_64/bin/llvm-ar' \
           " \
           --build-stdlib-deployment-targets "wasm-wasm32" \
           --build-swift-dynamic-sdk-overlay false \
