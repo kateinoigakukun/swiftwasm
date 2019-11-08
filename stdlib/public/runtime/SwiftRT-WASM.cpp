@@ -18,8 +18,9 @@
 // by the linker.  Otherwise, we may end up with undefined symbol references as
 // the linker table section was never constructed.
 
-#define DECLARE_SWIFT_SECTION(name)                                                          \
-  __attribute__((__visibility__("hidden"),__aligned__(1))) extern const char __start_##name; \
+#define DECLARE_SWIFT_SECTION(name)                                                             \
+  __attribute__((__used__,__section__(#name),__aligned__(1))) const char __dummy_##name = 0x00; \
+  __attribute__((__visibility__("hidden"),__aligned__(1))) extern const char __start_##name;    \
   __attribute__((__visibility__("hidden"),__aligned__(1))) extern const char __stop_##name;
 
 extern "C" {
