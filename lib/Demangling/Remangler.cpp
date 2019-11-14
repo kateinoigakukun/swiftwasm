@@ -2433,6 +2433,7 @@ void Remangler::mangleAccessorFunctionReference(Node *node) {
 
 /// The top-level interface to the remangler.
 std::string Demangle::mangleNode(NodePointer node) {
+  puts("[katei in decodeMangledType] Before mangleNode\n");
   return mangleNode(node, [](SymbolicReferenceKind, const void *) -> NodePointer {
     unreachable("should not try to mangle a symbolic reference; "
                 "resolve it to a non-symbolic demangling tree instead");
