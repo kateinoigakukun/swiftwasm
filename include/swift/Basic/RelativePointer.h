@@ -546,6 +546,7 @@ public:
 
     // The value is addressed relative to `this`.
     uintptr_t absolute = detail::applyRelativeOffset(this, offset);
+    printf("[katei in RelativeDirectPointerIntPair.getPointer] After applyRelativeOffset\n", offset);
     return reinterpret_cast<PointerTy>(absolute);
   }
 
