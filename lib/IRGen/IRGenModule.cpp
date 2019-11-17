@@ -180,7 +180,7 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
   if (SizeTy->getBitWidth()<32) {
     RelativeAddressTy = SizeTy;
   } else {
-    RelativeAddressTy = Int32Ty;
+    RelativeAddressTy = Int64Ty;
   }
 
   RelativeAddressPtrTy = RelativeAddressTy->getPointerTo();
