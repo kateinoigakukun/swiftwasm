@@ -2266,20 +2266,12 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       auto size = subIGF.Builder.CreateAShr(load, 32);
       size = subIGF.Builder.CreateTruncOrBitCast(size, IGM.SizeTy);
       size = subIGF.Builder.CreateNeg(size);
-      
+
       auto stringAddrOffset = subIGF.Builder.CreateTrunc(load,
                                                          IGM.Int32Ty);
       stringAddrOffset = subIGF.Builder.CreateSExtOrBitCast(stringAddrOffset,
                                                             IGM.SizeTy);
-      auto stringAddrBase = subIGF.Builder.CreatePtrToInt(cache, IGM.SizeTy);
-      if (IGM.getModule()->getDataLayout().isBigEndian()) {
-        stringAddrBase = subIGF.Builder.CreateAdd(stringAddrBase,
-                                        llvm::ConstantInt::get(IGM.SizeTy, 4));
-      }
-      auto stringAddr = subIGF.Builder.CreateAdd(stringAddrBase,
-                                                 stringAddrOffset);
-      stringAddr = subIGF.Builder.CreateIntToPtr(stringAddr, IGM.Int8PtrTy);
-      
+      auto stringAddr = subIGF.Builder.CreateIntToPtr(stringAddrOffset, IGM.Int8PtrTy);
       auto call =
         subIGF.Builder.CreateCall(IGM.getGetTypeByMangledNameInContextFn(),
                {stringAddr,

@@ -2992,28 +2992,29 @@ IRGenModule::emitDirectRelativeReference(llvm::Constant *target,
                                          ArrayRef<unsigned> baseIndices) {
   // Convert the target to an integer.
   auto targetAddr = llvm::ConstantExpr::getPtrToInt(target, SizeTy);
+  return targetAddr;
 
-  SmallVector<llvm::Constant*, 4> indices;
-  indices.push_back(llvm::ConstantInt::get(Int32Ty, 0));
-  for (unsigned baseIndex : baseIndices) {
-    indices.push_back(llvm::ConstantInt::get(Int32Ty, baseIndex));
-  };
-
-  // Drill down to the appropriate address in the base, then convert
-  // that to an integer.
-  auto baseElt = llvm::ConstantExpr::getInBoundsGetElementPtr(
-                       base->getType()->getPointerElementType(), base, indices);
-  auto baseAddr = llvm::ConstantExpr::getPtrToInt(baseElt, SizeTy);
-
-  // The relative address is the difference between those.
-  auto relativeAddr = llvm::ConstantExpr::getSub(targetAddr, baseAddr);
-
-  // Relative addresses can be 32-bit even on 64-bit platforms.
-  if (SizeTy != RelativeAddressTy)
-    relativeAddr = llvm::ConstantExpr::getTrunc(relativeAddr,
-                                                RelativeAddressTy);
-
-  return relativeAddr;
+//  SmallVector<llvm::Constant*, 4> indices;
+//  indices.push_back(llvm::ConstantInt::get(Int32Ty, 0));
+//  for (unsigned baseIndex : baseIndices) {
+//    indices.push_back(llvm::ConstantInt::get(Int32Ty, baseIndex));
+//  };
+//
+//  // Drill down to the appropriate address in the base, then convert
+//  // that to an integer.
+//  auto baseElt = llvm::ConstantExpr::getInBoundsGetElementPtr(
+//                       base->getType()->getPointerElementType(), base, indices);
+//  auto baseAddr = llvm::ConstantExpr::getPtrToInt(baseElt, SizeTy);
+//
+//  // The relative address is the difference between those.
+//  auto relativeAddr = llvm::ConstantExpr::getSub(targetAddr, baseAddr);
+//
+//  // Relative addresses can be 32-bit even on 64-bit platforms.
+//  if (SizeTy != RelativeAddressTy)
+//    relativeAddr = llvm::ConstantExpr::getTrunc(relativeAddr,
+//                                                RelativeAddressTy);
+//
+//  return relativeAddr;
 }
 
 /// Emit the protocol descriptors list and return it.

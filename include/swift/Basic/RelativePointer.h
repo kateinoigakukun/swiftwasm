@@ -145,14 +145,14 @@ static inline uintptr_t applyRelativeOffset(BasePtrTy *basePtr, Offset offset) {
   static_assert(std::is_integral<Offset>::value &&
                 std::is_signed<Offset>::value,
                 "offset type should be signed integer");
-
-  auto base = reinterpret_cast<uintptr_t>(basePtr);
-  // We want to do wrapping arithmetic, but with a sign-extended
-  // offset. To do this in C, we need to do signed promotion to get
-  // the sign extension, but we need to perform arithmetic on unsigned values,
-  // since signed overflow is undefined behavior.
-  auto extendOffset = (uintptr_t)(intptr_t)offset;
-  return base + extendOffset;
+  return (uintptr_t)(intptr_t)offset;
+//  auto base = reinterpret_cast<uintptr_t>(basePtr);
+//  // We want to do wrapping arithmetic, but with a sign-extended
+//  // offset. To do this in C, we need to do signed promotion to get
+//  // the sign extension, but we need to perform arithmetic on unsigned values,
+//  // since signed overflow is undefined behavior.
+//  auto extendOffset = (uintptr_t)(intptr_t)offset;
+//  return base + extendOffset;
 }
 
 /// Measure the relative offset between two pointers. This measures
@@ -164,15 +164,18 @@ static inline Offset measureRelativeOffset(A *referent, B *base) {
   static_assert(std::is_integral<Offset>::value &&
                 std::is_signed<Offset>::value,
                 "offset type should be signed integer");
-
-  auto distance = (uintptr_t)referent - (uintptr_t)base;
-  // Truncate as unsigned, then wrap around to signed.
-  auto truncatedDistance =
-    (Offset)(typename std::make_unsigned<Offset>::type)distance;
-  // Assert that the truncation didn't discard any non-sign-extended bits.
-  assert((intptr_t)truncatedDistance == (intptr_t)distance
-         && "pointers are too far apart to fit in offset type");
-  return truncatedDistance;
+  auto offset = (Offset)(uintptr_t)referent;
+  assert((intptr_t)offset == (intptr_t)(uintptr_t)referent
+         && "pointer too large to fit in offset type");
+  return offset;
+//  auto distance = (uintptr_t)referent - (uintptr_t)base;
+//  // Truncate as unsigned, then wrap around to signed.
+//  auto truncatedDistance =
+//    (Offset)(typename std::make_unsigned<Offset>::type)distance;
+//  // Assert that the truncation didn't discard any non-sign-extended bits.
+//  assert((intptr_t)truncatedDistance == (intptr_t)distance
+//         && "pointers are too far apart to fit in offset type");
+//  return truncatedDistance;
 }
 
 } // namespace detail

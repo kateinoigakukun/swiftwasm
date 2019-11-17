@@ -4335,10 +4335,17 @@ GenericRequirementsMetadata irgen::addGenericRequirements(
           unsigned tag = unsigned(descriptorRef.isIndirect());
           if (protocol->isObjC())
             tag |= 0x02;
-          
-          B.addTaggedRelativeOffset(IGM.RelativeAddressTy,
-                                    descriptorRef.getValue(),
-                                    tag);
+
+          llvm::Constant *offset = llvm::ConstantExpr::getPtrToInt(descriptorRef.getValue(), IGM.RelativeAddressTy, false);
+          // borrowed from addTaggedRelativeOffset
+          if (tag) {
+              offset = llvm::ConstantExpr::getAdd(offset, llvm::ConstantInt::get(IGM.RelativeAddressTy, tag));
+          }
+          B.add(offset);
+          return;
+//          B.addTaggedRelativeOffset(IGM.RelativeAddressTy,
+//                                    descriptorRef.getValue(),
+//                                    tag);
         });
       break;
     }
