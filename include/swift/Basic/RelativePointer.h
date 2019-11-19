@@ -183,7 +183,7 @@ static inline Offset measureRelativeOffset(A *referent, B *base) {
 /// A relative reference to an object stored in memory. The reference may be
 /// direct or indirect, and uses the low bit of the (assumed at least
 /// 2-byte-aligned) pointer to differentiate.
-template<typename ValueTy, bool Nullable = false, typename Offset = int32_t>
+template<typename ValueTy, bool Nullable = false, typename Offset = int64_t>
 class RelativeIndirectPointer {
 private:
   static_assert(std::is_integral<Offset>::value &&
@@ -231,7 +231,7 @@ public:
 /// A relative reference to an object stored in memory. The reference may be
 /// direct or indirect, and uses the low bit of the (assumed at least
 /// 2-byte-aligned) pointer to differentiate.
-template<typename ValueTy, bool Nullable = false, typename Offset = int32_t>
+template<typename ValueTy, bool Nullable = false, typename Offset = int64_t>
 class RelativeIndirectablePointer {
 private:
   static_assert(std::is_integral<Offset>::value &&
@@ -318,7 +318,7 @@ public:
 /// 2-byte-aligned) pointer to differentiate. The remaining low bits store
 /// an additional tiny integer value.
 template<typename ValueTy, typename IntTy, bool Nullable = false,
-         typename Offset = int32_t>
+         typename Offset = int64_t>
 class RelativeIndirectablePointerIntPair {
 private:
   static_assert(std::is_integral<Offset>::value &&
@@ -451,7 +451,7 @@ public:
 };
 
 /// A direct relative reference to an object.
-template<typename T, bool Nullable = true, typename Offset = int32_t>
+template<typename T, bool Nullable = true, typename Offset = int64_t>
 class RelativeDirectPointer :
   private RelativeDirectPointerImpl<T, Nullable, Offset>
 {
@@ -506,7 +506,7 @@ public:
 /// A direct relative reference to an aligned object, with an additional
 /// tiny integer value crammed into its low bits.
 template<typename PointeeTy, typename IntTy, bool Nullable = false,
-         typename Offset = int32_t>
+         typename Offset = int64_t>
 class RelativeDirectPointerIntPair {
   Offset RelativeOffsetPlusInt;
 
