@@ -1357,7 +1357,7 @@ static std::string getDynamicReplacementSection(IRGenModule &IGM) {
     llvm_unreachable("Don't know how to emit field records table for "
                      "the selected object format.");
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_replace, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_replace, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:
@@ -1378,7 +1378,7 @@ static std::string getDynamicReplacementSomeSection(IRGenModule &IGM) {
     llvm_unreachable("Don't know how to emit field records table for "
                      "the selected object format.");
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_replac2, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_replac2, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:
@@ -3052,7 +3052,7 @@ llvm::Constant *IRGenModule::emitSwiftProtocols() {
     llvm_unreachable("Don't know how to emit protocols for "
                      "the selected object format.");
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_protos, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_protos, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:
@@ -3113,7 +3113,7 @@ llvm::Constant *IRGenModule::emitProtocolConformances() {
     llvm_unreachable("Don't know how to emit protocol conformances for "
                      "the selected object format.");
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_proto, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_proto, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:
@@ -3139,7 +3139,7 @@ llvm::Constant *IRGenModule::emitTypeMetadataRecords() {
   std::string sectionName;
   switch (TargetInfo.OutputObjectFormat) {
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_types, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_types, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:
@@ -3208,7 +3208,7 @@ llvm::Constant *IRGenModule::emitFieldDescriptors() {
   std::string sectionName;
   switch (TargetInfo.OutputObjectFormat) {
   case llvm::Triple::MachO:
-    sectionName = "__TEXT, __swift5_fieldmd, regular, no_dead_strip";
+    sectionName = "__DATA, __swift5_fieldmd, regular, no_dead_strip";
     break;
   case llvm::Triple::ELF:
   case llvm::Triple::Wasm:

@@ -110,7 +110,7 @@ void IRGenModule::setTrueConstGlobal(llvm::GlobalVariable *var) {
   case llvm::Triple::UnknownObjectFormat:
     llvm_unreachable("unknown object format");
   case llvm::Triple::MachO:
-    var->setSection("__TEXT,__const");
+    var->setSection("__DATA,__const");
     break;
   case llvm::Triple::ELF:
     var->setSection(".rodata");
