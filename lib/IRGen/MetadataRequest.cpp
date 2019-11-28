@@ -2238,8 +2238,8 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       // FIXME: Technically should be "consume", but that introduces barriers
       // in the current LLVM ARM backend.
       auto _stringAddr = subIGF.Builder.CreateBitCast(cache, IGM.Int64Ty->getPointerTo());
-      auto stringAddr = cast<llvm::Value>(subIGF.Builder.CreateLoad(_stringAddr, Alignment(8)));
-      stringAddr = subIGF.Builder.CreateIntToPtr(stringAddr, IGM.Int8Ty->getPointerTo());
+      auto stringAddrInt = cast<llvm::Value>(subIGF.Builder.CreateLoad(_stringAddr, Alignment(8)));
+      auto stringAddr = subIGF.Builder.CreateIntToPtr(stringAddrInt, IGM.Int8Ty->getPointerTo());
       auto sizePtr = subIGF.Builder.CreateStructGEP(llvm::StructType::get(IGM.Int64Ty, IGM.Int32Ty), cache, 1);
       auto loadSize = subIGF.Builder.CreateLoad(sizePtr, Alignment(8));
 
@@ -2300,7 +2300,7 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       subIGF.Builder.SetInsertPoint(loadBB);
       subIGF.Builder.emitBlock(contBB);
       auto phi = subIGF.Builder.CreatePHI(IGM.Int64Ty, 2);
-      phi->addIncoming(_size, loadBB);
+      phi->addIncoming(stringAddrInt, loadBB);
       phi->addIncoming(resultWord, isUnfilledBB);
       
       auto resultAddr = subIGF.Builder.CreateTruncOrBitCast(phi, IGM.SizeTy);
