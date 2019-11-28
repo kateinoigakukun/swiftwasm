@@ -79,7 +79,8 @@ template <typename T> inline T &Lazy<T>::get(void (*initCallback)(void*)) {
   static_assert(std::is_literal_type<Lazy<T>>::value,
                 "Lazy<T> must be a literal type");
 
-  SWIFT_ONCE_F(OnceToken, initCallback, &Value);
+  initCallback(&Value);
+//  SWIFT_ONCE_F(OnceToken, initCallback, &Value);
   return unsafeGetAlreadyInitialized();
 }
 
@@ -95,7 +96,8 @@ template <typename Arg1> inline T &Lazy<T>::getWithInit(Arg1 &&arg1) {
     }
   } data{&Value, static_cast<Arg1&&>(arg1)};
 
-  SWIFT_ONCE_F(OnceToken, &Data::init, &data);
+  Data::init(&data);
+//  SWIFT_ONCE_F(OnceToken, &Data::init, &data);
   return unsafeGetAlreadyInitialized();
 }
 
