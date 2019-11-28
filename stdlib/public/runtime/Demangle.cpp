@@ -308,7 +308,8 @@ _buildDemanglingForNominalType(const Metadata *type, Demangle::Demangler &Dem) {
       return nullptr;
     demangledGenerics.push_back(genericArgDemangling);
   }
-  
+  auto nameByDescription = description->Name.get();
+  printf(nameByDescription);
   return _buildDemanglingForContext(description, demangledGenerics, Dem);
 }
 

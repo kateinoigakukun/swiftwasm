@@ -2237,19 +2237,24 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       // Therefore, we can perform a completely naked load here.
       // FIXME: Technically should be "consume", but that introduces barriers
       // in the current LLVM ARM backend.
-      auto cacheWordAddr = subIGF.Builder.CreateBitCast(cache,
-                                                   IGM.Int64Ty->getPointerTo());
-      auto load = subIGF.Builder.CreateLoad(cacheWordAddr, Alignment(8));
+      auto _stringAddr = subIGF.Builder.CreateBitCast(cache, IGM.Int64Ty->getPointerTo());
+      auto stringAddr = cast<llvm::Value>(subIGF.Builder.CreateLoad(_stringAddr, Alignment(8)));
+      stringAddr = subIGF.Builder.CreateIntToPtr(stringAddr, IGM.Int8Ty->getPointerTo());
+      auto sizePtr = subIGF.Builder.CreateStructGEP(llvm::StructType::get(IGM.Int64Ty, IGM.Int32Ty), cache, 1);
+      auto loadSize = subIGF.Builder.CreateLoad(sizePtr, Alignment(8));
+
       // Make this barrier explicit when building for TSan to avoid false positives.
       if (IGM.IRGen.Opts.Sanitizers & SanitizerKind::Thread)
-        load->setOrdering(llvm::AtomicOrdering::Acquire);
+        loadSize->setOrdering(llvm::AtomicOrdering::Acquire);
       else
-        load->setOrdering(llvm::AtomicOrdering::Monotonic);
-
+        loadSize->setOrdering(llvm::AtomicOrdering::Monotonic);
+      
+      auto _size = subIGF.Builder.CreateSExt(cast<llvm::Value>(loadSize), IGM.Int64Ty);
+      _size->dump();
       // Compare the load result to see if it's negative.
       auto isUnfilledBB = subIGF.createBasicBlock("");
       auto contBB = subIGF.createBasicBlock("");
-      llvm::Value *comparison = subIGF.Builder.CreateICmpSLT(load,
+      llvm::Value *comparison = subIGF.Builder.CreateICmpSLT(_size,
                                         llvm::ConstantInt::get(IGM.Int64Ty, 0));
       comparison = subIGF.Builder.CreateExpect(comparison,
                                          llvm::ConstantInt::get(IGM.Int1Ty, 0));
@@ -2263,15 +2268,8 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       
       // Break up the loaded value into size and relative address to the
       // string.
-      auto size = subIGF.Builder.CreateAShr(load, 32);
-      size = subIGF.Builder.CreateTruncOrBitCast(size, IGM.SizeTy);
-      size = subIGF.Builder.CreateNeg(size);
+      auto size = subIGF.Builder.CreateNeg(_size);
 
-      auto stringAddrOffset = subIGF.Builder.CreateTrunc(load,
-                                                         IGM.Int32Ty);
-      stringAddrOffset = subIGF.Builder.CreateSExtOrBitCast(stringAddrOffset,
-                                                            IGM.SizeTy);
-      auto stringAddr = subIGF.Builder.CreateIntToPtr(stringAddrOffset, IGM.Int8PtrTy);
       auto call =
         subIGF.Builder.CreateCall(IGM.getGetTypeByMangledNameInContextFn(),
                {stringAddr,
@@ -2291,15 +2289,18 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       // exact same metadata pointer.
       auto resultWord = subIGF.Builder.CreatePtrToInt(call, IGM.SizeTy);
       resultWord = subIGF.Builder.CreateZExtOrBitCast(resultWord, IGM.Int64Ty);
-      auto store = subIGF.Builder.CreateStore(resultWord, cacheWordAddr,
+      auto store = subIGF.Builder.CreateStore(resultWord, _stringAddr,
                                               Alignment(8));
       store->setOrdering(llvm::AtomicOrdering::Monotonic);
+      sizePtr->dump();
+      auto size32 = subIGF.Builder.CreateTrunc(size, IGM.Int32Ty);
+      subIGF.Builder.CreateStore(size32, sizePtr, Alignment(8));
       subIGF.Builder.CreateBr(contBB);
       
       subIGF.Builder.SetInsertPoint(loadBB);
       subIGF.Builder.emitBlock(contBB);
       auto phi = subIGF.Builder.CreatePHI(IGM.Int64Ty, 2);
-      phi->addIncoming(load, loadBB);
+      phi->addIncoming(_size, loadBB);
       phi->addIncoming(resultWord, isUnfilledBB);
       
       auto resultAddr = subIGF.Builder.CreateTruncOrBitCast(phi, IGM.SizeTy);
