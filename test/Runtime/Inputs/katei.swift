@@ -1,11 +1,16 @@
-// RUN: %target-run-simple-swift | %FileCheck %s
-
-public class A<T> {
-    let value: T
-    init(value: T) { self.value = value }
+// RUN: %target-run-simple-swift
+public protocol P {
+    func foo()
 }
 
-A<Int>(value: 1)
+public struct A: P {
+    public func foo() {}
+}
 
-print(1)
-// CHECK: 1
+@_optimize(none)
+public func callFoo(_ t: P) { t.foo() }
+
+public func callFooFromAny(_ any: Any) { callFoo(any as! P) }
+
+callFooFromAny(A())
+
