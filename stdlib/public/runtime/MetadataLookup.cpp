@@ -75,18 +75,19 @@ public:
 NodePointer
 ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
                                        Directness isIndirect,
-                                       int32_t offset,
+                                       int64_t offset,
                                        const void *base) {
   // Resolve the absolute pointer to the entity being referenced.
   //  auto ptr = detail::applyRelativeOffset(base, offset);
 
   // wasm: Borrowed from applyRelativeOffset
-  auto _base = reinterpret_cast<uintptr_t>(base);
-  auto extendOffset = (uintptr_t)(intptr_t)offset;
-  auto ptr =  _base + extendOffset;
-  if (isIndirect == Directness::Indirect) {
-    ptr = *(const uintptr_t *)ptr;
-  }
+//  auto _base = reinterpret_cast<uintptr_t>(base);
+//  auto extendOffset = (uintptr_t)(intptr_t)offset;
+//  auto ptr =  _base + extendOffset;
+//  if (isIndirect == Directness::Indirect) {
+//    ptr = *(const uintptr_t *)ptr;
+//  }
+  auto ptr = (uintptr_t)(intptr_t)offset;
 
   // Figure out this symbolic reference's grammatical role.
   Node::Kind nodeKind;

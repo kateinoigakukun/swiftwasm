@@ -681,9 +681,9 @@ NodePointer Demangler::demangleSymbolicReference(unsigned char rawKind,
                                                  const void *at) {
   // The symbolic reference is a 4-byte machine integer encoded in the following
   // four bytes.
-  int32_t value;
-  memcpy(&value, Text.data() + Pos, 4);
-  Pos += 4;
+  int64_t value;
+  memcpy(&value, Text.data() + Pos, 8);
+  Pos += 8;
   
   // Map the encoded kind to a specific kind and directness.
   SymbolicReferenceKind kind;

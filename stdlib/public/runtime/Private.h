@@ -544,7 +544,7 @@ public:
     
     Demangle::NodePointer operator()(Demangle::SymbolicReferenceKind kind,
                                      Demangle::Directness isIndirect,
-                                     int32_t offset,
+                                     int64_t offset,
                                      const void *base);
   };
   

@@ -45,6 +45,7 @@ constexpr const char DynamicReplacementSection[] = "__swift5_replace";
 constexpr const char DynamicReplacementSomeSection[] = "__swift5_replac2";
 
 constexpr const char TextSegment[] = SEG_TEXT;
+constexpr const char DATASegment[] = SEG_DATA;
 
 #if __POINTER_WIDTH__ == 64
 using mach_header_platform = mach_header_64;
@@ -133,25 +134,25 @@ void addImageCallback2Sections(const mach_header *mh, intptr_t vmaddr_slide) {
 #endif
 
 void swift::initializeProtocolLookup() {
-  REGISTER_FUNC(addImageCallback<TextSegment, ProtocolsSection,
+  REGISTER_FUNC(addImageCallback<DATASegment, ProtocolsSection,
                                  addImageProtocolsBlockCallbackUnsafe>);
 }
 
 void swift::initializeProtocolConformanceLookup() {
   REGISTER_FUNC(
-      addImageCallback<TextSegment, ProtocolConformancesSection,
+      addImageCallback<DATASegment, ProtocolConformancesSection,
                        addImageProtocolConformanceBlockCallbackUnsafe>);
 }
 void swift::initializeTypeMetadataRecordLookup() {
   REGISTER_FUNC(
-      addImageCallback<TextSegment, TypeMetadataRecordSection,
+      addImageCallback<DATASegment, TypeMetadataRecordSection,
                        addImageTypeMetadataRecordBlockCallbackUnsafe>);
 }
 
 void swift::initializeDynamicReplacementLookup() {
   REGISTER_FUNC(
-      addImageCallback2Sections<TextSegment, DynamicReplacementSection,
-                                TextSegment, DynamicReplacementSomeSection,
+      addImageCallback2Sections<DATASegment, DynamicReplacementSection,
+                                DATASegment, DynamicReplacementSomeSection,
                                 addImageDynamicReplacementBlockCallback>);
 }
 

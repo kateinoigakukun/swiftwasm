@@ -345,7 +345,7 @@ enum class SymbolicReferenceKind : uint8_t {
 
 using SymbolicReferenceResolver_t = NodePointer (SymbolicReferenceKind,
                                                  Directness,
-                                                 int32_t, const void *);
+                                                 int64_t, const void *);
 
 /// The demangler.
 ///
