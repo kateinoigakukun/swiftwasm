@@ -2461,6 +2461,7 @@ template<typename Runtime>
 struct TargetModuleContextDescriptor;
 
 /// Base class for all context descriptors.
+#pragma pack(4)
 template<typename Runtime>
 struct TargetContextDescriptor {
   /// Flags describing the context, including its kind and format version.
@@ -2501,6 +2502,7 @@ private:
   TargetContextDescriptor &operator=(const TargetContextDescriptor &) = delete;
   TargetContextDescriptor &operator=(TargetContextDescriptor &&) = delete;
 };
+#pragma pack()
 
 using ContextDescriptor = TargetContextDescriptor<InProcess>;
 
@@ -3574,6 +3576,7 @@ struct TargetSingletonMetadataInitialization {
       const TargetTypeContextDescriptor<Runtime> *description) const;
 };
 
+#pragma pack(4)
 template <typename Runtime>
 class TargetTypeContextDescriptor
     : public TargetContextDescriptor<Runtime> {
@@ -3660,6 +3663,7 @@ public:
         && cd->getKind() <= ContextDescriptorKind::Type_Last;
   }
 };
+#pragma pack()
 
 using TypeContextDescriptor = TargetTypeContextDescriptor<InProcess>;
 

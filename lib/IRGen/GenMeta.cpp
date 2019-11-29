@@ -301,7 +301,8 @@ namespace {
       if (parent.getValue()) {
         B.addRelativeAddress(parent);
       } else {
-        B.addInt32(0); // null offset
+        // wasm: To meet the size of absolute pointer size
+        B.addInt64(0); // null offset
       }
     }
     
