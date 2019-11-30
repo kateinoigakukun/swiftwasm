@@ -2767,6 +2767,10 @@ public:
     // The generic context header should always be immediately followed in
     // memory by trailing parameter and requirement descriptors.
     auto *header = reinterpret_cast<const char *>(&getGenericContextHeader());
+    printf("alignof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", alignof(TargetGenericContextDescriptorHeader<Runtime>));
+    printf("alignof GenericParamDescriptor is %lu\n", alignof(GenericParamDescriptor));
+    printf("alignof TargetGenericRequirementDescriptor<Runtime> is %lu\n", alignof(TargetGenericRequirementDescriptor<Runtime>));
+    printf("sizeof TargetGenericContext<Runtime> is %lu\n", sizeof(TargetGenericContext<Runtime>));
     return reinterpret_cast<const TargetGenericContext<Runtime> *>(
       header - sizeof(TargetGenericContext<Runtime>));
   }

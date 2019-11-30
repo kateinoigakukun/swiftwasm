@@ -13,8 +13,8 @@ target triple = "x86_64-apple-macosx10.14.0"
 %swift.metadata_response = type { %swift.type*, i64 }
 
 @"$sSiN" = external global %swift.type, align 8
-@"symbolic _____ySiG 5katei3BoxV" = linkonce_odr hidden constant <{ i8, i64, [4 x i8], i8 }> <{ i8 1, i64 ptrtoint (<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn" to i64), [4 x i8] c"ySiG", i8 0 }>, section "__DATA,__swift5_typeref, regular, no_dead_strip", align 2
-@"$s5katei3BoxVySiGMD" = linkonce_odr hidden global { i64, i32 } { i64 ptrtoint (<{ i8, i64, [4 x i8], i8 }>* @"symbolic _____ySiG 5katei3BoxV" to i64), i32 -9 }, align 8
+@"symbolic _________ySiG 5katei3BoxV" = linkonce_odr hidden constant <{ i8, i64, [4 x i8], i8 }> <{ i8 1, i64 ptrtoint (<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn" to i64), [4 x i8] c"ySiG", i8 0 }>, section "__DATA,__swift5_typeref, regular, no_dead_strip", align 2
+@"$s5katei3BoxVySiGMD" = linkonce_odr hidden global { i64, i32 } { i64 ptrtoint (<{ i8, i64, [4 x i8], i8 }>* @"symbolic _________ySiG 5katei3BoxV" to i64), i32 -13 }, align 8
 @"$sypN" = external global %swift.full_type
 @"$sytWV" = external global i8*, align 8
 @"got.$sytWV" = private unnamed_addr constant i8** @"$sytWV"
@@ -22,10 +22,27 @@ target triple = "x86_64-apple-macosx10.14.0"
 @"$s5kateiMXM" = linkonce_odr hidden constant <{ i32, i64, i64 }> <{ i32 0, i64 0, i64 ptrtoint ([6 x i8]* @0 to i64) }>, section "__DATA,__const", align 4
 @1 = private constant [4 x i8] c"Box\00"
 @"$s5katei3BoxVMI" = internal global [16 x i8*] zeroinitializer, align 8
-@"$s5katei3BoxVMn" = constant <{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }> <{ i32 209, i64 ptrtoint (<{ i32, i64, i64 }>* @"$s5kateiMXM" to i64), i64 ptrtoint ([4 x i8]* @1 to i64), i64 ptrtoint (%swift.metadata_response (i64, %swift.type*)* @"$s5katei3BoxVMa" to i64), i64 ptrtoint ({ i64, i32, i16, i16, i32 }* @"$s5katei3BoxVMF" to i64), i32 0, i32 3, i64 ptrtoint ([16 x i8*]* @"$s5katei3BoxVMI" to i64), i64 ptrtoint (<{ i64, i32, i32, i64 }>* @"$s5katei3BoxVMP" to i64), i16 1, i16 0, i16 1, i16 0, i8 -128, i8 0, i8 0, i8 0 }>, section "__DATA,__const", align 4
-@"$s5katei3BoxVMP" = internal constant <{ i64, i32, i32, i64 }> <{ i64 ptrtoint (%swift.type* (%swift.type_descriptor*, i8**, i8*)* @"$s5katei3BoxVMi" to i64), i32 0, i32 1073741824, i64 add (i64 ptrtoint (i8*** @"got.$sytWV" to i64), i64 1) }>, align 8
-@"symbolic _____ 5katei3BoxV" = linkonce_odr hidden constant <{ i8, i64, i8 }> <{ i8 1, i64 ptrtoint (<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn" to i64), i8 0 }>, section "__DATA,__swift5_typeref, regular, no_dead_strip", align 2
-@"$s5katei3BoxVMF" = internal constant { i64, i32, i16, i16, i32 } { i64 ptrtoint (<{ i8, i64, i8 }>* @"symbolic _____ 5katei3BoxV" to i64), i32 0, i16 0, i16 12, i32 0 }, section "__DATA,__swift5_fieldmd, regular, no_dead_strip", align 4
+@"$s5katei3BoxVMn" = constant <{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>
+<{ 
+  i32 209,
+  i64 ptrtoint (<{ i32, i64, i64 }>* @"$s5kateiMXM" to i64),
+  i64 ptrtoint ([4 x i8]* @1 to i64),
+  i64 ptrtoint (%swift.metadata_response (i64, %swift.type*)* @"$s5katei3BoxVMa" to i64),
+  i64 ptrtoint ({ i64, i32, i16, i16, i32 }* @"$s5katei3BoxVMF" to i64),
+  i32 0, i32 3,
+  i64 ptrtoint ([16 x i8*]* @"$s5katei3BoxVMI" to i64),
+  i64 ptrtoint (<{ i64, i32, i32, i64 }>* @"$s5katei3BoxVMP" to i64),
+  i16 1, i16 0, i16 1, i16 0, i8 -128, i8 0, i8 0, i8 0
+}>, section "__DATA,__const", align 4
+@"$s5katei3BoxVMP" = internal constant <{ i64, i32, i32, i64 }>
+<{
+  i64 ptrtoint (%swift.type* (%swift.type_descriptor*, i8**, i8*)* @"$s5katei3BoxVMi" to i64),
+  i32 0,
+  i32 1073741824,
+  i64 add (i64 ptrtoint (i8*** @"got.$sytWV" to i64), i64 1)
+}>, align 8
+@"symbolic _________ 5katei3BoxV" = linkonce_odr hidden constant <{ i8, i64, i8 }> <{ i8 1, i64 ptrtoint (<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn" to i64), i8 0 }>, section "__DATA,__swift5_typeref, regular, no_dead_strip", align 2
+@"$s5katei3BoxVMF" = internal constant { i64, i32, i16, i16, i32 } { i64 ptrtoint (<{ i8, i64, i8 }>* @"symbolic _________ 5katei3BoxV" to i64), i32 0, i16 0, i16 12, i32 0 }, section "__DATA,__swift5_fieldmd, regular, no_dead_strip", align 4
 @"_swift_FORCE_LOAD_$_swiftCompatibility50_$_katei" = weak_odr hidden constant void ()* @"_swift_FORCE_LOAD_$_swiftCompatibility50"
 @"_swift_FORCE_LOAD_$_swiftCompatibilityDynamicReplacements_$_katei" = weak_odr hidden constant void ()* @"_swift_FORCE_LOAD_$_swiftCompatibilityDynamicReplacements"
 @"\01l_type_metadata_table" = private constant [1 x %swift.type_metadata_record] [%swift.type_metadata_record { i64 ptrtoint (<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn" to i64) }], section "__DATA, __swift5_types, regular, no_dead_strip", align 4
@@ -177,10 +194,10 @@ attributes #8 = { nounwind readonly }
 !llvm.linker.options = !{!16, !17, !18, !19, !20}
 
 !0 = !{!"standard-library", i1 false}
-!1 = !{<{ i8, i64, [4 x i8], i8 }>* @"symbolic _____ySiG 5katei3BoxV", null, null, i1 false, i1 true}
+!1 = !{<{ i8, i64, [4 x i8], i8 }>* @"symbolic _________ySiG 5katei3BoxV", null, null, i1 false, i1 true}
 !2 = !{<{ i32, i64, i64 }>* @"$s5kateiMXM", null, null, i1 false, i1 true}
 !3 = !{<{ i32, i64, i64, i64, i64, i32, i32, i64, i64, i16, i16, i16, i16, i8, i8, i8, i8 }>* @"$s5katei3BoxVMn", null, null, i1 false, i1 true}
-!4 = !{<{ i8, i64, i8 }>* @"symbolic _____ 5katei3BoxV", null, null, i1 false, i1 true}
+!4 = !{<{ i8, i64, i8 }>* @"symbolic _________ 5katei3BoxV", null, null, i1 false, i1 true}
 !5 = !{{ i64, i32, i16, i16, i32 }* @"$s5katei3BoxVMF", null, null, i1 false, i1 true}
 !6 = !{[1 x %swift.type_metadata_record]* @"\01l_type_metadata_table", null, null, i1 false, i1 true}
 !7 = !{[9 x i8*]* @llvm.used, null, null, i1 false, i1 true}

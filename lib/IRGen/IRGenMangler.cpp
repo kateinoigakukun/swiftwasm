@@ -264,6 +264,10 @@ mangleSymbolNameForSymbolicMangling(const SymbolicMangling &mangling,
       = Storage[prefixLen + offset+2]
       = Storage[prefixLen + offset+3]
       = Storage[prefixLen + offset+4]
+      = Storage[prefixLen + offset+5]
+      = Storage[prefixLen + offset+6]
+      = Storage[prefixLen + offset+7]
+      = Storage[prefixLen + offset+8]
       = '_';
     Buffer << ' ';
     if (auto ty = referent.dyn_cast<const NominalTypeDecl*>())

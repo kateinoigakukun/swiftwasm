@@ -374,7 +374,7 @@ llvm::Constant *IRGenModule::getAddrOfStringForTypeRef(
     S.add(llvm::ConstantInt::get(Int8Ty, kind));
     // add relative reference
     S.addRelativeAddress(ref.getValue());
-    pos = symbolic.second + 5;
+    pos = symbolic.second + 9;
   }
   
   // Add the last literal bit, if any.

@@ -1810,7 +1810,7 @@ void ASTMangler::appendSymbolicReference(SymbolicReferent referent) {
   // Drop in a placeholder. The real reference value has to be filled in during
   // lowering to IR.
   auto offset = Buffer.str().size();
-  Buffer << StringRef("\0\0\0\0\0", 5);
+  Buffer << StringRef("\0\0\0\0\0", 9);
   SymbolicReferences.emplace_back(referent, offset);
 }
 
