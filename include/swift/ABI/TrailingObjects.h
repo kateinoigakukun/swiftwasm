@@ -173,11 +173,19 @@ protected:
                 TopTrailingObj::callNumTrailingObjects(
                     Obj, TrailingObjectsBase::OverloadToken<PrevTy>());
 
-    if (requiresRealignment())
+    printf("requiresRealignment is %d\n", requiresRealignment());
+    printf("Ptr = %p\n", Ptr);
+    printf("TopTrailingObj::getTrailingObjectsImpl = %p\n", TopTrailingObj::getTrailingObjectsImpl(Obj, TrailingObjectsBase::OverloadToken<PrevTy>()));
+    printf("TopTrailingObj::callNumTrailingObjects = %p\n", TopTrailingObj::callNumTrailingObjects(Obj, TrailingObjectsBase::OverloadToken<PrevTy>()));
+
+    if (requiresRealignment()) {
       return reinterpret_cast<const NextTy *>(
           llvm::alignAddr(Ptr, alignof(NextTy)));
-    else
-      return reinterpret_cast<const NextTy *>(Ptr);
+    } else {
+      auto result = reinterpret_cast<const NextTy *>(Ptr);
+      printf("Result = %p\n", result);
+      return result;
+    }
   }
 
   static NextTy *

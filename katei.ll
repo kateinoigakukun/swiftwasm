@@ -29,10 +29,12 @@ target triple = "x86_64-apple-macosx10.14.0"
   i64 ptrtoint ([4 x i8]* @1 to i64),
   i64 ptrtoint (%swift.metadata_response (i64, %swift.type*)* @"$s5katei3BoxVMa" to i64),
   i64 ptrtoint ({ i64, i32, i16, i16, i32 }* @"$s5katei3BoxVMF" to i64),
-  i32 0, i32 3,
+  i32 0,
+  i32 3,
   i64 ptrtoint ([16 x i8*]* @"$s5katei3BoxVMI" to i64),
   i64 ptrtoint (<{ i64, i32, i32, i64 }>* @"$s5katei3BoxVMP" to i64),
-  i16 1, i16 0, i16 1, i16 0, i8 -128, i8 0, i8 0, i8 0
+  i16 1, i16 0, i16 1, i16 0,
+  i8 -128, i8 0, i8 0, i8 0
 }>, section "__DATA,__const", align 4
 @"$s5katei3BoxVMP" = internal constant <{ i64, i32, i32, i64 }>
 <{

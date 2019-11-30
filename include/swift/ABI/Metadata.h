@@ -2546,6 +2546,7 @@ TargetContextDescriptor<Runtime>::getModuleContext() const {
   }
 }
 
+#pragma pack(4)
 template<typename Runtime>
 struct TargetGenericContextDescriptorHeader {
   uint16_t NumParams, NumRequirements, NumKeyArguments, NumExtraArguments;
@@ -2558,6 +2559,8 @@ struct TargetGenericContextDescriptorHeader {
     return getNumArguments() > 0;
   }
 };
+#pragma pack()
+
 using GenericContextDescriptorHeader =
   TargetGenericContextDescriptorHeader<InProcess>;
 
@@ -2766,10 +2769,21 @@ public:
       return nullptr;
     // The generic context header should always be immediately followed in
     // memory by trailing parameter and requirement descriptors.
-    auto *header = reinterpret_cast<const char *>(&getGenericContextHeader());
+    auto headerDirectPtr = this->template getTrailingObjects<GenericContextHeaderType>();
+    printf("headerDirectPtr = %p\n", headerDirectPtr);
+    auto *header = reinterpret_cast<const char *>(headerDirectPtr);
+    printf("header = %p\n", header);
     printf("alignof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", alignof(TargetGenericContextDescriptorHeader<Runtime>));
     printf("alignof GenericParamDescriptor is %lu\n", alignof(GenericParamDescriptor));
     printf("alignof TargetGenericRequirementDescriptor<Runtime> is %lu\n", alignof(TargetGenericRequirementDescriptor<Runtime>));
+
+    printf("alignof TrailingGenericContextObjects is %lu\n", alignof(TrailingGenericContextObjects<TargetSelf<Runtime>, TargetGenericContextHeaderType, FollowingTrailingObjects...>));
+    printf("alignof Self is %lu\n", alignof(Self));
+
+    printf("sizeof Self is %lu\n", sizeof(Self));
+    printf("sizeof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", sizeof(TargetGenericContextDescriptorHeader<Runtime>));
+    printf("sizeof GenericParamDescriptor is %lu\n", sizeof(GenericParamDescriptor));
+    printf("sizeof TargetGenericRequirementDescriptor<Runtime> is %lu\n", sizeof(TargetGenericRequirementDescriptor<Runtime>));
     printf("sizeof TargetGenericContext<Runtime> is %lu\n", sizeof(TargetGenericContext<Runtime>));
     return reinterpret_cast<const TargetGenericContext<Runtime> *>(
       header - sizeof(TargetGenericContext<Runtime>));
@@ -2812,6 +2826,7 @@ protected:
 };
 
 /// Reference to a generic context.
+#pragma pack(4)
 template<typename Runtime>
 struct TargetGenericContext final
   : TrailingGenericContextObjects<TargetGenericContext<Runtime>,
@@ -2825,6 +2840,7 @@ struct TargetGenericContext final
 
   bool isGeneric() const { return true; }
 };
+#pragma pack()
 
 /// Descriptor for an extension context.
 template<typename Runtime>
