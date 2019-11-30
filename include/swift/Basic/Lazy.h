@@ -26,8 +26,28 @@ namespace swift {
 
 #ifdef __APPLE__
   using OnceToken_t = dispatch_once_t;
+
+
+#define CACHED_TOKENS_SIZE 1000
+static OnceToken_t *CachedTokens[CACHED_TOKENS_SIZE];
+
+static void fakeSwiftOnce(OnceToken_t *predicate, void *_Nullable context,
+    dispatch_function_t function)
+{
+  for(int i = 0; i < CACHED_TOKENS_SIZE; i++) {
+    if (CachedTokens[i] == predicate) return;
+  }
+  function(context);
+  int j;
+  for(j = 0; j < CACHED_TOKENS_SIZE; j++) {
+    if (CachedTokens[j] == NULL) break;
+  }
+  CachedTokens[j] = predicate;
+}
+
 # define SWIFT_ONCE_F(TOKEN, FUNC, CONTEXT) \
   ::dispatch_once_f(&TOKEN, CONTEXT, FUNC)
+//  swift::fakeSwiftOnce(&TOKEN, CONTEXT, FUNC)
 #elif defined(__CYGWIN__)
   // _swift_once_f() is declared in Private.h.
   // This prototype is copied instead including the header file.
@@ -79,6 +99,7 @@ template <typename T> inline T &Lazy<T>::get(void (*initCallback)(void*)) {
   static_assert(std::is_literal_type<Lazy<T>>::value,
                 "Lazy<T> must be a literal type");
 
+//  initCallback(&Value);
   SWIFT_ONCE_F(OnceToken, initCallback, &Value);
   return unsafeGetAlreadyInitialized();
 }
@@ -95,6 +116,7 @@ template <typename Arg1> inline T &Lazy<T>::getWithInit(Arg1 &&arg1) {
     }
   } data{&Value, static_cast<Arg1&&>(arg1)};
 
+//  Data::init(&data);
   SWIFT_ONCE_F(OnceToken, &Data::init, &data);
   return unsafeGetAlreadyInitialized();
 }

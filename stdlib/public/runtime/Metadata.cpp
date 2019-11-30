@@ -350,6 +350,7 @@ namespace {
 /// Fetch the metadata cache for a generic metadata structure.
 static GenericMetadataCache &getCache(
                                const TypeContextDescriptor &description) {
+  printf("Align of TargetRelativeDirectPointer<Runtime, TargetGenericMetadataInstantiationCache<Runtime>> is %d\n", alignof(TargetRelativeDirectPointer<InProcess, TargetGenericMetadataInstantiationCache<InProcess>>));
   auto &generics = description.getFullGenericContextHeader();
 
   // Keep this assert even if you change the representation above.
