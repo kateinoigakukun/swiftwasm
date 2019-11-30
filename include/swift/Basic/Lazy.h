@@ -46,7 +46,7 @@ static void fakeSwiftOnce(OnceToken_t *predicate, void *_Nullable context,
 }
 
 # define SWIFT_ONCE_F(TOKEN, FUNC, CONTEXT) \
-  ::dispatch_once_f(&TOKEN, CONTEXT, FUNC)
+  swift::fakeSwiftOnce(&TOKEN, CONTEXT, FUNC)
 //  swift::fakeSwiftOnce(&TOKEN, CONTEXT, FUNC)
 #elif defined(__CYGWIN__)
   // _swift_once_f() is declared in Private.h.
@@ -99,7 +99,6 @@ template <typename T> inline T &Lazy<T>::get(void (*initCallback)(void*)) {
   static_assert(std::is_literal_type<Lazy<T>>::value,
                 "Lazy<T> must be a literal type");
 
-//  initCallback(&Value);
   SWIFT_ONCE_F(OnceToken, initCallback, &Value);
   return unsafeGetAlreadyInitialized();
 }
@@ -116,7 +115,6 @@ template <typename Arg1> inline T &Lazy<T>::getWithInit(Arg1 &&arg1) {
     }
   } data{&Value, static_cast<Arg1&&>(arg1)};
 
-//  Data::init(&data);
   SWIFT_ONCE_F(OnceToken, &Data::init, &data);
   return unsafeGetAlreadyInitialized();
 }
