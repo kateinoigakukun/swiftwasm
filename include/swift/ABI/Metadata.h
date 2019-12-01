@@ -3198,6 +3198,7 @@ using MetadataCompleter =
                      const TargetGenericMetadataPattern<InProcess> *pattern);
 
 /// An instantiation pattern for type metadata.
+#pragma pack(4)
 template <typename Runtime>
 struct TargetGenericMetadataPattern {
   /// The function to call to instantiate the template.
@@ -3216,6 +3217,7 @@ struct TargetGenericMetadataPattern {
     return PatternFlags.hasExtraDataPattern();
   }
 };
+#pragma pack()
 using GenericMetadataPattern =
   TargetGenericMetadataPattern<InProcess>;
 

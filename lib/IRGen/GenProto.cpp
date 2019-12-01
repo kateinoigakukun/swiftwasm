@@ -1756,6 +1756,7 @@ namespace {
       addConformingType();
       addWitnessTable();
       addFlags();
+      B.addInt32(0);
       addContext();
       addConditionalRequirements();
       addResilientWitnesses();
