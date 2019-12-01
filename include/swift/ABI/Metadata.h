@@ -2461,7 +2461,6 @@ template<typename Runtime>
 struct TargetModuleContextDescriptor;
 
 /// Base class for all context descriptors.
-#pragma pack(4)
 template<typename Runtime>
 struct TargetContextDescriptor {
   /// Flags describing the context, including its kind and format version.
@@ -2502,7 +2501,6 @@ private:
   TargetContextDescriptor &operator=(const TargetContextDescriptor &) = delete;
   TargetContextDescriptor &operator=(TargetContextDescriptor &&) = delete;
 };
-#pragma pack()
 
 using ContextDescriptor = TargetContextDescriptor<InProcess>;
 
@@ -2546,7 +2544,6 @@ TargetContextDescriptor<Runtime>::getModuleContext() const {
   }
 }
 
-#pragma pack(4)
 template<typename Runtime>
 struct TargetGenericContextDescriptorHeader {
   uint16_t NumParams, NumRequirements, NumKeyArguments, NumExtraArguments;
@@ -2559,7 +2556,6 @@ struct TargetGenericContextDescriptorHeader {
     return getNumArguments() > 0;
   }
 };
-#pragma pack()
 
 using GenericContextDescriptorHeader =
   TargetGenericContextDescriptorHeader<InProcess>;
@@ -2713,7 +2709,13 @@ template<class Self,
            TargetGenericContextDescriptorHeader,
          typename... FollowingTrailingObjects>
 class TrailingGenericContextObjects;
-
+#include <stddef.h>
+template <typename Runtime>
+struct TargetForeignMetadataInitialization;
+template <typename Runtime>
+struct TargetSingletonMetadataInitialization;
+template <typename Runtime>
+struct TargetTypeGenericContextDescriptorHeader;
 // This oddity with partial specialization is necessary to get
 // reasonable-looking code while also working around various kinds of
 // compiler bad behavior with injected class names.
@@ -2763,15 +2765,23 @@ public:
     /// HeaderType ought to be convertible to GenericContextDescriptorHeader.
     return getFullGenericContextHeader();
   }
+
+    using ForeignMetadataInitialization =
+      TargetForeignMetadataInitialization<Runtime>;
+    using SingletonMetadataInitialization =
+      TargetSingletonMetadataInitialization<Runtime>;
+    using _TrailingGenericContextObjects =
+      TrailingGenericContextObjects<TargetStructDescriptor<Runtime>,
+                                    TargetTypeGenericContextDescriptorHeader,
+                                    ForeignMetadataInitialization,
+                                    SingletonMetadataInitialization>;
   
   const TargetGenericContext<Runtime> *getGenericContext() const {
     if (!asSelf()->isGeneric())
       return nullptr;
     // The generic context header should always be immediately followed in
     // memory by trailing parameter and requirement descriptors.
-    auto headerDirectPtr = this->template getTrailingObjects<GenericContextHeaderType>();
-    printf("headerDirectPtr = %p\n", headerDirectPtr);
-    auto *header = reinterpret_cast<const char *>(headerDirectPtr);
+    auto *header = reinterpret_cast<const char *>(&getGenericContextHeader());
     printf("header = %p\n", header);
     printf("alignof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", alignof(TargetGenericContextDescriptorHeader<Runtime>));
     printf("alignof GenericParamDescriptor is %lu\n", alignof(GenericParamDescriptor));
@@ -2785,6 +2795,29 @@ public:
     printf("sizeof GenericParamDescriptor is %lu\n", sizeof(GenericParamDescriptor));
     printf("sizeof TargetGenericRequirementDescriptor<Runtime> is %lu\n", sizeof(TargetGenericRequirementDescriptor<Runtime>));
     printf("sizeof TargetGenericContext<Runtime> is %lu\n", sizeof(TargetGenericContext<Runtime>));
+    printf("sizeof TargetStructDescriptor<Runtime> is %lu\n", sizeof(TargetStructDescriptor<Runtime>));
+
+    printf("sizeof TargetStructDescriptor<Runtime>::TrailingGenericContextObjects is %lu\n", sizeof(_TrailingGenericContextObjects));
+
+    printf("sizeof TargetValueTypeDescriptor<Runtime> is %lu\n", sizeof(TargetValueTypeDescriptor<Runtime>));
+    printf("sizeof TargetTypeContextDescriptor<Runtime> is %lu\n", sizeof(TargetTypeContextDescriptor<Runtime>));
+    printf("sizeof TargetContextDescriptor<Runtime> is %lu\n", sizeof(TargetContextDescriptor<Runtime>));
+
+    printf("sizeof ABI::TrailingObjects is %lu\n", sizeof(swift::ABI::TrailingObjects<TargetSelf<Runtime>,
+    TargetGenericContextHeaderType<Runtime>,
+    GenericParamDescriptor,
+    TargetGenericRequirementDescriptor<Runtime>,
+                                                          FollowingTrailingObjects...>));
+
+      printf("offsetof Flags from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Flags));
+      printf("offsetof Parent from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Parent));
+      printf("offsetof Name from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Name));
+      printf("offsetof AccessFunctionPtr from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, AccessFunctionPtr));
+      printf("offsetof Fields from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Fields));
+      printf("offsetof NumFields from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, NumFields));
+      printf("offsetof FieldOffsetVectorOffset from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, FieldOffsetVectorOffset));
+
+
     return reinterpret_cast<const TargetGenericContext<Runtime> *>(
       header - sizeof(TargetGenericContext<Runtime>));
   }
@@ -2826,7 +2859,6 @@ protected:
 };
 
 /// Reference to a generic context.
-#pragma pack(4)
 template<typename Runtime>
 struct TargetGenericContext final
   : TrailingGenericContextObjects<TargetGenericContext<Runtime>,
@@ -2840,7 +2872,6 @@ struct TargetGenericContext final
 
   bool isGeneric() const { return true; }
 };
-#pragma pack()
 
 /// Descriptor for an extension context.
 template<typename Runtime>
@@ -3596,7 +3627,6 @@ struct TargetSingletonMetadataInitialization {
       const TargetTypeContextDescriptor<Runtime> *description) const;
 };
 
-#pragma pack(4)
 template <typename Runtime>
 class TargetTypeContextDescriptor
     : public TargetContextDescriptor<Runtime> {
@@ -3683,7 +3713,6 @@ public:
         && cd->getKind() <= ContextDescriptorKind::Type_Last;
   }
 };
-#pragma pack()
 
 using TypeContextDescriptor = TargetTypeContextDescriptor<InProcess>;
 

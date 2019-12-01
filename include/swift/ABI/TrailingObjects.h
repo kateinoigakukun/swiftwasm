@@ -175,6 +175,7 @@ protected:
 
     printf("requiresRealignment is %d\n", requiresRealignment());
     printf("Ptr = %p\n", Ptr);
+    printf("sizeof(PrevTy) = %lu\n", sizeof(PrevTy));
     printf("TopTrailingObj::getTrailingObjectsImpl = %p\n", TopTrailingObj::getTrailingObjectsImpl(Obj, TrailingObjectsBase::OverloadToken<PrevTy>()));
     printf("TopTrailingObj::callNumTrailingObjects = %p\n", TopTrailingObj::callNumTrailingObjects(Obj, TrailingObjectsBase::OverloadToken<PrevTy>()));
 

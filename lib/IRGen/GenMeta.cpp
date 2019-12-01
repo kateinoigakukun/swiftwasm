@@ -283,6 +283,8 @@ namespace {
   public:
     void layout() {
       asImpl().addFlags();
+      // wasm: put empty 4byte for alignment
+      B.addInt32(0);
       asImpl().addParent();
     }
     
@@ -2266,7 +2268,7 @@ namespace {
 
     void addCompletionFunction() {
       if (!asImpl().hasCompletionFunction()) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
 
