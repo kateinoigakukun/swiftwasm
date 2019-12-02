@@ -3353,7 +3353,6 @@ using GenericClassMetadataPattern =
   TargetGenericClassMetadataPattern<InProcess>;
 
 /// An instantiation pattern for generic value metadata.
-#pragma pack(4)
 template <typename Runtime>
 struct TargetGenericValueMetadataPattern final :
        TargetGenericMetadataPattern<Runtime>,
@@ -3387,7 +3386,7 @@ private:
     return false;
   }
 };
-#pragma pack()
+
 using GenericValueMetadataPattern =
   TargetGenericValueMetadataPattern<InProcess>;
 
