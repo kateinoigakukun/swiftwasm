@@ -135,7 +135,7 @@ swift::Demangle::makeSymbolicMangledNameStringRef(const char *base) {
   while (*end != '\0') {
     // Skip over symbolic references.
     if (*end >= '\x01' && *end <= '\x17')
-      end += sizeof(uint32_t);
+      end += sizeof(uint64_t);
     else if (*end >= '\x18' && *end <= '\x1F')
       end += sizeof(void*);
     ++end;

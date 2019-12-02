@@ -13,7 +13,7 @@ import Builtin
 // -- instantiation function
 // CHECK-SAME:   %swift.type* (%swift.type_descriptor*, i8**, i8*)* @"$s15generic_structs18FixedLayoutGenericVMi"
 // -- completion function
-// CHECK-SAME:   i32 0,
+// CHECK-SAME:   i64 0,
 // -- pattern flags
 // CHECK-SAME:   <i32 0x4000_0001>,
 // -- vwtable pointer
@@ -62,7 +62,7 @@ import Builtin
 // -- Nominal type descriptor for generic struct with protocol requirements
 //    FIXME: Strings should be unnamed_addr. rdar://problem/22674524
 // CHECK: [[DYNAMICWITHREQUIREMENTS_NAME:@.*]] = private constant [24 x i8] c"DynamicWithRequirements\00"
-// CHECK: @"$s15generic_structs23DynamicWithRequirementsVMn" = hidden constant <{ {{.*}} i32 }> <{
+// CHECK: @"$s15generic_structs23DynamicWithRequirementsVMn" = hidden constant <{ {{.*}} i64 }> <{
 // --       flags: struct, unique, generic
 // CHECK-SAME:   <i32 0x0000_00D1>
 // --       name

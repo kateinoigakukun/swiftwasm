@@ -3,7 +3,7 @@
 // Ensure that the superclass's generic argument canonicalizes to
 // Sequence.Element.
 
-// CHECK: @"symbolic _____y7ElementSTQzG
+// CHECK: @"symbolic _________y7ElementSTQzG
 
 public protocol ElementTypeProtocol: RandomAccessCollection {
     typealias ElementType = Element

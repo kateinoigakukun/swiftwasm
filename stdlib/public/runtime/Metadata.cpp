@@ -4514,11 +4514,11 @@ static const WitnessTable *swift_getAssociatedConformanceWitnessSlowImpl(
   // Relative reference to an associate conformance witness function.
   // FIXME: This is intended to be a temporary mangling, to be replaced
   // by a real "protocol conformance" mangling.
-  if (mangledName.size() == 5 &&
+  if (mangledName.size() == 9 &&
       (mangledName[0] == '\x07' || mangledName[0] == '\x08')) {
     // Resolve the relative reference to the witness function.
-    int32_t offset;
-    memcpy(&offset, mangledName.data() + 1, 4);
+    int64_t offset;
+    memcpy(&offset, mangledName.data() + 1, 8);
     auto ptr = detail::applyRelativeOffset(mangledName.data() + 1, offset);
 
     // Call the witness function.
