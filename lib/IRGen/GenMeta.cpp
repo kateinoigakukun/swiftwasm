@@ -4287,6 +4287,7 @@ static void addGenericRequirement(IRGenModule &IGM, ConstantStructBuilder &B,
     ++metadata.NumGenericExtraArguments;
 
   B.addInt(IGM.Int32Ty, flags.getIntValue());
+  B.addInt32(0);
   auto typeName =
       IGM.getTypeRef(paramType, nullptr, MangledTypeRefRole::Metadata).first;
   B.addRelativeAddress(typeName);
@@ -4313,7 +4314,10 @@ GenericRequirementsMetadata irgen::addGenericRequirements(
                                              /*extra argument*/ false);
         addGenericRequirement(IGM, B, metadata, sig, flags,
                               requirement.getFirstType(),
-         [&]{ B.addInt32((uint32_t)GenericRequirementLayoutKind::Class); });
+         [&]{
+          B.addInt32((uint32_t)GenericRequirementLayoutKind::Class);
+          B.addInt32(0);
+        });
         break;
       }
       default:
