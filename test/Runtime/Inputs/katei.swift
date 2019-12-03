@@ -21,25 +21,30 @@
 // 
 // type(of: ((Box<Int>() as Any) as! Box<Int>)).foo()
 
-public protocol _P {}
-public protocol P: _P {
-    associatedtype X
-    func foo(_: X)
+// public protocol _P {}
+// public protocol P: _P {
+//     associatedtype X
+//     func foo(_: X)
+// }
+// 
+// 
+// @_optimize(none)
+// public func callFoo<T>(_ t: T, _ x: T.X) where T: P {
+//     t.foo(x)
+// }
+// 
+// func run() {
+//     let any: _P = S<Int>()
+//     callFoo(any as! S<Int>, 1)
+// }
+// 
+// run()
+
+public class S<Y> {
+    let value: Y
+
+    @_optimize(none)
+    public init(value: Y) { self.value = value }
 }
 
-public struct S<Y>: P {
-    public typealias X = Y
-    public func foo(_: X) {}
-}
-
-@_optimize(none)
-public func callFoo<T>(_ t: T, _ x: T.X) where T: P {
-    t.foo(x)
-}
-
-func run() {
-    let any: _P = S<Int>()
-    callFoo(any as! S<Int>, 1)
-}
-
-run()
+S(value: 1)

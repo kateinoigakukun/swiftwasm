@@ -47,7 +47,7 @@ static void fakeSwiftOnce(OnceToken_t *predicate, void *_Nullable context,
 
 # define SWIFT_ONCE_F(TOKEN, FUNC, CONTEXT) \
   swift::fakeSwiftOnce(&TOKEN, CONTEXT, FUNC)
-//  swift::fakeSwiftOnce(&TOKEN, CONTEXT, FUNC)
+//  ::dispatch_once_f(&TOKEN, CONTEXT, FUNC)
 #elif defined(__CYGWIN__)
   // _swift_once_f() is declared in Private.h.
   // This prototype is copied instead including the header file.
