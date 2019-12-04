@@ -2785,40 +2785,14 @@ public:
     // memory by trailing parameter and requirement descriptors.
     auto *header = reinterpret_cast<const char *>(&getGenericContextHeader());
     printf("header = %p\n", header);
-    printf("alignof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", alignof(TargetGenericContextDescriptorHeader<Runtime>));
-    printf("alignof GenericParamDescriptor is %lu\n", alignof(GenericParamDescriptor));
-    printf("alignof TargetGenericRequirementDescriptor<Runtime> is %lu\n", alignof(TargetGenericRequirementDescriptor<Runtime>));
-
-    printf("alignof TrailingGenericContextObjects is %lu\n", alignof(TrailingGenericContextObjects<TargetSelf<Runtime>, TargetGenericContextHeaderType, FollowingTrailingObjects...>));
-    printf("alignof Self is %lu\n", alignof(Self));
+    printf("alignof TargetTypeGenericContextDescriptorHeader is %lu\n", alignof(TargetTypeGenericContextDescriptorHeader<Runtime>));
 
     printf("sizeof Self is %lu\n", sizeof(Self));
     printf("sizeof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", sizeof(TargetGenericContextDescriptorHeader<Runtime>));
     printf("sizeof GenericParamDescriptor is %lu\n", sizeof(GenericParamDescriptor));
     printf("sizeof TargetGenericRequirementDescriptor<Runtime> is %lu\n", sizeof(TargetGenericRequirementDescriptor<Runtime>));
     printf("sizeof TargetGenericContext<Runtime> is %lu\n", sizeof(TargetGenericContext<Runtime>));
-    printf("sizeof TargetStructDescriptor<Runtime> is %lu\n", sizeof(TargetStructDescriptor<Runtime>));
-
-    printf("sizeof TargetStructDescriptor<Runtime>::TrailingGenericContextObjects is %lu\n", sizeof(_TrailingGenericContextObjects));
-
-    printf("sizeof TargetValueTypeDescriptor<Runtime> is %lu\n", sizeof(TargetValueTypeDescriptor<Runtime>));
-    printf("sizeof TargetTypeContextDescriptor<Runtime> is %lu\n", sizeof(TargetTypeContextDescriptor<Runtime>));
-    printf("sizeof TargetContextDescriptor<Runtime> is %lu\n", sizeof(TargetContextDescriptor<Runtime>));
-
-    printf("sizeof ABI::TrailingObjects is %lu\n", sizeof(swift::ABI::TrailingObjects<TargetSelf<Runtime>,
-    TargetGenericContextHeaderType<Runtime>,
-    GenericParamDescriptor,
-    TargetGenericRequirementDescriptor<Runtime>,
-                                                          FollowingTrailingObjects...>));
-
-      printf("offsetof Flags from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Flags));
-      printf("offsetof Parent from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Parent));
-      printf("offsetof Name from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Name));
-      printf("offsetof AccessFunctionPtr from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, AccessFunctionPtr));
-      printf("offsetof Fields from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, Fields));
-      printf("offsetof NumFields from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, NumFields));
-      printf("offsetof FieldOffsetVectorOffset from TargetStructDescriptor is %d\n",  offsetof(TargetStructDescriptor<Runtime>, FieldOffsetVectorOffset));
-
+    printf("sizeof TargetClassDescriptor<Runtime> is %lu\n", sizeof(TargetClassDescriptor<Runtime>));
 
     return reinterpret_cast<const TargetGenericContext<Runtime> *>(
       header - sizeof(TargetGenericContext<Runtime>));
@@ -3903,7 +3877,7 @@ public:
   union {
     /// If this descriptor does not have a resilient superclass, this is the
     /// negative size of metadata objects of this class (in words).
-    uint32_t MetadataNegativeSizeInWords;
+    uint64_t MetadataNegativeSizeInWords;
 
     /// If this descriptor has a resilient superclass, this is a reference
     /// to a cache holding the metadata's extents.
@@ -4083,7 +4057,7 @@ public:
   TargetClassMetadataBounds<Runtime> getNonResilientMetadataBounds() const {
     return { getNonResilientImmediateMembersOffset()
                * StoredPointerDifference(sizeof(void*)),
-             MetadataNegativeSizeInWords,
+             uint32_t(MetadataNegativeSizeInWords),
              MetadataPositiveSizeInWords };
   }
 

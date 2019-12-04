@@ -14,12 +14,12 @@
 // 
 // callFooFromAny(A())
 
-public struct Box<T> {}
-public extension Box where T == Int {
-    static func foo() {}
-}
-
-type(of: ((Box<Int>() as Any) as! Box<Int>)).foo()
+// public struct Box<T> {}
+// public extension Box where T == Int {
+//     static func foo() {}
+// }
+// 
+// type(of: ((Box<Int>() as Any) as! Box<Int>)).foo()
 
 // public protocol _P {}
 // public protocol P: _P {
@@ -40,11 +40,12 @@ type(of: ((Box<Int>() as Any) as! Box<Int>)).foo()
 // 
 // run()
 
-// public class S<Y> {
-//     let value: Y
-// 
-//     @_optimize(none)
-//     public init(value: Y) { self.value = value }
-// }
-// 
-// S(value: 1)
+public class S<Y> {
+    let value: Y
+
+    @_optimize(none)
+    public init(value: Y) { self.value = value }
+}
+
+S(value: 1)
+

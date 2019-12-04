@@ -1093,7 +1093,7 @@ namespace {
 
     void addMetadataInstantiationPattern() {
       if (!HasMetadata) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
 
@@ -1103,7 +1103,7 @@ namespace {
 
     void addMetadataInstantiationCache() {
       if (!HasMetadata) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
 
@@ -1274,7 +1274,7 @@ namespace {
 
     void addReflectionFieldDescriptor() {
       if (!IGM.IRGen.Opts.EnableReflectionMetadata) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
     
@@ -1343,7 +1343,7 @@ namespace {
 
     void addReflectionFieldDescriptor() {
       if (!IGM.IRGen.Opts.EnableReflectionMetadata) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
 
@@ -1353,7 +1353,7 @@ namespace {
       // Some enum layout strategies (viz. C compatible layout) aren't
       // supported by reflection.
       if (!Strategy.isReflectable()) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
 
@@ -1472,7 +1472,7 @@ namespace {
       // is a foreign class.
       if (!IGM.IRGen.Opts.EnableReflectionMetadata ||
           getType()->isForeign()) {
-        B.addInt32(0);
+        B.addInt64(0);
         return;
       }
     
@@ -1603,7 +1603,7 @@ namespace {
                                             MangledTypeRefRole::Metadata)
                                .first);
       } else {
-        B.addInt32(0);
+        B.addInt64(0);
       }
 
       auto properties = getType()->getStoredProperties();
@@ -1615,9 +1615,9 @@ namespace {
       // };
       if (!MetadataLayout) {
         // FIXME: do something meaningful for foreign classes?
-        B.addInt32(0);
+        B.addInt64(0);
       } else if (!MetadataLayout->hasResilientSuperclass()) {
-        B.addInt32(MetadataLayout->getSize().AddressPoint
+        B.addInt64(MetadataLayout->getSize().AddressPoint
                      / IGM.getPointerSize());
       } else {
         B.addRelativeAddress(
