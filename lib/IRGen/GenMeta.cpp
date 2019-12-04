@@ -795,6 +795,7 @@ namespace {
 
         // Flags.
         reqt.addInt32(info.Flags.getIntValue());
+        reqt.addInt32(0);
 
         // Default implementation.
         reqt.addRelativeAddressOrNull(info.DefaultImpl);

@@ -1715,6 +1715,7 @@ template <typename Runtime>
 struct TargetProtocolRequirement {
   ProtocolRequirementFlags Flags;
   // TODO: name, type
+  uint32_t DummyPadding;
 
   /// The optional default implementation of the protocol.
   RelativeDirectPointer<void, /*nullable*/ true> DefaultImplementation;

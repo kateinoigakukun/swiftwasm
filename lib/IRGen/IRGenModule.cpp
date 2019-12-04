@@ -263,6 +263,7 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
   ProtocolRequirementStructTy =
       createStructType(*this, "swift.protocol_requirement", {
     Int32Ty,                // flags
+    Int32Ty,                // wasm: DummyPadding
     RelativeAddressTy,      // default implementation
   });
   
