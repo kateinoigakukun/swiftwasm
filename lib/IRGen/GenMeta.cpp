@@ -284,7 +284,7 @@ namespace {
     void layout() {
       asImpl().addFlags();
       // wasm: put empty 4byte for alignment
-      B.addInt32(0);
+      // B.addInt32(0);
       asImpl().addParent();
     }
     
@@ -4287,7 +4287,6 @@ static void addGenericRequirement(IRGenModule &IGM, ConstantStructBuilder &B,
     ++metadata.NumGenericExtraArguments;
 
   B.addInt(IGM.Int32Ty, flags.getIntValue());
-  B.addInt32(0);
   auto typeName =
       IGM.getTypeRef(paramType, nullptr, MangledTypeRefRole::Metadata).first;
   B.addRelativeAddress(typeName);
@@ -4316,7 +4315,6 @@ GenericRequirementsMetadata irgen::addGenericRequirements(
                               requirement.getFirstType(),
          [&]{
           B.addInt32((uint32_t)GenericRequirementLayoutKind::Class);
-          B.addInt32(0);
         });
         break;
       }
