@@ -2258,7 +2258,6 @@ namespace {
 
       // ClassMetadataPatternFlags PatternFlags;
       asImpl().addPatternFlags();
-      B.addInt32(0);
     }
 
     void addInstantiationFunction() {

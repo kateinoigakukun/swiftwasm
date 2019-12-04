@@ -302,7 +302,7 @@ public:
 
 struct TypeLayout;
 
-#pragma pack(4)
+
 /// A value-witness table.  A value witness table is built around
 /// the requirements of some specific type.  The information in
 /// a value-witness table is intended to be sufficient to lay out
@@ -403,6 +403,7 @@ template <typename Runtime> struct TargetValueWitnessTable {
   void publishLayout(const TypeLayout &layout);
 };
 
+#pragma pack(4)
 /// The header before a metadata object which appears on all type
 /// metadata.  Note that heap metadata are not necessarily type
 /// metadata, even for objects of a heap type: for example, objects of

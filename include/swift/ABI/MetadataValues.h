@@ -168,6 +168,8 @@ public:
     return withAlignmentMask(alignment - 1);
   }
 
+    
+
   /// True if the type requires out-of-line allocation of its storage.
   /// This can be the case because the value requires more storage or if it is
   /// not bitwise takable.
