@@ -284,7 +284,7 @@ namespace {
     void layout() {
       asImpl().addFlags();
       // wasm: put empty 4byte for alignment
-      // B.addInt32(0);
+      B.addInt32(0);
       asImpl().addParent();
     }
     

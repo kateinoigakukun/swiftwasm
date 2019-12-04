@@ -2250,7 +2250,6 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
         loadSize->setOrdering(llvm::AtomicOrdering::Monotonic);
       
       auto _size = subIGF.Builder.CreateSExt(cast<llvm::Value>(loadSize), IGM.Int64Ty);
-      _size->dump();
       // Compare the load result to see if it's negative.
       auto isUnfilledBB = subIGF.createBasicBlock("");
       auto contBB = subIGF.createBasicBlock("");
@@ -2292,7 +2291,6 @@ emitMetadataAccessByMangledName(IRGenFunction &IGF, CanType type,
       auto store = subIGF.Builder.CreateStore(resultWord, _stringAddr,
                                               Alignment(8));
       store->setOrdering(llvm::AtomicOrdering::Monotonic);
-      sizePtr->dump();
       auto size32 = subIGF.Builder.CreateTrunc(size, IGM.Int32Ty);
       subIGF.Builder.CreateStore(size32, sizePtr, Alignment(8));
       subIGF.Builder.CreateBr(contBB);

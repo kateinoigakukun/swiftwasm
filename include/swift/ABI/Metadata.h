@@ -2467,6 +2467,7 @@ template<typename Runtime>
 struct TargetContextDescriptor {
   /// Flags describing the context, including its kind and format version.
   ContextDescriptorFlags Flags;
+  uint32_t DummyPadding;
   
   /// The parent context, or null if this is a top-level context.
   RelativeContextPointer<Runtime> Parent;

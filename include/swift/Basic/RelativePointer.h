@@ -180,6 +180,7 @@ static inline Offset measureRelativeOffset(A *referent, B *base) {
 
 } // namespace detail
 
+#pragma pack(4)
 /// A relative reference to an object stored in memory. The reference may be
 /// direct or indirect, and uses the low bit of the (assumed at least
 /// 2-byte-aligned) pointer to differentiate.
@@ -548,6 +549,7 @@ public:
     return RelativeOffsetPlusInt;
   }
 };
+#pragma pack()
 
 // Type aliases for "far" relative pointers, which need to be able to reach
 // across the full address space instead of only across a single small-code-

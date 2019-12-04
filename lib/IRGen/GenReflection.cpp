@@ -684,7 +684,7 @@ class FieldTypeMetadataBuilder : public ReflectionMetadataBuilder {
     B.addInt32(flags.getRawValue());
 
     if (!type) {
-      B.addInt32(0);
+      B.addInt64(0);
     } else {
       // The standard library's Mirror demangles metadata from field
       // descriptors, so use MangledTypeRefRole::Metadata to ensure
@@ -697,7 +697,7 @@ class FieldTypeMetadataBuilder : public ReflectionMetadataBuilder {
       auto fieldName = IGM.getAddrOfFieldName(name);
       B.addRelativeAddress(fieldName);
     } else {
-      B.addInt32(0);
+      B.addInt64(0);
     }
   }
 
@@ -786,7 +786,7 @@ class FieldTypeMetadataBuilder : public ReflectionMetadataBuilder {
       addTypeRef(PD->getDeclaredType()->getSuperclass(),
                  PD->getGenericSignature());
     } else {
-      B.addInt32(0);
+      B.addInt64(0);
     }
 
     switch (NTD->getKind()) {
@@ -942,7 +942,7 @@ public:
 
   void addMetadataSource(const reflection::MetadataSource *Source) {
     if (Source == nullptr) {
-      B.addInt32(0);
+      B.addInt64(0);
     } else {
       SmallString<16> EncodeBuffer;
       llvm::raw_svector_ostream OS(EncodeBuffer);

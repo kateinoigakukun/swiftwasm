@@ -1080,7 +1080,7 @@ emitKeyPathComponent(IRGenModule &IGM,
         // If there are only generic parameters, we can use a prefab witness
         // table from the runtime. Leaving a null reference here will let
         // the runtime fill it in.
-        fields.addInt32(0);
+        fields.addInt64(0);
       }
       
       // Add an initializer function that copies generic arguments out of the
@@ -1178,7 +1178,7 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
     onceVar->setAlignment(getPointerAlignment().getValue());
     fields.addRelativeAddress(onceVar);
   } else {
-    fields.addInt32(0);
+    fields.addInt64(0);
   }
 
   // Add the generic environment.
@@ -1199,7 +1199,7 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
                                             /*relatively addressed*/ true);
     fields.addRelativeAddress(objcString);
   } else {
-    fields.addInt32(0);
+    fields.addInt64(0);
   }
   
   // Leave a placeholder for the buffer header, since we need to know the full
