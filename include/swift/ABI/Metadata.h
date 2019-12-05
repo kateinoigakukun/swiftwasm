@@ -302,7 +302,6 @@ public:
 
 struct TypeLayout;
 
-
 /// A value-witness table.  A value witness table is built around
 /// the requirements of some specific type.  The information in
 /// a value-witness table is intended to be sufficient to lay out
@@ -2654,7 +2653,6 @@ public:
 };
 using GenericRequirementDescriptor =
   TargetGenericRequirementDescriptor<InProcess>;
-
 template<typename Runtime>
 class TargetGenericEnvironment
     : public swift::ABI::TrailingObjects<TargetGenericEnvironment<Runtime>,
@@ -2713,13 +2711,7 @@ template<class Self,
            TargetGenericContextDescriptorHeader,
          typename... FollowingTrailingObjects>
 class TrailingGenericContextObjects;
-#include <stddef.h>
-template <typename Runtime>
-struct TargetForeignMetadataInitialization;
-template <typename Runtime>
-struct TargetSingletonMetadataInitialization;
-template <typename Runtime>
-struct TargetTypeGenericContextDescriptorHeader;
+
 // This oddity with partial specialization is necessary to get
 // reasonable-looking code while also working around various kinds of
 // compiler bad behavior with injected class names.
@@ -2770,32 +2762,12 @@ public:
     return getFullGenericContextHeader();
   }
 
-    using ForeignMetadataInitialization =
-      TargetForeignMetadataInitialization<Runtime>;
-    using SingletonMetadataInitialization =
-      TargetSingletonMetadataInitialization<Runtime>;
-    using _TrailingGenericContextObjects =
-      TrailingGenericContextObjects<TargetStructDescriptor<Runtime>,
-                                    TargetTypeGenericContextDescriptorHeader,
-                                    ForeignMetadataInitialization,
-                                    SingletonMetadataInitialization>;
-  
   const TargetGenericContext<Runtime> *getGenericContext() const {
     if (!asSelf()->isGeneric())
       return nullptr;
     // The generic context header should always be immediately followed in
     // memory by trailing parameter and requirement descriptors.
     auto *header = reinterpret_cast<const char *>(&getGenericContextHeader());
-    printf("header = %p\n", header);
-    printf("alignof TargetTypeGenericContextDescriptorHeader is %lu\n", alignof(TargetTypeGenericContextDescriptorHeader<Runtime>));
-
-    printf("sizeof Self is %lu\n", sizeof(Self));
-    printf("sizeof TargetGenericContextDescriptorHeader<Runtime> is %lu\n", sizeof(TargetGenericContextDescriptorHeader<Runtime>));
-    printf("sizeof GenericParamDescriptor is %lu\n", sizeof(GenericParamDescriptor));
-    printf("sizeof TargetGenericRequirementDescriptor<Runtime> is %lu\n", sizeof(TargetGenericRequirementDescriptor<Runtime>));
-    printf("sizeof TargetGenericContext<Runtime> is %lu\n", sizeof(TargetGenericContext<Runtime>));
-    printf("sizeof TargetClassDescriptor<Runtime> is %lu\n", sizeof(TargetClassDescriptor<Runtime>));
-
     return reinterpret_cast<const TargetGenericContext<Runtime> *>(
       header - sizeof(TargetGenericContext<Runtime>));
   }
@@ -3362,7 +3334,6 @@ private:
     return false;
   }
 };
-
 using GenericValueMetadataPattern =
   TargetGenericValueMetadataPattern<InProcess>;
 

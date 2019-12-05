@@ -63,4 +63,4 @@
 // 
 // foo(S<Int>.self, value: 1)
 
-_ = ""
+print("")
