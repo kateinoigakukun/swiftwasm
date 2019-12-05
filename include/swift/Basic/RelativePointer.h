@@ -345,7 +345,10 @@ private:
 
   // Retrieve the mask for the stored integer value.
   static Offset getIntMask() {
-      return 2; //(alignof(Offset) - 1) & ~(Offset)0x01;
+    if (alignof(Offset) > alignof(ValueTy))
+      return (alignof(ValueTy) - 1) & ~(Offset)0x01;
+    else
+      return (alignof(Offset) - 1) & ~(Offset)0x01;
   }
 
 public:
