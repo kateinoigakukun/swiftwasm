@@ -40,25 +40,27 @@
 // 
 // run()
 
-public protocol P {
-    associatedtype X
-    static func foo()
-    init(value: X)
-}
+// public protocol P {
+//     associatedtype X
+//     static func foo()
+//     init(value: X)
+// }
+// 
+// public final class S<Y>: P {
+//     let value: Y
+// 
+//     @_optimize(none)
+//     public init(value: Y) { self.value = value }
+//     public static func foo() {}
+// }
+// 
+// 
+// @_optimize(none)
+// public func foo<T: P>(_ type: T.Type, value: T.X) {
+//     type.foo()
+//     _ = T(value: value)
+// }
+// 
+// foo(S<Int>.self, value: 1)
 
-public final class S<Y>: P {
-    let value: Y
-
-    @_optimize(none)
-    public init(value: Y) { self.value = value }
-    public static func foo() {}
-}
-
-
-@_optimize(none)
-public func foo<T: P>(_ type: T.Type, value: T.X) {
-    type.foo()
-    _ = T(value: value)
-}
-
-foo(S<Int>.self, value: 1)
+_ = ""
