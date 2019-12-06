@@ -791,7 +791,7 @@ struct TargetMethodDescriptor {
 
   /// The method implementation.
   TargetRelativeDirectPointer<Runtime, void> Impl;
-
+  uint32_t DummyPadding;
   // TODO: add method types or anything else needed for reflection.
 };
 

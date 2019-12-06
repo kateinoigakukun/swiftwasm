@@ -296,7 +296,7 @@ namespace {
         auto &generics = metadata->getTypeContextDescriptor()
                                  ->getFullGenericContextHeader();
         auto pattern = generics.DefaultInstantiationPattern.get();
-
+        const auto classMetadata = reinterpret_cast<ClassMetadata *>(metadata);
         // Complete the metadata's instantiation.
         auto dependency =
           pattern->CompletionFunction(metadata, &context->Public, pattern);
