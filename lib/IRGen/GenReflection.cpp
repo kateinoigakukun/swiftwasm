@@ -682,6 +682,7 @@ class FieldTypeMetadataBuilder : public ReflectionMetadataBuilder {
       flags.setIsVar(!var->isLet());
 
     B.addInt32(flags.getRawValue());
+    B.addInt32(0);
 
     if (!type) {
       B.addInt64(0);

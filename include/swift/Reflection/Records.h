@@ -72,6 +72,7 @@ class FieldRecord {
   const FieldRecordFlags Flags;
 
 public:
+  const uint32_t DuumyPadding;
   const RelativeDirectPointer<const char> MangledTypeName;
   const RelativeDirectPointer<const char> FieldName;
 
