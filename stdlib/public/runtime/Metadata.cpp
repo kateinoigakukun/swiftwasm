@@ -4293,7 +4293,6 @@ swift::swift_getWitnessTable(const ProtocolConformanceDescriptor *conformance,
     return uniqueForeignWitnessTableRef(conformance->getWitnessTablePattern());
   }
 
-  printf("swift_getWitnessTable\n");
   auto &cache = getCache(genericTable);
   auto result = cache.getOrInsert(type, conformance, instantiationArgs);
 
