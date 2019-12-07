@@ -4316,6 +4316,7 @@ GenericRequirementsMetadata irgen::addGenericRequirements(
                               requirement.getFirstType(),
          [&]{
           B.addInt32((uint32_t)GenericRequirementLayoutKind::Class);
+          B.addInt32(0); // wasm: padding but runtime structure ignores due to union
         });
         break;
       }
