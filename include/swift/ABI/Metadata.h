@@ -2265,6 +2265,7 @@ using TypeReference = TargetTypeReference<InProcess>;
 template <typename Runtime>
 struct TargetResilientWitnessesHeader {
   uint32_t NumWitnesses;
+  uint32_t DummyPadding;
 };
 using ResilientWitnessesHeader = TargetResilientWitnessesHeader<InProcess>;
 

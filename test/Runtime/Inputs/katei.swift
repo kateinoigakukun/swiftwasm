@@ -57,4 +57,4 @@
 // foo(S1<Int>.self, value: 1)
 // 
 // _ = ""
-print("")
+print("Hello, World")

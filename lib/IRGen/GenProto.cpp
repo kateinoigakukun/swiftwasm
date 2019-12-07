@@ -1843,6 +1843,7 @@ namespace {
       // TargetResilientWitnessesHeader
       ArrayRef<llvm::Constant *> witnesses = Description.resilientWitnesses;
       B.addInt32(witnesses.size());
+      B.addInt32(0);
       for (const auto &entry : SILWT->getEntries()) {
         // Add the requirement descriptor.
         if (entry.getKind() == SILWitnessTable::AssociatedType) {
