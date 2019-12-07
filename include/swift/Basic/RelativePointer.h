@@ -525,7 +525,10 @@ class RelativeDirectPointerIntPair {
     = delete;
 
   static Offset getMask() {
-    return alignof(Offset) - 1;
+    if (alignof(Offset) > alignof(ValueTy))
+      return alignof(ValueTy) - 1;
+    else
+      return alignof(Offset) - 1;
   }
 
 public:

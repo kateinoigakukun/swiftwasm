@@ -1,4 +1,8 @@
-// RUN: %target-run-simple-swift
+// RUN: %empty-directory(%t)
+// RUN: %target-build-swift %s -module-name main -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+
 // public protocol P0 {
 //     func foo0()
 // }
@@ -57,4 +61,12 @@
 // foo(S1<Int>.self, value: 1)
 // 
 // _ = ""
-print("Hello, World")
+enum EG<T, U> { case a }
+
+extension EG {
+  struct NestedSG<V> { }
+}
+
+assert(EG<Int, String>.NestedSG<Double>.self ==
+  _typeByName("4main2EGO8NestedSGVySiSS_SdG")!)
+
