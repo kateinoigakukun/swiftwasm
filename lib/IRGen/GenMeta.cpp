@@ -4287,6 +4287,7 @@ static void addGenericRequirement(IRGenModule &IGM, ConstantStructBuilder &B,
     ++metadata.NumGenericExtraArguments;
 
   B.addInt(IGM.Int32Ty, flags.getIntValue());
+  B.addInt32(0);
   auto typeName =
       IGM.getTypeRef(paramType, nullptr, MangledTypeRefRole::Metadata).first;
   B.addRelativeAddress(typeName);

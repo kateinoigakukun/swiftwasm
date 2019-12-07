@@ -1756,6 +1756,7 @@ namespace {
       addConformingType();
       addWitnessTable();
       addFlags();
+      B.addInt32(0);
       addContext();
       addConditionalRequirements();
       addResilientWitnesses();
@@ -1900,6 +1901,7 @@ namespace {
       B.addInt(IGM.Int16Ty,
                (Description.witnessTablePrivateSize << 1) |
                 Description.requiresSpecialization);
+      B.addInt32(0);
       // Instantiation function
       B.addRelativeAddressOrNull(Description.instantiationFn);
       // Private data

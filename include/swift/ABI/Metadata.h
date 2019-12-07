@@ -2059,6 +2059,7 @@ struct TargetGenericWitnessTable {
   /// The low bit is used to indicate whether this witness table is known
   /// to require instantiation.
   uint16_t WitnessTablePrivateSizeInWordsAndRequiresInstantiation;
+  uint32_t DummyPadding;
 
   /// The instantiation function, which is called after the template is copied.
   RelativeDirectPointer<void(TargetWitnessTable<Runtime> *instantiatedTable,
@@ -2317,6 +2318,7 @@ private:
 
   /// Various flags, including the kind of conformance.
   ConformanceFlags Flags;
+  uint32_t DummyPadding;
 
 public:
   ConstTargetPointer<Runtime, TargetProtocolDescriptor<Runtime>>
@@ -2567,6 +2569,7 @@ template<typename Runtime>
 class TargetGenericRequirementDescriptor {
 public:
   GenericRequirementFlags Flags;
+  uint32_t DummyPadding;
 
   /// The type that's constrained, described as a mangled name.
   RelativeDirectPointer<const char, /*nullable*/ false> Param;

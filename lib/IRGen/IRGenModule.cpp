@@ -345,6 +345,7 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
       RelativeAddressTy,
       RelativeAddressTy,
       RelativeAddressTy,
+      Int32Ty,
       Int32Ty
     });
   ProtocolConformanceDescriptorPtrTy

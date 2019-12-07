@@ -37,12 +37,12 @@ static void fakeSwiftOnce(OnceToken_t *predicate, void *_Nullable context,
   for(int i = 0; i < CACHED_TOKENS_SIZE; i++) {
     if (CachedTokens[i] == predicate) return;
   }
-  function(context);
   int j;
   for(j = 0; j < CACHED_TOKENS_SIZE; j++) {
     if (CachedTokens[j] == NULL) break;
   }
   CachedTokens[j] = predicate;
+  function(context);
 }
 
 # define SWIFT_ONCE_F(TOKEN, FUNC, CONTEXT) \
