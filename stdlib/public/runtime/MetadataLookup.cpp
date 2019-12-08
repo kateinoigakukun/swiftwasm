@@ -156,7 +156,7 @@ _buildDemanglingForSymbolicReference(SymbolicReferenceKind kind,
 NodePointer
 ResolveToDemanglingForContext::operator()(SymbolicReferenceKind kind,
                                           Directness isIndirect,
-                                          int32_t offset,
+                                          int64_t offset,
                                           const void *base) {
   auto ptr = detail::applyRelativeOffset(base, offset);
   if (isIndirect == Directness::Indirect) {

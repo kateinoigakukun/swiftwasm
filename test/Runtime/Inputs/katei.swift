@@ -79,13 +79,39 @@
 // 
 // var hashIntoImpl = ResettableValue<(Int) -> Void>({ _ = $0 })
 // hashIntoImpl.value(1)
-class C<T> {
-    var value: T
-    init(value: T) { self.value = value }
-}
+// class C<T> {
+//     var value: T
+//     init(value: T) { self.value = value }
+// }
+// 
+// func callVTable<T>(_ instance: C<T>) {
+//     _ = instance.value
+// }
+// 
+// callVTable(C<Int>(value: 1))
 
-func callVTable<T>(_ instance: C<T>) {
-    _ = instance.value
+protocol P1 { }
+protocol P2 { }
+protocol P3 { }
+struct ConformsToP3: P3 { }
+struct OuterTwoParams<T: P1, U: P2> {}
+struct ConformsToP1AndP2 : P1, P2 { }
+extension OuterTwoParams where U == T {
+  struct InnerEqualParams<V: P3> {
+    var x: T
+    var y: U
+    var z: V
+  }
 }
+let value = OuterTwoParams.InnerEqualParams(x: ConformsToP1AndP2(),
+                                            y: ConformsToP1AndP2(),
+                                            z: ConformsToP3())
+var output = ""
+dump(value, to: &output)
 
-callVTable(C<Int>(value: 1))
+let expected =
+  "▿ (extension in main):main.OuterTwoParams<main.ConformsToP1AndP2, main.ConformsToP1AndP2>.InnerEqualParams<main.ConformsToP3>\n" +
+  "  - x: main.ConformsToP1AndP2\n" +
+  "  - y: main.ConformsToP1AndP2\n" +
+  "  - z: main.ConformsToP3\n"
+assert(output == expected)
