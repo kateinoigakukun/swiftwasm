@@ -915,6 +915,7 @@ internal struct RawKeyPathComponent {
     }
     
     internal var _value: UInt32
+    internal let _dummyPadding: UInt32
     
     internal var discriminator: UInt32 {
       get {
@@ -1051,6 +1052,7 @@ internal struct RawKeyPathComponent {
 
     init(discriminator: UInt32, payload: UInt32) {
       _value = 0
+      _dummyPadding = 0
       self.discriminator = discriminator
       self.payload = payload
     }
@@ -2544,10 +2546,7 @@ internal protocol KeyPathPatternVisitor {
 internal func _resolveRelativeAddress(_ base: UnsafeRawPointer,
                                       _ offset: Int64) -> UnsafeRawPointer {
   // Sign-extend the offset to pointer width and add with wrap on overflow.
-  print("_resolveRelativeAddress: \(offset)")
-  if offset == 0 {
-    return base
-  }
+  if offset == 0 { return base }
   return UnsafeRawPointer(bitPattern: Int(offset))
     .unsafelyUnwrapped
 }
@@ -2679,7 +2678,9 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
   // the functions above.
   let bufferPtr = pattern.advanced(by: keyPathPatternHeaderSize)
   let bufferHeader = bufferPtr.load(as: KeyPathBuffer.Header.self)
-  var buffer = UnsafeRawBufferPointer(start: bufferPtr + 4,
+  var buffer = UnsafeRawBufferPointer(start: bufferPtr
+                                             + 4 /* header size */
+                                             + 4 /* wasm: padding for 8 byte alignment */,
                                       count: bufferHeader.size)
 
   while !buffer.isEmpty {
@@ -2901,7 +2902,7 @@ internal struct GetKeyPathClassAndInstanceSizeFromPattern
     // the offset inline.
     switch offset {
     case .inline:
-      size += 4
+      size += 4 + /* wasm: padding for 8 byte alignment */ 4 
 
     case .outOfLine, .unresolvedFieldOffset, .unresolvedIndirectOffset:
       size += 8

@@ -715,6 +715,8 @@ emitKeyPathComponent(IRGenModule &IGM,
             : KeyPathComponentHeader
                 ::forClassComponentWithInlineOffset(isLet, offsetValue);
           fields.addInt32(header.getData());
+          // wasm: padding for 8 byte alignment
+          fields.addInt32(0);
           return;
         }
       }
@@ -1118,6 +1120,8 @@ emitKeyPathComponent(IRGenModule &IGM,
                                                            offset->getValue());
 
       fields.addInt32(header.getData());
+      // wasm: padding for 8 byte alignment
+      fields.addInt32(0);
       break;
     }
 
@@ -1205,6 +1209,8 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
   // Leave a placeholder for the buffer header, since we need to know the full
   // buffer size to fill it in.
   auto headerPlaceholder = fields.addPlaceholderWithSize(Int32Ty);
+  // wasm: padding for 8 byte alignment
+  fields.addInt32(0);
   auto startOfKeyPathBuffer = fields.getNextOffsetFromGlobal();
   
   // Build out the components.
