@@ -2279,7 +2279,7 @@ internal var keyPathObjectHeaderSize: Int {
 }
 
 internal var keyPathPatternHeaderSize: Int {
-  return 16
+  return 32
 }
 
 // Runtime entry point to instantiate a key path object.
@@ -2312,7 +2312,7 @@ public func _swift_getKeyPath(pattern: UnsafeMutableRawPointer,
   // capability of the properties involved.
 
   let oncePtrPtr = pattern
-  let patternPtr = pattern.advanced(by: 4)
+  let patternPtr = pattern.advanced(by: 8)
 
   let bufferHeader = patternPtr.load(fromByteOffset: keyPathPatternHeaderSize,
                                      as: KeyPathBuffer.Header.self)
@@ -2320,7 +2320,7 @@ public func _swift_getKeyPath(pattern: UnsafeMutableRawPointer,
 
   // If the first word is nonzero, it relative-references a cache variable
   // we can use to reference a single shared instantiation of this key path.
-  let oncePtrOffset = oncePtrPtr.load(as: Int32.self)
+  let oncePtrOffset = oncePtrPtr.load(as: Int64.self)
   let oncePtr: UnsafeRawPointer?
   if oncePtrOffset != 0 {
     let theOncePtr = _resolveRelativeAddress(oncePtrPtr, oncePtrOffset)
@@ -2331,7 +2331,7 @@ public func _swift_getKeyPath(pattern: UnsafeMutableRawPointer,
     // written with a release barrier, and loads of the instantiated key path
     // ought to carry a dependency through this loaded pointer.
     let existingInstance = theOncePtr.load(as: UnsafeRawPointer?.self)
-    
+
     if let existingInstance = existingInstance {
       // Return the instantiated object at +1.
       let object = Unmanaged<AnyKeyPath>.fromOpaque(existingInstance)
@@ -2357,8 +2357,8 @@ public func _swift_getKeyPath(pattern: UnsafeMutableRawPointer,
   }
 
   // Adopt the KVC string from the pattern.
-  let kvcStringBase = patternPtr.advanced(by: 12)
-  let kvcStringOffset = kvcStringBase.load(as: Int32.self)
+  let kvcStringBase = patternPtr.advanced(by: 24)
+  let kvcStringOffset = kvcStringBase.load(as: Int64.self)
 
   if kvcStringOffset == 0 {
     // Null pointer.
@@ -2542,13 +2542,17 @@ internal protocol KeyPathPatternVisitor {
 }
 
 internal func _resolveRelativeAddress(_ base: UnsafeRawPointer,
-                                      _ offset: Int32) -> UnsafeRawPointer {
+                                      _ offset: Int64) -> UnsafeRawPointer {
   // Sign-extend the offset to pointer width and add with wrap on overflow.
-  return UnsafeRawPointer(bitPattern: Int(bitPattern: base) &+ Int(offset))
+  print("_resolveRelativeAddress: \(offset)")
+  if offset == 0 {
+    return base
+  }
+  return UnsafeRawPointer(bitPattern: Int(offset))
     .unsafelyUnwrapped
 }
 internal func _resolveRelativeIndirectableAddress(_ base: UnsafeRawPointer,
-                                                  _ offset: Int32)
+                                                  _ offset: Int64)
     -> UnsafeRawPointer {
   // Low bit indicates whether the reference is indirected or not.
   if offset & 1 != 0 {
@@ -2560,7 +2564,7 @@ internal func _resolveRelativeIndirectableAddress(_ base: UnsafeRawPointer,
 internal func _loadRelativeAddress<T>(at: UnsafeRawPointer,
                                       fromByteOffset: Int = 0,
                                       as: T.Type) -> T {
-  let offset = at.load(fromByteOffset: fromByteOffset, as: Int32.self)
+  let offset = at.load(fromByteOffset: fromByteOffset, as: Int64.self)
   return unsafeBitCast(_resolveRelativeAddress(at + fromByteOffset, offset),
                        to: T.self)
 }
@@ -2571,11 +2575,11 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
   // Visit the header.
   let genericEnvironment = _loadRelativeAddress(at: pattern,
                                                 as: UnsafeRawPointer.self)
-  let rootMetadataRef = _loadRelativeAddress(at: pattern, fromByteOffset: 4,
+  let rootMetadataRef = _loadRelativeAddress(at: pattern, fromByteOffset: 8,
                                              as: MetadataReference.self)
-  let leafMetadataRef = _loadRelativeAddress(at: pattern, fromByteOffset: 8,
+  let leafMetadataRef = _loadRelativeAddress(at: pattern, fromByteOffset: 16,
                                              as: MetadataReference.self)
-  let kvcString = _loadRelativeAddress(at: pattern, fromByteOffset: 12,
+  let kvcString = _loadRelativeAddress(at: pattern, fromByteOffset: 24,
                                        as: UnsafeRawPointer.self)
 
   walker.visitHeader(genericEnvironment: genericEnvironment,
@@ -2599,7 +2603,7 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
     case RawKeyPathComponent.Header.unresolvedIndirectOffsetPayload:
       let base = componentBuffer.baseAddress.unsafelyUnwrapped
       let relativeOffset = _pop(from: &componentBuffer,
-                                as: Int32.self)
+                                as: Int64.self)
       let ptr = _resolveRelativeIndirectableAddress(base, relativeOffset)
       offset = .unresolvedIndirectOffset(
                                        ptr.assumingMemoryBound(to: UInt.self))
@@ -2622,12 +2626,12 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
     let idValueBase = componentBuffer.baseAddress.unsafelyUnwrapped
     let idValue = _pop(from: &componentBuffer, as: Int32.self)
     let getterBase = componentBuffer.baseAddress.unsafelyUnwrapped
-    let getterRef = _pop(from: &componentBuffer, as: Int32.self)
+    let getterRef = _pop(from: &componentBuffer, as: Int64.self)
     let getter = _resolveRelativeAddress(getterBase, getterRef)
     let setter: UnsafeRawPointer?
     if header.isComputedSettable {
       let setterBase = componentBuffer.baseAddress.unsafelyUnwrapped
-      let setterRef = _pop(from: &componentBuffer, as: Int32.self)
+      let setterRef = _pop(from: &componentBuffer, as: Int64.self)
       setter = _resolveRelativeAddress(setterBase, setterRef)
     } else {
       setter = nil
@@ -2641,13 +2645,13 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
       -> KeyPathPatternComputedArguments? {
     if header.hasComputedArguments {
       let getLayoutBase = componentBuffer.baseAddress.unsafelyUnwrapped
-      let getLayoutRef = _pop(from: &componentBuffer, as: Int32.self)
+      let getLayoutRef = _pop(from: &componentBuffer, as: Int64.self)
       let getLayoutRaw = _resolveRelativeAddress(getLayoutBase, getLayoutRef)
       let getLayout = unsafeBitCast(getLayoutRaw,
                                     to: KeyPathComputedArgumentLayoutFn.self)
 
       let witnessesBase = componentBuffer.baseAddress.unsafelyUnwrapped
-      let witnessesRef = _pop(from: &componentBuffer, as: Int32.self)
+      let witnessesRef = _pop(from: &componentBuffer, as: Int64.self)
       let witnesses: UnsafeRawPointer
       if witnessesRef == 0 {
         witnesses = __swift_keyPathGenericWitnessTable_addr()
@@ -2656,7 +2660,7 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
       }
 
       let initializerBase = componentBuffer.baseAddress.unsafelyUnwrapped
-      let initializerRef = _pop(from: &componentBuffer, as: Int32.self)
+      let initializerRef = _pop(from: &componentBuffer, as: Int64.self)
       let initializerRaw = _resolveRelativeAddress(initializerBase,
                                                    initializerRef)
       let initializer = unsafeBitCast(initializerRaw,
@@ -2727,7 +2731,7 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
       let genericParamCount = Int(header.payload)
       let descriptorBase = buffer.baseAddress.unsafelyUnwrapped
       let descriptorOffset = _pop(from: &buffer,
-                                  as: Int32.self)
+                                  as: Int64.self)
       let descriptor =
         _resolveRelativeIndirectableAddress(descriptorBase, descriptorOffset)
       let descriptorHeader =
@@ -2829,7 +2833,7 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
     // Otherwise, pop the intermediate component type accessor and
     // go around again.
     let componentTypeBase = buffer.baseAddress.unsafelyUnwrapped
-    let componentTypeOffset = _pop(from: &buffer, as: Int32.self)
+    let componentTypeOffset = _pop(from: &buffer, as: Int64.self)
     let componentTypeRef = _resolveRelativeAddress(componentTypeBase,
                                                    componentTypeOffset)
     walker.visitIntermediateComponentType(metadataRef: componentTypeRef)
