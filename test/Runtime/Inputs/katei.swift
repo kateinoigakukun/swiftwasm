@@ -277,13 +277,12 @@ typealias Tuple<T: Equatable, U> = (S<T>, C<U>)
 //    let t_0s = (\Tuple<Int, Int>.0 as AnyKeyPath) as! WritableKeyPath<Tuple<Int, Int>, S<Int>>
 //    let t_1c = (\Tuple<Int, Int>.1 as AnyKeyPath) as! WritableKeyPath<Tuple<Int, Int>, C<Int>>
 //    let t_0s_x = (\Tuple<Int, Int>.0.x as AnyKeyPath) as! WritableKeyPath<Tuple<Int, Int>, Int>
-    let t_0s_p_hypotenuse = (\Tuple<Int, Int>.0.p.hypotenuse as AnyKeyPath) as! KeyPath<Tuple<Int, Int>, Double>
+//    let t_0s_p_hypotenuse = (\Tuple<Int, Int>.0.p.hypotenuse as AnyKeyPath) as! KeyPath<Tuple<Int, Int>, Double>
 //    let t_1c_x = (\Tuple<Int, Int>.1.x as AnyKeyPath) as! ReferenceWritableKeyPath<Tuple<Int, Int>, Int>
 //    let t_1c_immutable = (\Tuple<Int, Int>.1.immutable as AnyKeyPath) as! KeyPath<Tuple<Int, Int>, String>
 //
 //    let c_x = (\C<Int>.x as AnyKeyPath) as! ReferenceWritableKeyPath<C<Int>, Int>
 //    let s_c_x_2 = s_c.appending(path: c_x)
-//
 //    expectEqual(s_c_x, s_c_x_2)
 //    expectEqual(s_c_x_2, s_c_x)
 //    expectEqual(s_c_x.hashValue, s_c_x_2.hashValue)
@@ -307,7 +306,7 @@ typealias Tuple<T: Equatable, U> = (S<T>, C<U>)
 //    expectEqual(s_p_y_2, s_p_y)
 //    expectEqual(s_p_y_2.hashValue, s_p_y.hashValue)
 //
-//    let ca_readOnly = (\ComputedA.readOnly as AnyKeyPath) as! KeyPath<ComputedA, ComputedB>
+    let ca_readOnly = (\ComputedA.readOnly as AnyKeyPath) as! KeyPath<ComputedA, ComputedB>
 //    let ca_nonmutating = (\ComputedA.nonmutating as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, ComputedB>
 //    let ca_reabstracted = (\ComputedA.reabstracted as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, () -> ()>
 //

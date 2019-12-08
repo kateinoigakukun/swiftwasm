@@ -1038,6 +1038,7 @@ emitKeyPathComponent(IRGenModule &IGM,
                                      idKind, !isInstantiableOnce, idResolution);
     
     fields.addInt32(header.getData());
+    fields.addInt32(0);
     switch (idKind) {
     case KeyPathComponentHeader::Pointer:
       // Use a relative offset to the referent.

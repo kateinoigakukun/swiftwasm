@@ -1030,10 +1030,10 @@ internal struct RawKeyPathComponent {
 
       case .computed:
         // The body holds at minimum the id and getter.
-        var size = 8
+        var size = 16
         // If settable, it also holds the setter.
         if isComputedSettable {
-          size += 4
+          size += 8
         }
         // If there are arguments, there's also a layout function,
         // witness table, and initializer function.
@@ -2529,7 +2529,7 @@ internal protocol KeyPathPatternVisitor {
                                        idKind: KeyPathComputedIDKind,
                                        idResolution: KeyPathComputedIDResolution,
                                        idValueBase: UnsafeRawPointer,
-                                       idValue: Int32,
+                                       idValue: Int64,
                                        getter: UnsafeRawPointer,
                                        setter: UnsafeRawPointer?,
                                        arguments: KeyPathPatternComputedArguments?,
@@ -2619,11 +2619,11 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
   func popComputedAccessors(header: RawKeyPathComponent.Header,
                             componentBuffer: inout UnsafeRawBufferPointer)
       -> (idValueBase: UnsafeRawPointer,
-          idValue: Int32,
+          idValue: Int64,
           getter: UnsafeRawPointer,
           setter: UnsafeRawPointer?) {
     let idValueBase = componentBuffer.baseAddress.unsafelyUnwrapped
-    let idValue = _pop(from: &componentBuffer, as: Int32.self)
+    let idValue = _pop(from: &componentBuffer, as: Int64.self)
     let getterBase = componentBuffer.baseAddress.unsafelyUnwrapped
     let getterRef = _pop(from: &componentBuffer, as: Int64.self)
     let getter = _resolveRelativeAddress(getterBase, getterRef)
@@ -2913,7 +2913,7 @@ internal struct GetKeyPathClassAndInstanceSizeFromPattern
                                    idKind: KeyPathComputedIDKind,
                                    idResolution: KeyPathComputedIDResolution,
                                    idValueBase: UnsafeRawPointer,
-                                   idValue: Int32,
+                                   idValue: Int64,
                                    getter: UnsafeRawPointer,
                                    setter: UnsafeRawPointer?,
                                    arguments: KeyPathPatternComputedArguments?,
@@ -2935,7 +2935,7 @@ internal struct GetKeyPathClassAndInstanceSizeFromPattern
     }
 
     // Save space for the header...
-    size += 4
+    size += 4 + /* wasm: padding */ 4
     roundUpToPointerAlignment()
     // ...id, getter, and maybe setter...
     size += MemoryLayout<Int>.size * 2
@@ -3170,7 +3170,7 @@ internal struct InstantiateKeyPathBuffer: KeyPathPatternVisitor {
                                    idKind: KeyPathComputedIDKind,
                                    idResolution: KeyPathComputedIDResolution,
                                    idValueBase: UnsafeRawPointer,
-                                   idValue: Int32,
+                                   idValue: Int64,
                                    getter: UnsafeRawPointer,
                                    setter: UnsafeRawPointer?,
                                    arguments: KeyPathPatternComputedArguments?,
@@ -3189,12 +3189,11 @@ internal struct InstantiateKeyPathBuffer: KeyPathPatternVisitor {
     case .storedPropertyIndex, .vtableOffset:
       _internalInvariant(idResolution == .resolved)
       // Zero-extend the integer value to get the instantiated id.
-      let value = UInt(UInt32(bitPattern: idValue))
-      resolvedID = UnsafeRawPointer(bitPattern: value)
+      resolvedID = UnsafeRawPointer(bitPattern: UInt(idValue))
 
     case .pointer:
       // Resolve the sign-extended relative reference.
-      var absoluteID: UnsafeRawPointer? = idValueBase + Int(idValue)
+      var absoluteID: UnsafeRawPointer? = UnsafeRawPointer(bitPattern: UInt(idValue))
 
       // If the pointer ID is unresolved, then it needs work to get to
       // the final value.
@@ -3377,7 +3376,7 @@ internal struct ValidatingInstantiateKeyPathBuffer: KeyPathPatternVisitor {
                                    idKind: KeyPathComputedIDKind,
                                    idResolution: KeyPathComputedIDResolution,
                                    idValueBase: UnsafeRawPointer,
-                                   idValue: Int32,
+                                   idValue: Int64,
                                    getter: UnsafeRawPointer,
                                    setter: UnsafeRawPointer?,
                                    arguments: KeyPathPatternComputedArguments?,
