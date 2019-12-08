@@ -61,12 +61,31 @@
 // foo(S1<Int>.self, value: 1)
 // 
 // _ = ""
-enum EG<T, U> { case a }
-
-extension EG {
-  struct NestedSG<V> { }
+// enum EG<T, U> { case a }
+// 
+// extension EG {
+//   struct NestedSG<V> { }
+// }
+// 
+// assert(EG<Int, String>.NestedSG<Double>.self ==
+//   _typeByName("4main2EGO8NestedSGVySiSS_SdG")!)
+// public class ResettableValue<Value> {
+//   public init(_ value: Value) {
+//     self.value = value
+//   }
+// 
+//   public var value: Value
+// }
+// 
+// var hashIntoImpl = ResettableValue<(Int) -> Void>({ _ = $0 })
+// hashIntoImpl.value(1)
+class C<T> {
+    var value: T
+    init(value: T) { self.value = value }
 }
 
-assert(EG<Int, String>.NestedSG<Double>.self ==
-  _typeByName("4main2EGO8NestedSGVySiSS_SdG")!)
+func callVTable<T>(_ instance: C<T>) {
+    _ = instance.value
+}
 
+callVTable(C<Int>(value: 1))

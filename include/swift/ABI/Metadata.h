@@ -788,10 +788,9 @@ template <typename Runtime>
 struct TargetMethodDescriptor {
   /// Flags describing the method.
   MethodDescriptorFlags Flags;
-
+  uint32_t DummyPadding;
   /// The method implementation.
   TargetRelativeDirectPointer<Runtime, void> Impl;
-  uint32_t DummyPadding;
   // TODO: add method types or anything else needed for reflection.
 };
 
