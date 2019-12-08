@@ -1049,6 +1049,7 @@ emitKeyPathComponent(IRGenModule &IGM,
     case KeyPathComponentHeader::StoredPropertyIndex:
       // Store the offset as an i32.
       fields.add(llvm::ConstantExpr::getTruncOrBitCast(idValue, IGM.Int32Ty));
+      fields.addInt32(0);
       break;
     }
 

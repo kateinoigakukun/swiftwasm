@@ -1627,6 +1627,7 @@ internal struct KeyPathBuffer {
 
   internal struct Header {
     internal var _value: UInt32
+    internal let _dummyPadding: UInt32
     
     internal static var sizeMask: UInt32 {
       return _SwiftKeyPathBufferHeader_SizeMask
@@ -1646,6 +1647,7 @@ internal struct KeyPathBuffer {
       _value = UInt32(size)
         | (trivial ? Header.trivialFlag : 0)
         | (hasReferencePrefix ? Header.hasReferencePrefixFlag : 0)
+      _dummyPadding = 0
     }
 
     internal var size: Int { return Int(_value & Header.sizeMask) }
@@ -2684,6 +2686,7 @@ internal func _walkKeyPathPattern<W: KeyPathPatternVisitor>(
                                       count: bufferHeader.size)
 
   while !buffer.isEmpty {
+    print("[katei in beginning of loop] buffer = \(buffer)")
     let header = _pop(from: &buffer,
                       as: RawKeyPathComponent.Header.self)
 

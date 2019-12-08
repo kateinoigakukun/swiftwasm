@@ -306,20 +306,20 @@ typealias Tuple<T: Equatable, U> = (S<T>, C<U>)
 //    expectEqual(s_p_y_2, s_p_y)
 //    expectEqual(s_p_y_2.hashValue, s_p_y.hashValue)
 //
-    let ca_readOnly = (\ComputedA.readOnly as AnyKeyPath) as! KeyPath<ComputedA, ComputedB>
+//    let ca_readOnly = (\ComputedA.readOnly as AnyKeyPath) as! KeyPath<ComputedA, ComputedB>
 //    let ca_nonmutating = (\ComputedA.nonmutating as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, ComputedB>
-//    let ca_reabstracted = (\ComputedA.reabstracted as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, () -> ()>
-//
+    let ca_reabstracted = (\ComputedA.reabstracted as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, () -> ()>
+
 //    let cb_readOnly = (\ComputedB.readOnly as AnyKeyPath) as! KeyPath<ComputedB, ComputedA>
 //    let cb_mutating = (\ComputedB.mutating as AnyKeyPath) as! WritableKeyPath<ComputedB, ComputedA>
 //    let cb_nonmutating = (\ComputedB.nonmutating as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedB, ComputedA>
 //    let cb_reabstracted = (\ComputedB.reabstracted as AnyKeyPath) as! WritableKeyPath<ComputedB, () -> ()>
-//
+
 //    let ca_readOnly_mutating = (\ComputedA.readOnly.mutating as AnyKeyPath) as! KeyPath<ComputedA, ComputedA>
 //    let cb_mutating_readOnly = (\ComputedB.mutating.readOnly as AnyKeyPath) as! KeyPath<ComputedB, ComputedB>
 //    let ca_readOnly_nonmutating = (\ComputedA.readOnly.nonmutating as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedA, ComputedA>
 //    let cb_readOnly_reabstracted = (\ComputedB.readOnly.reabstracted as AnyKeyPath) as! ReferenceWritableKeyPath<ComputedB, () -> ()>
-//
+
 //    let ca_readOnly_mutating2 = ca_readOnly.appending(path: cb_mutating)
 //    expectEqual(ca_readOnly_mutating, ca_readOnly_mutating2)
 //    expectEqual(ca_readOnly_mutating2, ca_readOnly_mutating)
