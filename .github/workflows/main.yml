@@ -1,12 +1,6 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - swiftwasm
-  pull_request:
-    branches:
-      - swiftwasm
+on: push
 
 jobs:
   linux_build:

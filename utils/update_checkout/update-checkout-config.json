@@ -49,8 +49,8 @@
         "wasm": {
             "aliases": ["wasm"],
             "repos": {
-                "llvm-project": "swiftwasm",
-                "swift": "swiftwasm",
+                "llvm-project": "katei/swiftwasm-rebase-2019-12-14",
+                "swift": "katei/swiftwasm-rebase-2019-12-14",
                 "cmark": "master",
                 "llbuild": "master",
                 "swiftpm": "master",
