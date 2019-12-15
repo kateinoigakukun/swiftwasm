@@ -2621,6 +2621,11 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
   if (rep1 != rep2) {
     if (rep1 == SILFunctionTypeRepresentation::Thin &&
         rep2 == SILFunctionTypeRepresentation::Thick) {
+      // There is no ABI compatibility between thin and thick on WebAssembly,
+      // so need thunk.
+      if (M.getASTContext().LangOpts.Target.isOSBinFormatWasm()) {
+        return ABIDifference::NeedsThunk;
+      }
       if (DifferentFunctionTypesHaveDifferentRepresentation) {
         // FIXME: check whether the representations are compatible modulo
         // context
@@ -2628,13 +2633,6 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
       } else {
         return ABIDifference::CompatibleRepresentation_ThinToThick;
       }
-
-      // There is no ABI compatibility between thin and thick on WebAssembly,
-      // so need thunk.
-      if (M.getASTContext().LangOpts.Target.isOSBinFormatWasm()) {
-        return ABIDifference::NeedsThunk;
-      }
-      return ABIDifference::ThinToThick;
     }
     return ABIDifference::NeedsThunk;
   }
