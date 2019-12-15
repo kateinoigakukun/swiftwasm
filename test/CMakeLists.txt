@@ -76,7 +76,7 @@ function(get_test_dependencies SDK result_var_name)
      ("${SDK}" STREQUAL "ANDROID") OR
      ("${SDK}" STREQUAL "WINDOWS") OR
      ("${SDK}" STREQUAL "HAIKU") OR
-     ("${SDK}" STREQUAL "WASM"))
+     ("${SDK}" STREQUAL "WASI"))
     # No extra dependencies.
   else()
     message(FATAL_ERROR "Unknown SDK: ${SDK}")
