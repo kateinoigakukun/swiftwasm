@@ -14,6 +14,9 @@ mv wasi-sdk/share/wasi-sysroot wasi-sdk/share/sysroot
 # find header files in sysroot/include but sysroot/usr/include
 mkdir wasi-sdk/share/sysroot/usr/
 ln -s ../include wasi-sdk/share/sysroot/usr/include
+# Link wasm32-wasi-unknown to wasm32-wasi because clang find crt1.o from sysroot
+# with os and environment name `getMultiarchTriple`.
+ln -s wasm32-wasi wasi-sdk/share/sysroot/lib/wasm32-wasi-unknown
 wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
 tar xf icu.tar.xz
 
