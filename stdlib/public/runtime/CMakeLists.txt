@@ -89,9 +89,10 @@ set(swift_runtime_library_compile_flags ${swift_runtime_compile_flags})
 list(APPEND swift_runtime_library_compile_flags -DswiftCore_EXPORTS)
 list(APPEND swift_runtime_library_compile_flags -I${SWIFT_SOURCE_DIR}/include)
 
-function(add_image_inspection_shared sdk)
+set(static_binary_lnk_file_list)
+set(static_binary_dependencies_list)
+macro(add_image_inspection_shared sdk)
   list(REMOVE_ITEM swift_runtime_sources ImageInspectionELF.cpp)
-  set(static_binary_lnk_file_list)
   string(TOLOWER "${sdk}" lowercase_sdk)
 
   # These two libraries are only used with the static swiftcore
@@ -100,37 +101,44 @@ function(add_image_inspection_shared sdk)
     C_COMPILE_FLAGS ${swift_runtime_library_compile_flags}
     LINK_FLAGS ${swift_runtime_linker_flags}
     SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    TARGET_SDKS ${sdk}
     INSTALL_IN_COMPONENT stdlib)
 
   foreach(arch IN LISTS SWIFT_SDK_${sdk}_ARCHITECTURES)
     set(FragileSupportLibrary swiftImageInspectionShared-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${arch})
     set(LibraryLocation ${SWIFTSTATICLIB_DIR}/${lowercase_sdk}/${arch})
-    add_custom_command_target(swift_image_inspection_${arch}_static
+
+    add_custom_command_target(swift_image_inspection_${lowercase_sdk}_${arch}_static
       COMMAND
         "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:${FragileSupportLibrary}> ${LibraryLocation}
       OUTPUT
         "${LibraryLocation}/${CMAKE_STATIC_LIBRARY_PREFIX}swiftImageInspectionShared${CMAKE_STATIC_LIBRARY_SUFFIX}"
       DEPENDS
          ${FragileSupportLibrary})
+
+     list(APPEND static_binary_dependencies_list ${swift_image_inspection_${lowercase_sdk}_${arch}_static})
     add_dependencies(stdlib ${FragileSupportLibrary})
     swift_install_in_component(FILES $<TARGET_FILE:${FragileSupportLibrary}>
                                DESTINATION "lib/swift_static/${lowercase_sdk}/${arch}"
                                COMPONENT stdlib)
   endforeach()
 
-  set(FragileSupportLibraryPrimary swiftImageInspectionShared-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${SWIFT_PRIMARY_VARIANT_ARCH})
-  set(LibraryLocationPrimary ${SWIFTSTATICLIB_DIR}/${lowercase_sdk})
-  add_custom_command_target(swift_image_inspection_static_primary_arch
-      COMMAND
-         "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:${FragileSupportLibraryPrimary}> ${LibraryLocationPrimary}
-      OUTPUT
-      "${LibraryLocationPrimary}/${CMAKE_STATIC_LIBRARY_PREFIX}swiftImageInspectionShared${CMAKE_STATIC_LIBRARY_SUFFIX}"
-      DEPENDS
-         ${FragileSupportLibraryPrimary})
+  if("${sdk}" STREQUAL "${SWIFT_PRIMARY_VARIANT_SDK}")
+    set(FragileSupportLibraryPrimary swiftImageInspectionShared-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${SWIFT_PRIMARY_VARIANT_ARCH})
+    set(LibraryLocationPrimary ${SWIFTSTATICLIB_DIR}/${lowercase_sdk})
+    add_custom_command_target(swift_image_inspection_static_${lowercase_sdk}_primary_arch
+        COMMAND
+           "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:${FragileSupportLibraryPrimary}> ${LibraryLocationPrimary}
+        OUTPUT
+        "${LibraryLocationPrimary}/${CMAKE_STATIC_LIBRARY_PREFIX}swiftImageInspectionShared${CMAKE_STATIC_LIBRARY_SUFFIX}"
+        DEPENDS
+           ${FragileSupportLibraryPrimary})
+       list(APPEND static_binary_dependencies_list ${swift_image_inspection_static_${lowercase_sdk}_primary_arch})
     add_dependencies(stdlib ${FragileSupportLibraryPrimary})
     swift_install_in_component(FILES $<TARGET_FILE:${FragileSupportLibraryPrimary}>
                                DESTINATION "lib/swift_static/${lowercase_sdk}"
                                COMPONENT stdlib)
+  endif()
   set(linkfile_src)
   if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF")
     list(APPEND ELFISH_SDKS ${sdk})
@@ -149,37 +157,39 @@ function(add_image_inspection_shared sdk)
     OUTPUT
       "${SWIFTSTATICLIB_DIR}/${linkfile}"
     DEPENDS
-      "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk")
+      "${linkfile_src}")
 
   list(APPEND static_binary_lnk_file_list ${swift_static_binary_${sdk}_args})
   swift_install_in_component(FILES "${SWIFTSTATICLIB_DIR}/${linkfile}"
                              DESTINATION "lib/swift_static/${lowercase_sdk}"
                              COMPONENT stdlib)
-  add_custom_target(static_binary_magic ALL DEPENDS ${static_binary_lnk_file_list})
-
-  foreach(arch IN LISTS SWIFT_SDK_${sdk}_ARCHITECTURES)
-    add_dependencies(static_binary_magic ${swift_image_inspection_${arch}_static})
-  endforeach()
-  add_dependencies(static_binary_magic ${swift_image_inspection_static_primary_arch})
-  add_dependencies(stdlib static_binary_magic)
 
   add_swift_target_library(swiftImageInspectionSharedObject OBJECT_LIBRARY
     ImageInspectionELF.cpp
     C_COMPILE_FLAGS ${swift_runtime_library_compile_flags}
     LINK_FLAGS ${swift_runtime_linker_flags}
     SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    TARGET_SDKS ${sdk}
     INSTALL_IN_COMPONENT never_install)
-endfunction()
+endmacro()
 
-set(image_inspection_shared_sdk)
-if(SWIFT_BUILD_STATIC_STDLIB AND "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "LINUX")
-  set(image_inspection_shared_sdk "${SWIFT_HOST_VARIANT_SDK}")
-elseif("${SWIFT_PRIMARY_VARIANT_SDK}" STREQUAL "WASI")
-  set(image_inspection_shared_sdk "${SWIFT_PRIMARY_VARIANT_SDK}")
-endif()
-
-if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
+set(is_image_inspection_required)
+foreach(sdk IN LISTS SWIFT_SDKS)
+  set(image_inspection_shared_sdk)
+  if(SWIFT_BUILD_STATIC_STDLIB AND "${sdk}" STREQUAL "LINUX")
+    set(image_inspection_shared_sdk "${sdk}")
+  elseif("${sdk}" STREQUAL "WASI")
+    set(image_inspection_shared_sdk "${sdk}")
+  endif()
+  if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
+    set(is_image_inspection_required TRUE)
     add_image_inspection_shared("${image_inspection_shared_sdk}")
+  endif()
+endforeach()
+
+if(is_image_inspection_required)
+  add_custom_target(static_binary_magic ALL DEPENDS ${static_binary_lnk_file_list} ${static_binary_dependencies_list})
+  add_dependencies(stdlib static_binary_magic)
 endif()
 
 add_swift_target_library(swiftRuntime OBJECT_LIBRARY
