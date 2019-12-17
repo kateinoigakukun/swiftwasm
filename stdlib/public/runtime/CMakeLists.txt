@@ -89,15 +89,7 @@ set(swift_runtime_library_compile_flags ${swift_runtime_compile_flags})
 list(APPEND swift_runtime_library_compile_flags -DswiftCore_EXPORTS)
 list(APPEND swift_runtime_library_compile_flags -I${SWIFT_SOURCE_DIR}/include)
 
-set(image_inspection_shared_sdk)
-if("${SWIFT_PRIMARY_VARIANT_SDK}" STREQUAL "WASI")
-  set(image_inspection_shared_sdk "${SWIFT_PRIMARY_VARIANT_SDK}")
-elseif(SWIFT_BUILD_STATIC_STDLIB AND "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "LINUX")
-  set(image_inspection_shared_sdk "${SWIFT_HOST_VARIANT_SDK}")
-endif()
-
-if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
-  set(sdk "${image_inspection_shared_sdk}")
+function(add_image_inspection_shared sdk)
   list(REMOVE_ITEM swift_runtime_sources ImageInspectionELF.cpp)
   set(static_binary_lnk_file_list)
   string(TOLOWER "${sdk}" lowercase_sdk)
@@ -177,6 +169,17 @@ if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
     LINK_FLAGS ${swift_runtime_linker_flags}
     SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
     INSTALL_IN_COMPONENT never_install)
+endfunction()
+
+set(image_inspection_shared_sdk)
+if(SWIFT_BUILD_STATIC_STDLIB AND "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "LINUX")
+  set(image_inspection_shared_sdk "${SWIFT_HOST_VARIANT_SDK}")
+elseif("${SWIFT_PRIMARY_VARIANT_SDK}" STREQUAL "WASI")
+  set(image_inspection_shared_sdk "${SWIFT_PRIMARY_VARIANT_SDK}")
+endif()
+
+if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
+    add_image_inspection_shared("${image_inspection_shared_sdk}")
 endif()
 
 add_swift_target_library(swiftRuntime OBJECT_LIBRARY
