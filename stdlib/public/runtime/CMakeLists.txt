@@ -91,13 +91,15 @@ list(APPEND swift_runtime_library_compile_flags -I${SWIFT_SOURCE_DIR}/include)
 
 set(static_binary_lnk_file_list)
 set(static_binary_dependencies_list)
-macro(add_image_inspection_shared sdk)
-  list(REMOVE_ITEM swift_runtime_sources ImageInspectionELF.cpp)
+macro(add_image_inspection_shared sdk inspection_file linkfile_src)
+  if(${inspection_file} IN_LIST swift_runtime_sources)
+    list(REMOVE_ITEM swift_runtime_sources ${inspection_file})
+  endif()
   string(TOLOWER "${sdk}" lowercase_sdk)
 
   # These two libraries are only used with the static swiftcore
   add_swift_target_library(swiftImageInspectionShared STATIC
-    ImageInspectionELF.cpp
+    ${inspection_file}
     C_COMPILE_FLAGS ${swift_runtime_library_compile_flags}
     LINK_FLAGS ${swift_runtime_linker_flags}
     SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
@@ -116,7 +118,7 @@ macro(add_image_inspection_shared sdk)
       DEPENDS
          ${FragileSupportLibrary})
 
-     list(APPEND static_binary_dependencies_list ${swift_image_inspection_${lowercase_sdk}_${arch}_static})
+    list(APPEND static_binary_dependencies_list ${swift_image_inspection_${lowercase_sdk}_${arch}_static})
     add_dependencies(stdlib ${FragileSupportLibrary})
     swift_install_in_component(FILES $<TARGET_FILE:${FragileSupportLibrary}>
                                DESTINATION "lib/swift_static/${lowercase_sdk}/${arch}"
@@ -139,15 +141,7 @@ macro(add_image_inspection_shared sdk)
                                DESTINATION "lib/swift_static/${lowercase_sdk}"
                                COMPONENT stdlib)
   endif()
-  set(linkfile_src)
-  if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF")
-    list(APPEND ELFISH_SDKS ${sdk})
-    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk")
-  elseif("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "WASM")
-    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/webassembly/static-executable-args.lnk")
-  endif()
 
-  # Generate the static-executable-args.lnk file used for ELF systems (eg linux)
   set(linkfile "${lowercase_sdk}/static-executable-args.lnk")
   add_custom_command_target(swift_static_binary_${sdk}_args
     COMMAND
@@ -165,7 +159,7 @@ macro(add_image_inspection_shared sdk)
                              COMPONENT stdlib)
 
   add_swift_target_library(swiftImageInspectionSharedObject OBJECT_LIBRARY
-    ImageInspectionELF.cpp
+    ${inspection_file}
     C_COMPILE_FLAGS ${swift_runtime_library_compile_flags}
     LINK_FLAGS ${swift_runtime_linker_flags}
     SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
@@ -176,14 +170,27 @@ endmacro()
 set(is_image_inspection_required)
 foreach(sdk IN LISTS SWIFT_SDKS)
   set(image_inspection_shared_sdk)
+  set(image_inspection_shared_file)
+  set(linkfile_src)
+
+  if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF")
+    list(APPEND ELFISH_SDKS ${sdk})
+    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk")
+  elseif("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "WASM")
+    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/webassembly/static-executable-args.lnk")
+  endif()
+
   if(SWIFT_BUILD_STATIC_STDLIB AND "${sdk}" STREQUAL "LINUX")
     set(image_inspection_shared_sdk "${sdk}")
-  elseif("${sdk}" STREQUAL "WASI")
+    set(image_inspection_shared_file ImageInspectionELF.cpp)
+  elseif(SWIFT_BUILD_STATIC_STDLIB AND "${sdk}" STREQUAL "WASI")
     set(image_inspection_shared_sdk "${sdk}")
+    set(image_inspection_shared_file ImageInspectionELF.cpp)
   endif()
+
   if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
     set(is_image_inspection_required TRUE)
-    add_image_inspection_shared("${image_inspection_shared_sdk}")
+    add_image_inspection_shared(${image_inspection_shared_sdk} ${image_inspection_shared_file} ${linkfile_src})
   endif()
 endforeach()
 
