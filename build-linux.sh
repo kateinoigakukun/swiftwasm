@@ -6,6 +6,8 @@ export sourcedir=$PWD/..
   --skip-build-benchmarks \
   --extra-cmake-options=" \
     -DSWIFT_SDKS='WASI;LINUX' \
+    -DSWIFT_PRIMARY_VARIANT_SDK=WASI \
+    -DSWIFT_PRIMARY_VARIANT_ARCH=wasm32 \
     -DSWIFT_BUILD_SOURCEKIT=FALSE \
     -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
     -DCMAKE_AR='$sourcedir/wasi-sdk/bin/llvm-ar' \

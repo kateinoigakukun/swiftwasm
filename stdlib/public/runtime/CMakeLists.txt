@@ -90,10 +90,10 @@ list(APPEND swift_runtime_library_compile_flags -DswiftCore_EXPORTS)
 list(APPEND swift_runtime_library_compile_flags -I${SWIFT_SOURCE_DIR}/include)
 
 set(image_inspection_shared_sdk)
-if(SWIFT_BUILD_STATIC_STDLIB AND "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "LINUX")
-  set(image_inspection_shared_sdk "${SWIFT_HOST_VARIANT_SDK}")
-elseif("${SWIFT_PRIMARY_VARIANT_SDK}" STREQUAL "WASI")
+if("${SWIFT_PRIMARY_VARIANT_SDK}" STREQUAL "WASI")
   set(image_inspection_shared_sdk "${SWIFT_PRIMARY_VARIANT_SDK}")
+elseif(SWIFT_BUILD_STATIC_STDLIB AND "${SWIFT_HOST_VARIANT_SDK}" STREQUAL "LINUX")
+  set(image_inspection_shared_sdk "${SWIFT_HOST_VARIANT_SDK}")
 endif()
 
 if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
@@ -139,7 +139,7 @@ if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
     swift_install_in_component(FILES $<TARGET_FILE:${FragileSupportLibraryPrimary}>
                                DESTINATION "lib/swift_static/${lowercase_sdk}"
                                COMPONENT stdlib)
-
+  set(linkfile_src)
   if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF")
     list(APPEND ELFISH_SDKS ${sdk})
     set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk")
@@ -164,7 +164,8 @@ if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
                              DESTINATION "lib/swift_static/${lowercase_sdk}"
                              COMPONENT stdlib)
   add_custom_target(static_binary_magic ALL DEPENDS ${static_binary_lnk_file_list})
-  foreach(arch IN LISTS SWIFT_SDK_LINUX_ARCHITECTURES)
+
+  foreach(arch IN LISTS SWIFT_SDK_${sdk}_ARCHITECTURES)
     add_dependencies(static_binary_magic ${swift_image_inspection_${arch}_static})
   endforeach()
   add_dependencies(static_binary_magic ${swift_image_inspection_static_primary_arch})
