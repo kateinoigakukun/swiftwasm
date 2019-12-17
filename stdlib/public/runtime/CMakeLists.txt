@@ -91,7 +91,7 @@ list(APPEND swift_runtime_library_compile_flags -I${SWIFT_SOURCE_DIR}/include)
 
 set(static_binary_lnk_file_list)
 set(static_binary_dependencies_list)
-macro(add_image_inspection_shared sdk inspection_file linkfile_src)
+macro(add_image_inspection_shared sdk primary_arch inspection_file linkfile_src)
   if(${inspection_file} IN_LIST swift_runtime_sources)
     list(REMOVE_ITEM swift_runtime_sources ${inspection_file})
   endif()
@@ -125,8 +125,8 @@ macro(add_image_inspection_shared sdk inspection_file linkfile_src)
                                COMPONENT stdlib)
   endforeach()
 
-  if("${sdk}" STREQUAL "${SWIFT_PRIMARY_VARIANT_SDK}")
-    set(FragileSupportLibraryPrimary swiftImageInspectionShared-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${SWIFT_PRIMARY_VARIANT_ARCH})
+  if(NOT "${primary_arch}" STREQUAL "")
+    set(FragileSupportLibraryPrimary swiftImageInspectionShared-${SWIFT_SDK_${sdk}_LIB_SUBDIR}-${primary_arch})
     set(LibraryLocationPrimary ${SWIFTSTATICLIB_DIR}/${lowercase_sdk})
     add_custom_command_target(swift_image_inspection_static_${lowercase_sdk}_primary_arch
         COMMAND
@@ -170,6 +170,7 @@ endmacro()
 set(is_image_inspection_required)
 foreach(sdk IN LISTS SWIFT_SDKS)
   set(image_inspection_shared_sdk)
+  set(primary_arch)
   set(image_inspection_shared_file)
   set(linkfile_src)
 
@@ -186,11 +187,17 @@ foreach(sdk IN LISTS SWIFT_SDKS)
   elseif(SWIFT_BUILD_STATIC_STDLIB AND "${sdk}" STREQUAL "WASI")
     set(image_inspection_shared_sdk "${sdk}")
     set(image_inspection_shared_file ImageInspectionELF.cpp)
+    # Set default arch
+    set(primary_arch "wasm32")
+  endif()
+
+  if("${sdk}" STREQUAL "${SWIFT_PRIMARY_VARIANT_SDK}")
+    set(primary_arch ${SWIFT_PRIMARY_VARIANT_ARCH})
   endif()
 
   if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
     set(is_image_inspection_required TRUE)
-    add_image_inspection_shared(${image_inspection_shared_sdk} ${image_inspection_shared_file} ${linkfile_src})
+    add_image_inspection_shared(${image_inspection_shared_sdk} ${primary_arch} ${image_inspection_shared_file} ${linkfile_src})
   endif()
 endforeach()
 
