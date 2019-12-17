@@ -22,8 +22,8 @@ export sourcedir=$PWD/..
   --llvm-targets-to-build "X86;WebAssembly" \
   --stdlib-deployment-targets "wasi-wasm32" \
   --wasi-icu-data "todo-icu-data" \
-  --wasi-icu-i18n "$sourcedir/icu_out/lib" \
+  --wasi-icu-i18n "$sourcedir/icu_out/lib/libicui18n.a" \
   --wasi-icu-i18n-include "$sourcedir/icu_out/include" \
-  --wasi-icu-uc "$sourcedir/icu_out/lib" \
+  --wasi-icu-uc "$sourcedir/icu_out/lib/libicuuc.a" \
   --wasi-icu-uc-include "$sourcedir/icu_out/include" \
   --wasi-sdk "$sourcedir/wasi-sdk"
