@@ -140,12 +140,19 @@ if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
                                DESTINATION "lib/swift_static/${lowercase_sdk}"
                                COMPONENT stdlib)
 
+  if("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "ELF")
+    list(APPEND ELFISH_SDKS ${sdk})
+    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk")
+  elseif("${SWIFT_SDK_${sdk}_OBJECT_FORMAT}" STREQUAL "WASM")
+    set(linkfile_src "${SWIFT_SOURCE_DIR}/utils/webassembly/static-executable-args.lnk")
+  endif()
+
   # Generate the static-executable-args.lnk file used for ELF systems (eg linux)
   set(linkfile "${lowercase_sdk}/static-executable-args.lnk")
   add_custom_command_target(swift_static_binary_${sdk}_args
     COMMAND
       "${CMAKE_COMMAND}" -E copy
-      "${SWIFT_SOURCE_DIR}/utils/static-executable-args.lnk"
+      "${linkfile_src}"
       "${SWIFTSTATICLIB_DIR}/${linkfile}"
     OUTPUT
       "${SWIFTSTATICLIB_DIR}/${linkfile}"
