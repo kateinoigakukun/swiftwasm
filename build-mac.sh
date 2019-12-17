@@ -3,6 +3,7 @@
 export sourcedir=$PWD/..
 
 ./utils/build-script --release --wasm --verbose \
+  --debug-swift-stdlib \
   --skip-build-benchmarks \
   --extra-cmake-options=" \
     -DSWIFT_PRIMARY_VARIANT_SDK:STRING=WASI \
@@ -12,6 +13,8 @@ export sourcedir=$PWD/..
     -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
     -DCMAKE_AR='/usr/local/opt/llvm/bin/llvm-ar' \
     -DCMAKE_RANLIB='/usr/local/opt/llvm/bin/llvm-ranlib' \
+    -DCMAKE_C_COMPILER='/usr/local/opt/llvm/bin/clang'
+    -DCMAKE_CXX_COMPILER='/usr/local/opt/llvm/bin/clang++' \
   " \
   --build-stdlib-deployment-targets "wasi-wasm32" \
   --build-swift-dynamic-sdk-overlay false \
