@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Build Linux installable archive
-        run: ./ci-linux.sh
+        run: ./utils/webassembly/ci-linux.sh
       - name: Upload Linux installable archive
         uses: actions/upload-artifact@v1
         with:
@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Build macOS installable archive
-        run: ./ci-mac.sh
+        run: ./utils/webassembly/ci-mac.sh
       - name: Upload macOS installable archive
         uses: actions/upload-artifact@v1
         with:

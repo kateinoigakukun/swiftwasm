@@ -9,11 +9,16 @@ sudo apt install \
   libblocksruntime-dev libcurl4-openssl-dev \
   systemtap-sdt-dev tzdata rsync wget
 
+SOURCE_PATH="$( cd "$(dirname $0)/../../.." && pwd  )" 
+SWIFT_PATH=$SOURCE_PATH/swift
+BUILD_SCRIPT=$SWIFT_PATH/utils/webassembly/build-linux.sh
+cd $SWIFT_PATH
+
 export current_sha=`git rev-parse HEAD`
 ./utils/update-checkout --clone --scheme wasm
 git checkout $current_sha
-export sourcedir=$PWD/..
-cd $sourcedir
+
+cd $SOURCE_PATH
 
 wget -O install_cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.15.3/cmake-3.15.3-Linux-x86_64.sh"
 chmod +x install_cmake.sh
@@ -33,5 +38,4 @@ ln -s wasm32-wasi wasi-sdk/share/sysroot/lib/wasm32-wasi-unknown
 wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
 tar xf icu.tar.xz
 
-cd swift
-./build-linux.sh
+$BUILD_SCRIPT
