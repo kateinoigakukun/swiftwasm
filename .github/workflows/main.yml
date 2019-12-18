@@ -22,8 +22,6 @@ jobs:
         with:
           name: linux-installable
           path: ../swiftwasm-linux.tar.gz
-      - name: Run test script
-        run: ./utils/run-test --build-dir ../build/Ninja-ReleaseAssert+stdlib-DebugAssert/  --target wasi-wasm32 || true # Ignore failure
       - name: Pack test results
         run: tar cJf swift-test-results.tar.gz ../build/swift-linux-x86_64/swift-test-results
       - name: Upload test results
@@ -50,8 +48,6 @@ jobs:
         with:
           name: packaging-scripts
           path: utils/webassembly
-      - name: Run test script
-        run: ./utils/run-test --build-dir ../build/Ninja-ReleaseAssert+stdlib-DebugAssert/  --target wasi-wasm32 || true # Ignore failure
       - name: Pack test results
         run: tar cJf swift-test-results.tar.gz ../build/swift-macos-x86_64/swift-test-results
       - name: Upload test results
