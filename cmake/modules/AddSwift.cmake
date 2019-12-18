@@ -532,7 +532,7 @@ function(_add_variant_link_flags)
     # FIXME: On Apple platforms, find_program needs to look for "ld64.lld"
     find_program(LDLLD_PATH "ld.lld")
     if("${SWIFT_SDK_${LFLAGS_SDK}_OBJECT_FORMAT}" STREQUAL "WASM")
-      list(APPEND result "-fuse-ld=${CMAKE_SOURCE_DIR}/fakeld")
+      list(APPEND result "-fuse-ld=${CMAKE_SOURCE_DIR}/utils/webassembly/fakeld")
     elseif((SWIFT_ENABLE_LLD_LINKER AND LDLLD_PATH AND NOT APPLE) OR
        ("${LFLAGS_SDK}" STREQUAL "WINDOWS" AND
         NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WINDOWS"))
