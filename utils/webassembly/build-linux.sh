@@ -3,8 +3,7 @@
 SOURCE_PATH="$( cd "$(dirname $0)/../../.." && pwd  )" 
 SWIFT_PATH=$SOURCE_PATH/swift
 
-$SWIFT_PATH/utils/build-script --release --wasm --verbose \
-  --debug-swift-stdlib \
+$SWIFT_PATH/utils/build-script --wasm \
   --skip-build-benchmarks \
   --extra-cmake-options=" \
     -DSWIFT_SDKS='WASI;LINUX' \
@@ -26,4 +25,5 @@ $SWIFT_PATH/utils/build-script --release --wasm --verbose \
   --wasi-icu-i18n-include "$SOURCE_PATH/icu_out/include" \
   --wasi-icu-uc "$SOURCE_PATH/icu_out/lib" \
   --wasi-icu-uc-include "$SOURCE_PATH/icu_out/include" \
-  --wasi-sdk "$SOURCE_PATH/wasi-sdk"
+  --wasi-sdk "$SOURCE_PATH/wasi-sdk" \
+  "$@"

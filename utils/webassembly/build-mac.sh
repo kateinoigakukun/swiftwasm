@@ -3,8 +3,7 @@
 SOURCE_PATH="$( cd "$(dirname $0)/../../.." && pwd  )" 
 SWIFT_PATH=$SOURCE_PATH/swift
 
-$SWIFT_PATH/utils/build-script --release --wasm --verbose \
-  --debug-swift-stdlib \
+$SWIFT_PATH/utils/build-script --wasm \
   --skip-build-benchmarks \
   --extra-cmake-options=" \
     -DSWIFT_PRIMARY_VARIANT_SDK:STRING=WASI \
@@ -32,4 +31,5 @@ $SWIFT_PATH/utils/build-script --release --wasm --verbose \
   --install-swift \
   --install-prefix="/opt/swiftwasm-sdk" \
   --install-destdir="$SOURCE_PATH/install" \
-  --installable-package="$SOURCE_PATH/swiftwasm-macos.tar.gz"
+  --installable-package="$SOURCE_PATH/swiftwasm-macos.tar.gz" \
+  "$@"
