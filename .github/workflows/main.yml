@@ -22,6 +22,15 @@ jobs:
         with:
           name: linux-installable
           path: ../swiftwasm-linux.tar.gz
+      - name: Run test script
+        run: ./utils/run-test --build-dir ../build/Ninja-ReleaseAssert+stdlib-DebugAssert/  --target wasi-wasm32 || true # Ignore failure
+      - name: Pack test results
+        run: tar cJf swift-test-results.tar.gz ../build/swift-linux-x86_64/swift-test-results
+      - name: Upload test results
+        uses: actions/upload-artifact@v1
+        with:
+          name: linux-test-results
+          path: ./swift-test-results.tar.gz
 
   macos_build:
     timeout-minutes: 0
@@ -41,7 +50,15 @@ jobs:
         with:
           name: packaging-scripts
           path: utils/webassembly
-
+      - name: Run test script
+        run: ./utils/run-test --build-dir ../build/Ninja-ReleaseAssert+stdlib-DebugAssert/  --target wasi-wasm32 || true # Ignore failure
+      - name: Pack test results
+        run: tar cJf swift-test-results.tar.gz ../build/swift-macos-x86_64/swift-test-results
+      - name: Upload test results
+        uses: actions/upload-artifact@v1
+        with:
+          name: macos-test-results
+          path: ./swift-test-results.tar.gz
   package:
     name: Build SwiftWasm packages
     needs:
