@@ -26,7 +26,7 @@ wget -O wasi-sdk.tar.gz https://github.com/swiftwasm/wasi-sdk/releases/download/
 tar xfz wasi-sdk.tar.gz
 mv wasi-sdk-4.39g3025a5f47c04 ./wasi-sdk
 mv wasi-sdk/share/wasi-sysroot wasi-sdk/share/sysroot
-# Link wasm32-wasi-unknown to wasm32-wasi because clang find crt1.o from sysroot
+# Link wasm32-wasi-unknown to wasm32-wasi because clang finds crt1.o from sysroot
 # with os and environment name `getMultiarchTriple`.
 ln -s wasm32-wasi wasi-sdk/share/sysroot/lib/wasm32-wasi-unknown
 
