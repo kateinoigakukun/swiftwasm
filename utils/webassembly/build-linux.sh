@@ -13,6 +13,9 @@ $SWIFT_PATH/utils/build-script --wasm \
     -DCMAKE_RANLIB='$SOURCE_PATH/wasi-sdk/bin/llvm-ranlib' \
   " \
   --build-stdlib-deployment-targets "wasi-wasm32" \
+  --build-swift-dynamic-sdk-overlay false \
+  --build-swift-dynamic-stdlib false \
+  --build-swift-static-sdk-overlay \
   --build-swift-static-stdlib \
   --install-destdir="$SOURCE_PATH/install" \
   --install-prefix="/opt/swiftwasm-sdk" \
