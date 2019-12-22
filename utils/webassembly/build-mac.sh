@@ -11,10 +11,9 @@ $SWIFT_PATH/utils/build-script --wasm \
     -DSWIFT_OSX_x86_64_ICU_STATICLIB=TRUE \
     -DSWIFT_BUILD_SOURCEKIT=FALSE \
     -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
+    -DSWIFT_BUILD_SYNTAXPARSERLIB=FALSE \
     -DCMAKE_AR='/usr/local/opt/llvm/bin/llvm-ar' \
     -DCMAKE_RANLIB='/usr/local/opt/llvm/bin/llvm-ranlib' \
-    -DCMAKE_C_COMPILER='/usr/local/opt/llvm/bin/clang'
-    -DCMAKE_CXX_COMPILER='/usr/local/opt/llvm/bin/clang++' \
   " \
   --build-stdlib-deployment-targets "wasi-wasm32" \
   --build-swift-dynamic-sdk-overlay false \
