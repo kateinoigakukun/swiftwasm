@@ -9,10 +9,9 @@ $SWIFT_PATH/utils/build-script --wasm \
     -DSWIFT_SDKS='WASI;LINUX' \
     -DSWIFT_BUILD_SOURCEKIT=FALSE \
     -DSWIFT_ENABLE_SOURCEKIT_TESTS=FALSE \
+    -DSWIFT_BUILD_SYNTAXPARSERLIB=FALSE \
     -DCMAKE_AR='$SOURCE_PATH/wasi-sdk/bin/llvm-ar' \
     -DCMAKE_RANLIB='$SOURCE_PATH/wasi-sdk/bin/llvm-ranlib' \
-    -DCMAKE_C_COMPILER='$SOURCE_PATH/wasi-sdk/bin/clang'
-    -DCMAKE_CXX_COMPILER='$SOURCE_PATH/wasi-sdk/bin/clang++' \
   " \
   --build-stdlib-deployment-targets "wasi-wasm32" \
   --build-swift-dynamic-sdk-overlay false \
