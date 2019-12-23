@@ -195,7 +195,7 @@ foreach(sdk IN LISTS SWIFT_SDKS)
     set(primary_arch ${SWIFT_PRIMARY_VARIANT_ARCH})
   endif()
 
-  if(NOT "${image_inspection_shared_sdk}" STREQUAL "")
+  if(NOT "${image_inspection_shared_sdk}" STREQUAL "" AND NOT "${primary_arch}" STREQUAL "")
     set(is_image_inspection_required TRUE)
     add_image_inspection_shared(${image_inspection_shared_sdk} ${primary_arch} ${image_inspection_shared_file} ${linkfile_src})
   endif()
