@@ -18,6 +18,13 @@ export current_sha=`git rev-parse HEAD`
 ./utils/update-checkout --clone --scheme wasm
 git checkout $current_sha
 
+# Install wasmtime
+
+sudo mkdir /opt/wasmtime && cd /opt/wasmtime
+wget -O - "https://github.com/bytecodealliance/wasmtime/releases/download/v0.8.0/wasmtime-v0.8.0-x86_64-linux.tar.xz" | \
+  sudo tar x --strip-components 1
+sudo ln -sf /opt/wasmtime/* /usr/local/bin
+
 cd $SOURCE_PATH
 
 wget -O install_cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.15.3/cmake-3.15.3-Linux-x86_64.sh"

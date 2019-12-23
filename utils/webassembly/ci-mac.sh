@@ -11,6 +11,13 @@ export current_sha=`git rev-parse HEAD`
 ./utils/update-checkout --clone --scheme wasm
 git checkout $current_sha
 
+# Install wasmtime
+
+sudo mkdir /opt/wasmtime && cd /opt/wasmtime
+wget -O - "https://github.com/bytecodealliance/wasmtime/releases/download/v0.8.0/wasmtime-v0.8.0-x86_64-macos.tar.xz" | \
+  sudo tar x --strip-components 1
+sudo ln -sf /opt/wasmtime/* /usr/local/bin
+
 cd $SOURCE_PATH
 
 wget -O dist-wasi-sdk.tgz https://github.com/swiftwasm/wasi-sdk/suites/370986556/artifacts/809001
