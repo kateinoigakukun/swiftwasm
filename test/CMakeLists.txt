@@ -235,8 +235,11 @@ _Block_release(void) { }\n")
     if(SWIFT_BUILD_STDLIB AND SWIFT_INCLUDE_TESTS)
       list(APPEND test_dependencies
           "swift-test-stdlib-${SWIFT_SDK_${SDK}_LIB_SUBDIR}")
-      list(APPEND test_dependencies
-          "swift-reflection-test${VARIANT_SUFFIX}_signed")
+      # wasm: Avoid to build swift-reflection-test because it uses unsupported linker flags for wasm-ld
+      if(NOT "${SDK}" STREQUAL "WASI")
+        list(APPEND test_dependencies
+            "swift-reflection-test${VARIANT_SUFFIX}_signed")
+      endif()
     endif()
 
     if(NOT "${COVERAGE_DB}" STREQUAL "")
