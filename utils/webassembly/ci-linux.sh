@@ -27,13 +27,16 @@ sudo ./install_cmake.sh --skip-license --prefix=/opt/cmake
 sudo ln -sf /opt/cmake/bin/* /usr/local/bin
 cmake --version
 
-wget -O wasi-sdk.tar.gz https://github.com/swiftwasm/wasi-sdk/releases/download/20191022.1/wasi-sdk-4.39g3025a5f47c04-linux.tar.gz
-tar xfz wasi-sdk.tar.gz
-mv wasi-sdk-4.39g3025a5f47c04 ./wasi-sdk
-mv wasi-sdk/share/wasi-sysroot wasi-sdk/share/sysroot
+wget -O dist-wasi-sdk.tgz https://github.com/swiftwasm/wasi-sdk/suites/370986556/artifacts/809002
+unzip dist-wasi-sdk.tgz
+WASI_SDK_TAR_PATH=$(find dist-ubuntu-latest.tgz -type f -name "wasi-sdk-*")
+WASI_SDK_FULL_NAME=$(basename $WASI_SDK_TAR_PATH -linux.tar.gz)
+tar xfz $WASI_SDK_TAR_PATH
+mv $WASI_SDK_FULL_NAME ./wasi-sdk
+
 # Link wasm32-wasi-unknown to wasm32-wasi because clang finds crt1.o from sysroot
 # with os and environment name `getMultiarchTriple`.
-ln -s wasm32-wasi wasi-sdk/share/sysroot/lib/wasm32-wasi-unknown
+ln -s wasm32-wasi wasi-sdk/share/wasi-sysroot/lib/wasm32-wasi-unknown
 
 wget -O icu.tar.xz "https://github.com/swiftwasm/icu4c-wasi/releases/download/20190421.3/icu4c-wasi.tar.xz"
 tar xf icu.tar.xz
