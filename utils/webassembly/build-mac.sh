@@ -22,10 +22,10 @@ $SWIFT_PATH/utils/build-script --wasm \
   --build-swift-static-stdlib \
   --llvm-targets-to-build "X86;WebAssembly" \
   --stdlib-deployment-targets "wasi-wasm32" \
-  --wasi-icu-data "todo-icu-data" \
-  --wasi-icu-i18n "$SOURCE_PATH/icu_out/lib" \
+  --wasi-icu-data "$SOURCE_PATH/icu_out/lib/libicudata.a" \
+  --wasi-icu-i18n "$SOURCE_PATH/icu_out/lib/libicui18n.a" \
   --wasi-icu-i18n-include "$SOURCE_PATH/icu_out/include" \
-  --wasi-icu-uc "$SOURCE_PATH/icu_out/lib" \
+  --wasi-icu-uc "$SOURCE_PATH/icu_out/lib/libicuuc.a" \
   --wasi-icu-uc-include "$SOURCE_PATH/icu_out/include" \
   --wasi-sdk "$SOURCE_PATH/wasi-sdk" \
   --install-swift \
