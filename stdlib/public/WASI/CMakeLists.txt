@@ -1,3 +1,3 @@
-add_swift_target_library(swiftWasiPthread ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES}
+add_swift_target_library(swiftWasiPthread STATIC
   Pthread.cpp
   INSTALL_IN_COMPONENT stdlib)
