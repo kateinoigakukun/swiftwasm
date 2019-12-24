@@ -61,6 +61,9 @@ if(SWIFT_BUILD_STDLIB)
   add_subdirectory(stubs)
   add_subdirectory(core)
   add_subdirectory(SwiftOnoneSupport)
+  if(WASI IN_LIST SWIFT_SDKS)
+    add_subdirectory(WASI)
+  endif()
 endif()
 
 # Build differentiable programming support library only if enabled.
