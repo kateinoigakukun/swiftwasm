@@ -1,5 +1,4 @@
 -ldl
--lpthread
 -latomic
 -lswiftCore
 -latomic
