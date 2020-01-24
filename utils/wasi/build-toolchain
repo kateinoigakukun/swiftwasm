@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# wasi/build-toolchain
+#
+# This source file is part of the Swift.org open source project
+#
+# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Licensed under Apache License v2.0 with Runtime Library Exception
+#
+# See https://swift.org/LICENSE.txt for license information
+# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+
+set -e
+
+SWIFT_PATH="$( cd "$(dirname $0)/../../.." && pwd )"
+
+WASI_SYSROOT="${WASI_SYSROOT:?Please set the WASI sysroot path in the WASI_SYSROOT environment variable}"
+WASI_ICU_PATH=${SWIFT_PATH}/libicu-wasm
+
+[ -e ${WASI_ICU_PATH} ] || exit 1
+
+SWIFT_WASI_TOOLCHAIN_PATH="${SWIFT_PATH}/swift-wasi-toolchain"
+
+${SWIFT_PATH}/swift/utils/build-script \
+  --release \
+  --wasi \
+  --wasi-icu-data "${WASI_ICU_PATH}/lib/libicudata.a" \
+  --wasi-icu-i18n "${WASI_ICU_PATH}/lib/libicui18n.a" \
+  --wasi-icu-i18n-include "${WASI_ICU_PATH}/include" \
+  --wasi-icu-uc "${WASI_ICU_PATH}/lib/libicuuc.a" \
+  --wasi-icu-uc-include "${WASI_ICU_PATH}/include" \
+  --wasi-sysroot "$WASI_SYSROOT" \
+  --build-swift-static-stdlib \
+  --build-swift-static-sdk-overlay \
+  --build-swift-dynamic-sdk-overlay false \
+  --build-swift-dynamic-stdlib false \
+  --install-destdir="$SWIFT_WASI_TOOLCHAIN_PATH" \
+  --install-prefix="/usr" \
+  --install-swift \
+  --verbose

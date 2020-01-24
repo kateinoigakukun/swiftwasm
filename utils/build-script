@@ -200,6 +200,20 @@ def validate_arguments(toolchain, args):
                 "--android-icu-i18n-include, and --android-icu-data "
                 "must be specified")
 
+    if args.wasi:
+        if args.wasi_sysroot is None or \
+                args.wasi_icu_uc is None or \
+                args.wasi_icu_uc_include is None or \
+                args.wasi_icu_i18n is None or \
+                args.wasi_icu_i18n_include is None or \
+                args.wasi_icu_data is None:
+            diagnostics.fatal(
+                "when building for WebAssembly, --wasi-sdk, "
+                "--wasi-icu-uc, "
+                "--wasi-icu-uc-include, --wasi-icu-i18n, "
+                "--wasi-icu-i18n-include, and --wasi-icu-data "
+                "must be specified")
+
     targets_needing_toolchain = [
         'build_indexstoredb',
         'build_pythonkit',
@@ -295,6 +309,10 @@ def apply_default_arguments(toolchain, args):
         elif args.android_arch == "aarch64":
             args.stdlib_deployment_targets.append(
                 StdlibDeploymentTarget.Android.aarch64.name)
+
+    if args.wasi:
+        args.stdlib_deployment_targets.append(
+            StdlibDeploymentTarget.WASI.wasm32.name)
 
     # Infer platform flags from manually-specified configure targets.
     # This doesn't apply to Darwin platforms, as they are
@@ -565,6 +583,8 @@ class BuildScriptInvocation(object):
             impl_args += ["--skip-build-watchos-simulator"]
         if not args.build_android:
             impl_args += ["--skip-build-android"]
+        if not args.build_wasi:
+            impl_args += ["--skip-build-wasi"]
         if not args.build_clang_tools_extra:
             impl_args += ["--skip-build-clang-tools-extra"]
 
@@ -605,6 +625,10 @@ class BuildScriptInvocation(object):
             impl_args += ["--skip-test-android"]
         if not args.test_android_host:
             impl_args += ["--skip-test-android-host"]
+        if not args.test_wasi:
+            impl_args += ["--skip-test-wasi"]
+        if not args.test_wasi_host:
+            impl_args += ["--skip-test-wasi-host"]
         if args.build_runtime_with_host_compiler:
             impl_args += ["--build-runtime-with-host-compiler"]
         if args.validation_test:
@@ -643,6 +667,16 @@ class BuildScriptInvocation(object):
             impl_args += [
                 "--android-deploy-device-path",
                 args.android_deploy_device_path,
+            ]
+
+        if args.wasi:
+            impl_args += [
+                "--wasi-sysroot", args.wasi_sysroot,
+                "--wasi-icu-uc", args.wasi_icu_uc,
+                "--wasi-icu-uc-include", args.wasi_icu_uc_include,
+                "--wasi-icu-i18n", args.wasi_icu_i18n,
+                "--wasi-icu-i18n-include", args.wasi_icu_i18n_include,
+                "--wasi-icu-data", args.wasi_icu_data,
             ]
 
         if platform.system() == 'Darwin':
