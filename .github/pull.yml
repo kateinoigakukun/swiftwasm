@@ -2,7 +2,7 @@ version: "1"
 rules:
   - base: swiftwasm
     upstream: apple:master
-    mergeMethod: hardreset
+    mergeMethod: merge
     assignees:
       - kateinoigakukun
   - base: katei/swiftwasm
