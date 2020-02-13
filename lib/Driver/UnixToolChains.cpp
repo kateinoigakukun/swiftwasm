@@ -106,6 +106,10 @@ std::string toolchains::GenericUnix::getDefaultLinker() const {
   }
 }
 
+std::string toolchains::GenericUnix::getDefaultArchiver() const {
+  return "ar";
+}
+
 std::string toolchains::GenericUnix::getTargetForLinker() const {
   return getTriple().str();
 }
@@ -346,12 +350,7 @@ toolchains::GenericUnix::constructInvocation(const StaticLinkJobAction &job,
   ArgStringList Arguments;
 
   // Configure the toolchain.
-  const char *AR;
-  if (getTriple().isOSBinFormatWasm()) {
-    AR = "llvm-ar";
-  } else {
-    AR = "ar";
-  }
+  const std::string *AR = getDefaultArchiver();
   Arguments.push_back("crs");
 
   Arguments.push_back(
@@ -361,7 +360,7 @@ toolchains::GenericUnix::constructInvocation(const StaticLinkJobAction &job,
                          file_types::TY_Object);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
 
-  InvocationInfo II{AR, Arguments};
+  InvocationInfo II{AR.c_str(), Arguments};
 
   return II;
 }
@@ -394,3 +393,6 @@ std::string toolchains::Cygwin::getDefaultLinker() const {
 }
 
 std::string toolchains::Cygwin::getTargetForLinker() const { return ""; }
+
+std::string toolchains::WASI::getDefaultArchiver() const { return "llvm-ar" }
+bool toolchains::WASI::shouldProvideRPathToLinker() const { return false; }

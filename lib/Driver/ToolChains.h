@@ -109,6 +109,9 @@ protected:
   /// and to not provide a specific linker otherwise.
   virtual std::string getDefaultLinker() const;
 
+  /// The archiver to be used for static link job
+  virtual std::string getDefaultArchiver() const;
+
   /// The target to be passed to the compiler invocation. By default, this
   /// is the target triple, but this may be overridden to accommodate some
   /// platforms.
@@ -155,6 +158,18 @@ public:
   Cygwin(const Driver &D, const llvm::Triple &Triple)
       : GenericUnix(D, Triple) {}
   ~Cygwin() = default;
+};
+
+class LLVM_LIBRARY_VISIBILITY WASI : public GenericUnix {
+protected:
+  std::string getDefaultArchiver() const override;
+
+  bool shouldProvideRPathToLinker() const override;
+
+public:
+  Android(const Driver &D, const llvm::Triple &Triple)
+      : GenericUnix(D, Triple) {}
+  ~Android() = default;
 };
 
 } // end namespace toolchains
