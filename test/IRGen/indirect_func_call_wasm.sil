@@ -1,0 +1,52 @@
+// RUN: %target-swift-frontend %s -emit-ir | %FileCheck %s
+
+// REQUIRES: CPU=wasm32
+
+// CHECK-LABEL: define swiftcc void @closureToConvert()
+// CHECK: entry:
+// CHECK:   ret void
+// CHECK: }
+sil @closureToConvert : $@convention(thin) () -> () {
+  %99 = tuple ()
+  return %99 : $()
+}
+// CHECK-LABEL: deinfe swiftcc void {{.*}}({{.*}}swiftself{{.*}})
+
+// CHECK-LABEL: define swiftcc void @testConvertFunc()
+// CHECK: entry:
+// CHECK:   call swiftcc void bitcast (void ()* @closureToConvert to void (%swift.refcounted*)*)(%swift.refcounted* swiftself null)
+// CHECK:   ret void
+// CHECK-LABEL: }
+
+sil @testConvertFunc : $@convention(thin) () -> () {
+bb0:
+  %f = function_ref @closureToConvert : $@convention(thin) () -> ()
+  %cf = convert_function %f : $@convention(thin) () -> () to $@noescape @convention(thin) () -> ()
+  %thick = thin_to_thick_function %cf : $@noescape @convention(thin) () -> () to $@noescape @callee_owned () -> ()
+  %apply = apply %thick() : $@noescape @callee_owned () -> ()
+  %99 = tuple ()
+  return %99 : $()
+}
+
+// RUN: %target-swift-frontend %s -emit-ir | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize
+
+import Builtin
+import Swift
+
+class SwiftClass {}
+sil_vtable SwiftClass {}
+
+sil @partially_applyable_to_class : $@convention(thin) (@owned SwiftClass) -> ()
+
+// CHECK: define swiftcc { i8*, %swift.refcounted* } @partial_apply_class(%T13partial_apply10SwiftClassC* %0) {{.*}} {
+// CHECK: entry:
+// CHECK:   %1 = bitcast %T13partial_apply10SwiftClassC* %0 to %swift.refcounted*
+// CHECK:   %2 = insertvalue { i8*, %swift.refcounted* } { i8* bitcast (void (%swift.refcounted*)* @"$s28partially_applyable_to_classTA" to i8*), %swift.refcounted* undef }, %swift.refcounted* %1, 1
+// CHECK:   ret { i8*, %swift.refcounted* } %2
+// CHECK: }
+sil @partial_apply_class : $@convention(thin) (SwiftClass) -> @callee_owned () -> () {
+entry(%c : $SwiftClass):
+  %f = function_ref @partially_applyable_to_class : $@convention(thin) (@owned SwiftClass) -> ()
+  %g = partial_apply %f(%c) : $@convention(thin) (@owned SwiftClass) -> ()
+  return %g : $@callee_owned () -> ()
+}
