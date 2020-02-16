@@ -4703,7 +4703,6 @@ void IRGenSILFunction::visitThinToThickFunctionInst(
     to.add(fnPtr);
     llvm::Value *ctx = from.claimNext();
     ctx = Builder.CreateBitCast(ctx, IGM.RefCountedPtrTy);
-    to.add(thunkFn);
     to.add(ctx);
     setLoweredExplosion(i, to);
     return;
