@@ -693,14 +693,7 @@ llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
   for (unsigned i = 0; i < origFnTy->getNumParams(); ++i)
     thunkParams.push_back(origFnTy->getParamType(i));
 
-
-  if (origType->isNoEscape())
-    thunkParams.push_back(IGM.OpaquePtrTy);
-  else
-    thunkParams.push_back(IGM.RefCountedPtrTy);
-
-//  Signature outSig(origType.getType());
-//  llvm::AttributeList outAttrs = outSig.getAttributes();
+  thunkParams.push_back(IGM.RefCountedPtrTy);
 
   auto thunkType = llvm::FunctionType::get(origFnTy->getReturnType(),
                                            thunkParams,
@@ -716,9 +709,8 @@ llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
   llvm::Function *fwd =
   llvm::Function::Create(thunkType, llvm::Function::InternalLinkage,
                          llvm::StringRef(thunkName), &IGM.Module);
-//  fwd->setCallingConv(outSig.getCallingConv());
-//  fwd->setAttributes(outAttrs);
 
+  fwd->addAttribute(llvm::AttributeList::FirstArgIndex + origFnTy->getNumParams(), llvm::Attribute::SwiftSelf);
   IRGenFunction IGF(IGM, fwd);
   auto args = IGF.collectParameters();
   // Look up the method.
