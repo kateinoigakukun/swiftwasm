@@ -4693,6 +4693,21 @@ void IRGenSILFunction::visit##KIND##Inst(swift::KIND##Inst *i) {  \
 
 void IRGenSILFunction::visitThinToThickFunctionInst(
                                             swift::ThinToThickFunctionInst *i) {
+
+  if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
+    auto thunkFn = getThinToThickForwarder(IGM,
+                                           i->getCallee()->getType().castTo<SILFunctionType>());
+    Explosion from = getLoweredExplosion(i->getOperand());
+    Explosion to;
+    auto fnPtr = Builder.CreateBitCast(thunkFn, IGM.Int8PtrTy);
+    to.add(fnPtr);
+    llvm::Value *ctx = from.claimNext();
+    ctx = Builder.CreateBitCast(ctx, IGM.RefCountedPtrTy);
+    to.add(thunkFn);
+    to.add(ctx);
+    setLoweredExplosion(i, to);
+    return;
+  }
   // Take the incoming function pointer and add a null context pointer to it.
   Explosion from = getLoweredExplosion(i->getOperand());
   Explosion to;

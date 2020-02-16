@@ -54,6 +54,9 @@ namespace irgen {
       CanSILFunctionType origType, CanSILFunctionType substType,
       CanSILFunctionType outType, Explosion &out, bool isOutlined);
 
+
+  llvm::Function *getThinToThickForwarder(IRGenModule &IGM,
+                                          CanSILFunctionType origType);
 } // end namespace irgen
 } // end namespace swift
 
