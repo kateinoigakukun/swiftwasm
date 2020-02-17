@@ -701,6 +701,8 @@ llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
                                            /*vararg*/ false);
 
   StringRef FnName;
+  if (staticFnPtr)
+    FnName = staticFnPtr->getPointer()->getName();
 
   IRGenMangler Mangler;
   std::string thunkName = Mangler.mangleThinToThickForwarder(FnName);
@@ -711,8 +713,11 @@ llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
   llvm::Function::Create(thunkType, llvm::Function::InternalLinkage,
                          llvm::StringRef(thunkName), &IGM.Module);
 
+  fwd->setAttributes(origSig.getAttributes());
   fwd->addAttribute(llvm::AttributeList::FirstArgIndex + origFnTy->getNumParams(), llvm::Attribute::SwiftSelf);
   IRGenFunction IGF(IGM, fwd);
+  if (IGM.DebugInfo)
+    IGM.DebugInfo->emitArtificialFunction(IGF, fwd);
   auto args = IGF.collectParameters();
   // Look up the method.
   auto rawFnPtr = args.takeLast();
