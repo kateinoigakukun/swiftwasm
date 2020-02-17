@@ -89,7 +89,7 @@ std::string IRGenMangler::mangleThinToThickForwarder(StringRef FuncName) {
       appendIdentifier(FuncName);
     }
   }
-  appendOperator("Ttt");
+  appendOperator("Tu");
   return finalize();
 }
 

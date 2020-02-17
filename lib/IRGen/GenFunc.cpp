@@ -703,7 +703,7 @@ llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
   StringRef FnName;
 
   IRGenMangler Mangler;
-  std::string thunkName = Mangler.manglePartialApplyForwarder(FnName);
+  std::string thunkName = Mangler.mangleThinToThickForwarder(FnName);
 
 
   // FIXME: Maybe cache the thunk by function and closure types?.
