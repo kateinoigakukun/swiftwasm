@@ -4691,11 +4691,44 @@ void IRGenSILFunction::visit##KIND##Inst(swift::KIND##Inst *i) {  \
 #include "swift/AST/ReferenceStorage.def"
 #undef NOOP_CONVERSION
 
+
+static FunctionPointer
+getLoweredFunctionPointer(IRGenSILFunction &IGF, SILValue v) {
+  LoweredValue &lv = IGF.getLoweredValue(v);
+  auto fnType = v->getType().castTo<SILFunctionType>();
+
+  switch (lv.kind) {
+  case LoweredValue::Kind::ContainedAddress:
+  case LoweredValue::Kind::StackAddress:
+  case LoweredValue::Kind::DynamicallyEnforcedAddress:
+  case LoweredValue::Kind::OwnedAddress:
+  case LoweredValue::Kind::EmptyExplosion:
+  case LoweredValue::Kind::CoroutineState:
+  case LoweredValue::Kind::ObjCMethod:
+    llvm_unreachable("not a valid function");
+
+  case LoweredValue::Kind::FunctionPointer: {
+    return lv.getFunctionPointer();
+  }
+  case LoweredValue::Kind::SingletonExplosion: {
+    llvm::Value *fnPtr = lv.getKnownSingletonExplosion();
+    return FunctionPointer::forExplosionValue(IGF, fnPtr, fnType);
+  }
+  case LoweredValue::Kind::ExplosionVector: {
+    Explosion ex = lv.getExplosion(IGF, v->getType());
+    llvm::Value *fnPtr = ex.claimNext();
+    auto fn = FunctionPointer::forExplosionValue(IGF, fnPtr, fnType);
+    return fn;
+  }
+  }
+  llvm_unreachable("bad kind");
+}
+
 void IRGenSILFunction::visitThinToThickFunctionInst(
                                             swift::ThinToThickFunctionInst *i) {
 
   if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
-    auto fn = getLoweredValue(i->getCallee()).getFunctionPointer();
+    auto fn = getLoweredFunctionPointer(*this, i->getCallee());
     auto fnTy = i->getCallee()->getType().castTo<SILFunctionType>();
     Optional<FunctionPointer> staticFn;
     if (fn.isConstant()) staticFn = fn;
