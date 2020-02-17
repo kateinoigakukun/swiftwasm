@@ -683,7 +683,8 @@ static unsigned findSinglePartiallyAppliedParameterIndexIgnoringEmptyTypes(
 
 
 llvm::Function *irgen::getThinToThickForwarder(IRGenModule &IGM,
-                                               CanSILFunctionType origType) {
+                                               const Optional<FunctionPointer> &staticFnPtr,
+                                               const CanSILFunctionType origType) {
   auto origSig = IGM.getSignature(origType);
   llvm::FunctionType *origFnTy = origSig.getType();
   auto origTy = origSig.getType()->getPointerTo();

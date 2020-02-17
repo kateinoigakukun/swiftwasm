@@ -4695,7 +4695,10 @@ void IRGenSILFunction::visitThinToThickFunctionInst(
                                             swift::ThinToThickFunctionInst *i) {
 
   if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
-    auto thunkFn = getThinToThickForwarder(IGM,
+    auto fn = getLoweredValue(i->getCallee()).getFunctionPointer();
+    Optional<FunctionPointer> staticFn;
+    if (fn.isConstant()) staticFn = fn;
+    auto thunkFn = getThinToThickForwarder(IGM, staticFn,
                                            i->getCallee()->getType().castTo<SILFunctionType>());
     Explosion from = getLoweredExplosion(i->getOperand());
     Explosion to;
