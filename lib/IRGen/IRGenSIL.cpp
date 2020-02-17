@@ -4696,16 +4696,16 @@ void IRGenSILFunction::visitThinToThickFunctionInst(
 
   if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm) {
     auto fn = getLoweredValue(i->getCallee()).getFunctionPointer();
+    auto fnTy = i->getCallee()->getType().castTo<SILFunctionType>();
     Optional<FunctionPointer> staticFn;
     if (fn.isConstant()) staticFn = fn;
-    auto thunkFn = getThinToThickForwarder(IGM, staticFn,
-                                           i->getCallee()->getType().castTo<SILFunctionType>());
+    auto thunkFn = getThinToThickForwarder(IGM, staticFn, fnTy);
     Explosion from = getLoweredExplosion(i->getOperand());
     Explosion to;
     auto fnPtr = Builder.CreateBitCast(thunkFn, IGM.Int8PtrTy);
     to.add(fnPtr);
     llvm::Value *ctx = from.claimNext();
-    if (i->getType().castTo<SILFunctionType>()->isNoEscape())
+    if (fnTy->isNoEscape())
       ctx = Builder.CreateBitCast(ctx, IGM.OpaquePtrTy);
     else
       ctx = Builder.CreateBitCast(ctx, IGM.RefCountedPtrTy);
