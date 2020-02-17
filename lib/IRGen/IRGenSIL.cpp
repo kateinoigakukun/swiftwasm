@@ -4699,9 +4699,13 @@ void IRGenSILFunction::visitThinToThickFunctionInst(
                                            i->getCallee()->getType().castTo<SILFunctionType>());
     Explosion from = getLoweredExplosion(i->getOperand());
     Explosion to;
-    to.add(thunkFn);
+    auto fnPtr = Builder.CreateBitCast(thunkFn, IGM.Int8PtrTy);
+    to.add(fnPtr);
     llvm::Value *ctx = from.claimNext();
-    ctx = Builder.CreateBitCast(ctx, IGM.OpaquePtrTy);
+    if (i->getType().castTo<SILFunctionType>()->isNoEscape())
+      ctx = Builder.CreateBitCast(ctx, IGM.OpaquePtrTy);
+    else
+      ctx = Builder.CreateBitCast(ctx, IGM.RefCountedPtrTy);
     to.add(ctx);
     setLoweredExplosion(i, to);
     return;
