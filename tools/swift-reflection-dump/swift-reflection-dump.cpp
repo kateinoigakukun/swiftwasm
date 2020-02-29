@@ -282,6 +282,19 @@ private:
     Segments.push_back({HeaderAddress, O->getData()});
   }
 
+  void scanWasm(const WasmObjectFile *O) {
+    HeaderAddress = 0;
+    for (auto &SecRef: O->sections()) {
+      const WasmSection &Sec = O->getWasmSection(SecRef);
+      if (Sec.Content.size() == 0)
+        continue;
+      llvm::errs() << "[Scan] Offset: " << Sec.Offset << "; Size: " << Sec.Content.size() << "\n";
+      // llvm::errs() << "      Content: " << llvm::toStringRef(Sec.Content) << "\n";
+      Segments.push_back({static_cast<uint64_t>(Sec.Offset), llvm::toStringRef(Sec.Content)});
+    }
+    Segments.push_back({HeaderAddress, O->getData()});
+  }
+
 public:
   explicit Image(const ObjectFile *O) : O(O) {
     // Unfortunately llvm doesn't provide a uniform interface for iterating
@@ -292,6 +305,8 @@ public:
       scanELF(elf);
     } else if (auto coff = dyn_cast<COFFObjectFile>(O)) {
       scanCOFF(coff);
+    } else if (auto wasm = dyn_cast<WasmObjectFile>(O)) {
+      scanWasm(wasm);
     } else {
       fputs("unsupported image format\n", stderr);
       abort();
@@ -315,6 +330,7 @@ public:
   }
 
   StringRef getContentsAtAddress(uint64_t Addr, uint64_t Size) const {
+    llvm::errs() << "Addr: " << Addr << "; Size: " << Size << "\n";
     for (auto &Segment : Segments) {
       auto addrInSegment = Segment.Addr <= Addr
         && Addr + Size <= Segment.Addr + Segment.Contents.size();
@@ -553,11 +569,30 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
   // once they go out of scope, we can no longer do anything.
   std::vector<OwningBinary<Binary>> BinaryOwners;
   std::vector<std::unique_ptr<ObjectFile>> ObjectOwners;
+  std::vector<std::unique_ptr<Binary>> ArchiveBinaryOwners;
   std::vector<const ObjectFile *> ObjectFiles;
 
   for (const std::string &BinaryFilename : BinaryFilenames) {
     auto BinaryOwner = unwrap(createBinary(BinaryFilename));
     Binary *BinaryFile = BinaryOwner.getBinary();
+
+    const Archive *Arc = dyn_cast<Archive>(BinaryFile);
+    if (Arc) {
+      llvm::Error Err = llvm::Error::success();
+      for (auto &ArcC : Arc->children(Err)) {
+        std::unique_ptr<Binary> ChildBinary = unwrap(ArcC.getAsBinary());
+        if (ObjectFile *Obj = dyn_cast<ObjectFile>(&*ChildBinary)) {
+          ObjectFiles.push_back(Obj);
+          ArchiveBinaryOwners.push_back(std::move(ChildBinary));
+        }
+      }
+      if (Err) {
+        llvm::consumeError(std::move(Err));
+        break;
+      }
+      continue;
+    }
+
 
     // The object file we are doing lookups in -- either the binary itself, or
     // a particular slice of a universal binary.

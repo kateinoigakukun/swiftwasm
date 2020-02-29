@@ -21,6 +21,7 @@
 #include "llvm/BinaryFormat/COFF.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/BinaryFormat/Wasm.h"
 #include "llvm/Object/COFF.h"
 
 #include "swift/Remote/MemoryReader.h"
@@ -522,6 +523,13 @@ public:
         && MagicBytes[2] == llvm::ELF::ElfMagic[2]
         && MagicBytes[3] == llvm::ELF::ElfMagic[3]) {
       return readELF(ImageStart);
+    }
+
+    llvm::errs() << MagicBytes[0] << MagicBytes[1] << MagicBytes[2];
+    if (MagicBytes[0] == llvm::wasm::WasmMagic[0]
+        && MagicBytes[1] == llvm::wasm::WasmMagic[1]
+        && MagicBytes[2] == llvm::wasm::WasmMagic[2]) {
+      llvm::errs() << "addImage Wasm\n";
     }
     
     // We don't recognize the format.
