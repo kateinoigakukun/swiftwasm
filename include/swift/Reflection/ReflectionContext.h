@@ -24,6 +24,8 @@
 #include "llvm/BinaryFormat/Wasm.h"
 #include "llvm/Object/COFF.h"
 
+#include "llvm/Support/LEB128.h"
+
 #include "swift/Remote/MemoryReader.h"
 #include "swift/Remote/MetadataReader.h"
 #include "swift/Reflection/Records.h"
@@ -492,6 +494,149 @@ public:
     }
   }
 
+  bool readWasm(RemoteAddress ImageStart) {
+    auto Buf =
+        this->getReader().readBytes(ImageStart, sizeof(llvm::wasm::WasmObjectHeader));
+    // Read the header.
+    auto Hdr = reinterpret_cast<const llvm::wasm::WasmObjectHeader *>(Buf.get());
+    if (!strcmp(Hdr->Magic.data(), llvm::wasm::WasmMagic))
+      return false;
+
+    auto SectionsStart = ImageStart.getAddressData() + sizeof(llvm::wasm::WasmObjectHeader);
+
+    std::vector<std::pair<RemoteAddress, uint64_t>> SegmentVec;
+    std::vector<StringRef> SegmentNameVec;
+
+    uint64_t Offset = 0;
+
+    auto readUint8 = [&] {
+      auto Ptr = this->getReader().readBytes(RemoteAddress(SectionsStart + Offset), sizeof(uint8_t));
+      Offset += sizeof(uint8_t);
+      return *reinterpret_cast<const uint8_t *>(Ptr.get());
+    };
+
+    auto readULEB128 = [&] {
+      unsigned Count;
+      const char *Error = nullptr;
+      auto Ptr = this->getReader().readBytes(RemoteAddress(SectionsStart + Offset), 5);
+      uint64_t Result = llvm::decodeULEB128(reinterpret_cast<const uint8_t *>(Ptr.get()), &Count, nullptr, &Error);
+      Offset += Count;
+      if (Error)
+	llvm::errs() << "Failed to parse ULEB128\n";
+      return Result;
+    };
+    auto readString = [&] {
+      uint32_t StringLen = readULEB128();
+      auto Ptr = this->getReader().readBytes(RemoteAddress(SectionsStart + Offset), StringLen);
+      Offset += StringLen;
+      return reinterpret_cast<const char *>(Ptr.get());
+    };
+    auto skipInitExpr = [&] {
+      auto Opcode = readUint8();
+      switch (Opcode) {
+      case llvm::wasm::WASM_OPCODE_I32_CONST:
+      case llvm::wasm::WASM_OPCODE_I64_CONST:
+        readULEB128(); // Skip operand
+        break;
+      case llvm::wasm::WASM_OPCODE_F32_CONST:
+	Offset += sizeof(int32_t);
+        break;
+      case llvm::wasm::WASM_OPCODE_F64_CONST:
+	Offset += sizeof(int64_t);
+        break;
+      case llvm::wasm::WASM_OPCODE_GLOBAL_GET:
+        readULEB128(); // Skip operand
+        break;
+      default:
+	llvm::errs() << "Invalid opcode\n";
+      }
+    };
+    while (true) {
+      auto SecKind = readUint8();
+      auto SecSize = readULEB128();
+      auto EndOfSec = Offset + SecSize;
+      if (SecKind == llvm::wasm::WASM_SEC_DATA) {
+        uint32_t Count = readULEB128();
+        for (uint32_t I = 0; I < Count; I++) {
+          llvm::wasm::WasmDataSegment Seg;
+          readULEB128(); // InitFlags
+          readULEB128(); // MemoryIndex
+          skipInitExpr();
+          auto Size = readULEB128();
+	  SegmentVec.push_back({RemoteAddress(SectionsStart + Offset), Size});
+          Offset += Size;
+        }
+      }
+      if (SecKind == llvm::wasm::WASM_SEC_CUSTOM) {
+	auto SecName = readString();
+	if (SecName == "linking") {
+          auto LinkingVersion = readULEB128();
+	  if (LinkingVersion != llvm::wasm::WasmMetadataVersion)
+	    llvm::errs() << "Failed to parse linking section\n";
+	  while (true) {
+            auto LinkingType = readULEB128();
+            auto LinkingSize = readULEB128();
+            auto EndOfEntry = Offset + LinkingSize;
+	    if (LinkingType == llvm::wasm::WASM_SEGMENT_INFO) {
+              auto Count = readULEB128();
+	      for (uint32_t I = 0; I < Count; I++) {
+		SegmentNameVec.push_back(readString());
+	      }
+	    }
+            Offset = EndOfEntry;
+	  }
+	  continue;
+	}
+      }
+      Offset = EndOfSec;
+    }
+
+    auto findWasmDataSegmentByName = [&](std::string Name)
+        -> std::pair<RemoteRef<void>, uint64_t> {
+      for (uint32_t I = 0; I < SegmentNameVec.size(); I++) {
+        auto SegName = SegmentNameVec[I];
+        if (SegName.str() != Name)
+          continue;
+        auto Seg = SegmentVec[I];
+        auto SecBuf = this->getReader().readBytes(Seg.first, Seg.second);
+        auto SegContents = RemoteRef<void>(Seg.first.getAddressData(),
+                                           SecBuf.get());
+        return {SegContents, Seg.second};
+      }
+      return {nullptr, 0};
+    };
+
+    auto FieldMdSec = findWasmDataSegmentByName("swift5_fieldmd");
+    auto AssocTySec = findWasmDataSegmentByName("swift5_assocty");
+    auto BuiltinTySec = findWasmDataSegmentByName("swift5_builtin");
+    auto CaptureSec = findWasmDataSegmentByName("swift5_capture");
+    auto TypeRefMdSec = findWasmDataSegmentByName("swift5_typeref");
+    auto ReflStrMdSec = findWasmDataSegmentByName("swift5_reflstr");
+
+    // We succeed if at least one of the sections is present in the
+    // ELF executable.
+    if (FieldMdSec.first == nullptr &&
+        AssocTySec.first == nullptr &&
+        BuiltinTySec.first == nullptr &&
+        CaptureSec.first == nullptr &&
+        TypeRefMdSec.first == nullptr &&
+        ReflStrMdSec.first == nullptr)
+      return false;
+
+    ReflectionInfo info = {
+        {FieldMdSec.first, FieldMdSec.second},
+        {AssocTySec.first, AssocTySec.second},
+        {BuiltinTySec.first, BuiltinTySec.second},
+        {CaptureSec.first, CaptureSec.second},
+        {TypeRefMdSec.first, TypeRefMdSec.second},
+        {ReflStrMdSec.first, ReflStrMdSec.second}};
+
+    this->addReflectionInfo(info);
+
+    savedBuffers.push_back(std::move(Buf));
+    return true;
+  }
+
   bool addImage(RemoteAddress ImageStart) {
     // Read the first few bytes to look for a magic header.
     auto Magic = this->getReader().readBytes(ImageStart, sizeof(uint32_t));
@@ -525,11 +670,11 @@ public:
       return readELF(ImageStart);
     }
 
-    llvm::errs() << MagicBytes[0] << MagicBytes[1] << MagicBytes[2];
+    // Wasm.
     if (MagicBytes[0] == llvm::wasm::WasmMagic[0]
         && MagicBytes[1] == llvm::wasm::WasmMagic[1]
         && MagicBytes[2] == llvm::wasm::WasmMagic[2]) {
-      llvm::errs() << "addImage Wasm\n";
+      return readWasm(ImageStart);
     }
     
     // We don't recognize the format.
