@@ -446,7 +446,6 @@ void ClosureContextInfo::dump(FILE *file) const {
 }
 
 void TypeRefBuilder::dumpCaptureSection(FILE *file) {
-  fprintf(file, "ReflectionInfos.size = %zu", ReflectionInfos.size());
   for (const auto &sections : ReflectionInfos) {
     for (const auto descriptor : sections.Capture) {
       auto info = getClosureContextInfo(descriptor);

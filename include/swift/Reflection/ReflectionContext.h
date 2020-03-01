@@ -550,13 +550,11 @@ public:
       auto Opcode = readUint8();
       switch (Opcode) {
       case llvm::wasm::WASM_OPCODE_I32_CONST: {
-        auto c = readSLEB128(); // Skip operand
-	llvm::errs() << "init i32=" << c << "\n";
+        readSLEB128(); // Skip operand
         break;
       }
       case llvm::wasm::WASM_OPCODE_I64_CONST: {
-        auto c = readSLEB128(); // Skip operand
-	llvm::errs() << "init i64=" << c << "\n";
+        readSLEB128(); // Skip operand
         break;
       }
       case llvm::wasm::WASM_OPCODE_F32_CONST:
@@ -577,11 +575,14 @@ public:
       }
     };
 
+    bool HasDataSection = false;
+    bool HasLinkingSection = false;
     while (true) {
       auto SecKind = readUint8();
       auto SecSize = readULEB128();
       auto EndOfSec = Offset + SecSize;
       if (SecKind == llvm::wasm::WASM_SEC_DATA) {
+        HasDataSection = true;
         uint32_t Count = readULEB128();
         for (uint32_t I = 0; I < Count; I++) {
           auto InitFlags = readULEB128();
@@ -590,19 +591,18 @@ public:
           if ((InitFlags & llvm::wasm::WASM_SEGMENT_IS_PASSIVE) == 0)
             skipInitExpr();
           auto Size = readULEB128();
-	  llvm::errs() << "Data Segment Size: " << Size << "\n";
 	  SegmentVec.push_back({RemoteAddress(SectionsStart + Offset), Size});
           Offset += Size;
         }
-	llvm::errs() << "End of Data Section\n";
       }
       if (SecKind == llvm::wasm::WASM_SEC_CUSTOM) {
 	auto SecName = readString();
 	if (SecName.equals("linking")) {
+          HasLinkingSection = true;
           auto LinkingVersion = readULEB128();
 	  if (LinkingVersion != llvm::wasm::WasmMetadataVersion)
 	    llvm::errs() << "Failed to parse linking section\n";
-	  while (true) {
+	  while (Offset <= EndOfSec) {
             auto LinkingType = readULEB128();
             auto LinkingSize = readULEB128();
             auto EndOfEntry = Offset + LinkingSize;
@@ -610,6 +610,8 @@ public:
               auto Count = readULEB128();
 	      for (uint32_t I = 0; I < Count; I++) {
 		SegmentNameVec.push_back(readString());
+                readULEB128(); // Alignment
+                readULEB128(); // LinkerFlags
 	      }
 	    }
             Offset = EndOfEntry;
@@ -618,6 +620,8 @@ public:
 	}
       }
       Offset = EndOfSec;
+      if (HasDataSection && HasLinkingSection)
+        break;
     }
 
     auto findWasmDataSegmentByName = [&](std::string Name)
@@ -630,6 +634,8 @@ public:
         auto SecBuf = this->getReader().readBytes(Seg.first, Seg.second);
         auto SegContents = RemoteRef<void>(Seg.first.getAddressData(),
                                            SecBuf.get());
+
+        savedBuffers.push_back(std::move(SecBuf));
         return {SegContents, Seg.second};
       }
       return {nullptr, 0};
