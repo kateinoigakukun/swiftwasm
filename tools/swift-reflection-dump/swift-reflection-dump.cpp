@@ -284,14 +284,6 @@ private:
 
   void scanWasm(const WasmObjectFile *O) {
     HeaderAddress = 0;
-    for (auto &SecRef: O->sections()) {
-      const WasmSection &Sec = O->getWasmSection(SecRef);
-      if (Sec.Content.size() == 0)
-        continue;
-      llvm::errs() << "[Scan] Offset: " << Sec.Offset << "; Size: " << Sec.Content.size() << "\n";
-      // llvm::errs() << "      Content: " << llvm::toStringRef(Sec.Content) << "\n";
-      Segments.push_back({static_cast<uint64_t>(Sec.Offset), llvm::toStringRef(Sec.Content)});
-    }
     Segments.push_back({HeaderAddress, O->getData()});
   }
 
@@ -330,7 +322,6 @@ public:
   }
 
   StringRef getContentsAtAddress(uint64_t Addr, uint64_t Size) const {
-    llvm::errs() << "Addr: " << Addr << "; Size: " << Size << "\n";
     for (auto &Segment : Segments) {
       auto addrInSegment = Segment.Addr <= Addr
         && Addr + Size <= Segment.Addr + Segment.Contents.size();

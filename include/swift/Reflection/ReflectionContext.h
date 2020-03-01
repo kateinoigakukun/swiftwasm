@@ -36,6 +36,7 @@
 
 #include <set>
 #include <vector>
+#include <string.h>
 #include <unordered_map>
 #include <utility>
 
@@ -498,11 +499,11 @@ public:
     auto Buf =
         this->getReader().readBytes(ImageStart, sizeof(llvm::wasm::WasmObjectHeader));
     // Read the header.
-    auto Hdr = reinterpret_cast<const llvm::wasm::WasmObjectHeader *>(Buf.get());
-    if (!strcmp(Hdr->Magic.data(), llvm::wasm::WasmMagic))
-      return false;
+    // auto Hdr = reinterpret_cast<const llvm::wasm::WasmObjectHeader *>(Buf.get());
+    // if (Hdr->Magic != StringRef(llvm::wasm::WasmMagic))
+    //   return false;
 
-    auto SectionsStart = ImageStart.getAddressData() + sizeof(llvm::wasm::WasmObjectHeader);
+    auto SectionsStart = ImageStart.getAddressData() + 4 + sizeof(uint32_t);
 
     std::vector<std::pair<RemoteAddress, uint64_t>> SegmentVec;
     std::vector<StringRef> SegmentNameVec;
@@ -525,19 +526,39 @@ public:
 	llvm::errs() << "Failed to parse ULEB128\n";
       return Result;
     };
+
+    auto readSLEB128 = [&] {
+      unsigned Count;
+      const char *Error = nullptr;
+      auto Ptr = this->getReader().readBytes(RemoteAddress(SectionsStart + Offset), 5);
+      uint64_t Result = llvm::decodeSLEB128(reinterpret_cast<const uint8_t *>(Ptr.get()), &Count, nullptr, &Error);
+      Offset += Count;
+      if (Error)
+	llvm::errs() << "Failed to parse ULEB128\n";
+      return Result;
+    };
+
     auto readString = [&] {
       uint32_t StringLen = readULEB128();
       auto Ptr = this->getReader().readBytes(RemoteAddress(SectionsStart + Offset), StringLen);
       Offset += StringLen;
-      return reinterpret_cast<const char *>(Ptr.get());
+      auto CharPtr = reinterpret_cast<const char *>(Ptr.get());
+      return StringRef(CharPtr, StringLen);
     };
+
     auto skipInitExpr = [&] {
       auto Opcode = readUint8();
       switch (Opcode) {
-      case llvm::wasm::WASM_OPCODE_I32_CONST:
-      case llvm::wasm::WASM_OPCODE_I64_CONST:
-        readULEB128(); // Skip operand
+      case llvm::wasm::WASM_OPCODE_I32_CONST: {
+        auto c = readSLEB128(); // Skip operand
+	llvm::errs() << "init i32=" << c << "\n";
         break;
+      }
+      case llvm::wasm::WASM_OPCODE_I64_CONST: {
+        auto c = readSLEB128(); // Skip operand
+	llvm::errs() << "init i64=" << c << "\n";
+        break;
+      }
       case llvm::wasm::WASM_OPCODE_F32_CONST:
 	Offset += sizeof(int32_t);
         break;
@@ -550,7 +571,12 @@ public:
       default:
 	llvm::errs() << "Invalid opcode\n";
       }
+      auto EndOpcode = readUint8();
+      if (EndOpcode != llvm::wasm::WASM_OPCODE_END) {
+	llvm::errs() << "Invalid opcode: expect end opcode\n";
+      }
     };
+
     while (true) {
       auto SecKind = readUint8();
       auto SecSize = readULEB128();
@@ -558,18 +584,21 @@ public:
       if (SecKind == llvm::wasm::WASM_SEC_DATA) {
         uint32_t Count = readULEB128();
         for (uint32_t I = 0; I < Count; I++) {
-          llvm::wasm::WasmDataSegment Seg;
-          readULEB128(); // InitFlags
-          readULEB128(); // MemoryIndex
-          skipInitExpr();
+          auto InitFlags = readULEB128();
+          if (InitFlags & llvm::wasm::WASM_SEGMENT_HAS_MEMINDEX)
+            readULEB128();
+          if ((InitFlags & llvm::wasm::WASM_SEGMENT_IS_PASSIVE) == 0)
+            skipInitExpr();
           auto Size = readULEB128();
+	  llvm::errs() << "Data Segment Size: " << Size << "\n";
 	  SegmentVec.push_back({RemoteAddress(SectionsStart + Offset), Size});
           Offset += Size;
         }
+	llvm::errs() << "End of Data Section\n";
       }
       if (SecKind == llvm::wasm::WASM_SEC_CUSTOM) {
 	auto SecName = readString();
-	if (SecName == "linking") {
+	if (SecName.equals("linking")) {
           auto LinkingVersion = readULEB128();
 	  if (LinkingVersion != llvm::wasm::WasmMetadataVersion)
 	    llvm::errs() << "Failed to parse linking section\n";
