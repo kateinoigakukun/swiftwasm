@@ -96,6 +96,8 @@ private:
   const ObjectFile *O;
   uint64_t HeaderAddress;
   std::vector<Segment> Segments;
+  std::vector<std::vector<uint8_t>> RelocSegmentOwners;
+
   struct DynamicRelocation {
     StringRef Symbol;
     uint64_t Offset;
@@ -284,6 +286,60 @@ private:
 
   void scanWasm(const WasmObjectFile *O) {
     HeaderAddress = 0;
+    std::vector<std::pair<uint32_t, std::vector<uint8_t>>> RelocDataSegs;
+    for (auto Seg : O->dataSegments()) {
+      std::vector<uint8_t> Content(Seg.Data.Content.size());
+      std::copy(Seg.Data.Content.begin(), Seg.Data.Content.end(), std::back_inserter(Content));
+      RelocDataSegs.push_back({Seg.Data.Offset.Value.Int32, std::move(Content)});
+    }
+    auto findDataSegmentAtAddress = [&](uint64_t Addr) -> std::pair<uint64_t, std::vector<uint8_t>> {
+      for (auto &Segment : RelocDataSegs) {
+        auto addrInSegment = Segment.first <= Addr
+          && Addr <= Segment.first + Segment.second.size();
+        
+        if (!addrInSegment)
+          continue;
+        return Segment;
+      }
+      return {};
+    };
+    for (auto SecRef : O->sections()) {
+      auto &Section = O->getWasmSection(SecRef);
+      if (Section.Type != llvm::wasm::WASM_SEC_DATA)
+        continue;
+      for (auto Reloc : Section.Relocations) {
+        auto &Sym = O->syms()[Reloc.Index];
+        if (Sym.isUndefined())
+          continue;
+        switch (Reloc.Type) {
+        case llvm::wasm::R_WASM_TABLE_INDEX_I32:
+        case llvm::wasm::R_WASM_TABLE_INDEX_SLEB:
+        case llvm::wasm::R_WASM_TABLE_INDEX_REL_SLEB: {
+          auto &Element = O->elements()[Sym.Info.DataRef.Segment];
+          // Content[Reloc.Offset] = Element.Offset.Value.Int32 + Sym.Info.DataRef.Offset + Reloc.Addend;
+          break;
+        }
+        case llvm::wasm::R_WASM_MEMORY_ADDR_SLEB:
+        case llvm::wasm::R_WASM_MEMORY_ADDR_I32:
+        case llvm::wasm::R_WASM_MEMORY_ADDR_LEB:
+        case llvm::wasm::R_WASM_MEMORY_ADDR_REL_SLEB: {
+          auto &Segment = O->dataSegments()[Sym.Info.DataRef.Segment];
+          auto RelocSeg = findDataSegmentAtAddress(Reloc.Offset);
+          auto NewValue = Segment.Data.Offset.Value.Int32 + Sym.Info.DataRef.Offset + Reloc.Addend;
+          RelocSeg.second[Reloc.Offset]     = NewValue & 0x000000ffu;
+          RelocSeg.second[Reloc.Offset + 1] = NewValue & 0x0000ff00u;
+          RelocSeg.second[Reloc.Offset + 2] = NewValue & 0x00ff0000u;
+          RelocSeg.second[Reloc.Offset + 3] = NewValue & 0xff000000u;
+          break;
+        }
+        default:
+          continue;
+        }
+      }
+    }
+    for (auto Seg : RelocDataSegs) {
+      RelocSegmentOwners.push_back(std::move(Seg.second));
+    }
     Segments.push_back({HeaderAddress, O->getData()});
   }
 
