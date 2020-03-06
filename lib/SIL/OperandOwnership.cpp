@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "swift/SIL/ApplySite.h"
+#include "swift/SIL/LinearLifetimeChecker.h"
 #include "swift/SIL/OwnershipUtils.h"
 #include "swift/SIL/SILBuiltinVisitor.h"
 #include "swift/SIL/SILInstruction.h"
@@ -110,7 +111,9 @@ public:
 #define SHOULD_NEVER_VISIT_INST(INST)                                          \
   OperandOwnershipKindMap OperandOwnershipKindClassifier::visit##INST##Inst(   \
       INST##Inst *i) {                                                         \
-    llvm_unreachable("Visited instruction that should never be visited?!");    \
+    llvm::errs() << "Unhandled inst: " << *i;                                  \
+    llvm::report_fatal_error(                                                  \
+        "Visited instruction that should never be visited?!");                 \
   }
 SHOULD_NEVER_VISIT_INST(AllocBox)
 SHOULD_NEVER_VISIT_INST(AllocExistentialBox)

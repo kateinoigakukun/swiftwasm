@@ -175,7 +175,7 @@ namespace {
       DebuggerClient *debug_client = getDebuggerClient();
       assert (debug_client);
       debug_client->didGlobalize(D);
-      SF->addTopLevelDecl(D);
+      P.ContextSwitchedTopLevelDecls.push_back(D);
       P.markWasHandled(D);
     }
   };
@@ -189,15 +189,13 @@ namespace {
 ///     decl-sil       [[only in SIL mode]
 ///     decl-sil-stage [[only in SIL mode]
 /// \endverbatim
-void Parser::parseTopLevel() {
-  SF.ASTStage = SourceFile::Parsing;
-
+void Parser::parseTopLevel(SmallVectorImpl<Decl *> &decls) {
   // Prime the lexer.
   if (Tok.is(tok::NUM_TOKENS))
     consumeTokenWithoutFeedingReceiver();
 
   // Parse the body of the file.
-  SmallVector<ASTNode, 128> Items;
+  SmallVector<ASTNode, 128> items;
   while (!Tok.is(tok::eof)) {
     // If we run into a SIL decl, skip over until the next Swift decl. We need
     // to delay parsing these, as SIL parsing currently requires type checking
@@ -208,7 +206,7 @@ void Parser::parseTopLevel() {
       continue;
     }
 
-    parseBraceItems(Items, allowTopLevelCode()
+    parseBraceItems(items, allowTopLevelCode()
                                ? BraceItemListKind::TopLevelCode
                                : BraceItemListKind::TopLevelLibrary);
 
@@ -227,17 +225,16 @@ void Parser::parseTopLevel() {
     }
   }
 
-  // Add newly parsed decls to the module.
-  for (auto Item : Items) {
-    if (auto *D = Item.dyn_cast<Decl*>()) {
-      assert(!isa<AccessorDecl>(D) && "accessors should not be added here");
-      SF.addTopLevelDecl(D);
-    }
-  }
+  // First append any decls that LLDB requires be inserted at the top-level.
+  decls.append(ContextSwitchedTopLevelDecls.begin(),
+               ContextSwitchedTopLevelDecls.end());
 
-  // Note that the source file is fully parsed and verify it.
-  SF.ASTStage = SourceFile::Parsed;
-  verify(SF);
+  // Then append the top-level decls we parsed.
+  for (auto item : items) {
+    auto *decl = item.get<Decl *>();
+    assert(!isa<AccessorDecl>(decl) && "accessors should not be added here");
+    decls.push_back(decl);
+  }
 
   // Finalize the token receiver.
   SyntaxContext->addToken(Tok, LeadingTrivia, TrailingTrivia);
@@ -4517,13 +4514,13 @@ Parser::parseDeclList(SourceLoc LBLoc, SourceLoc &RBLoc, Diag<> ErrorDiag,
                       bool &hadError) {
 
   // Record the curly braces but nothing inside.
-  if (IDC->areDependenciesUsingTokenHashesForTypeBodies()) {
+  if (IDC->areTokensHashedForThisBodyInsteadOfInterfaceHash()) {
     recordTokenHash("{");
     recordTokenHash("}");
   }
   llvm::MD5 tokenHashForThisDeclList;
   llvm::SaveAndRestore<NullablePtr<llvm::MD5>> T(
-      CurrentTokenHash, IDC->areDependenciesUsingTokenHashesForTypeBodies()
+      CurrentTokenHash, IDC->areTokensHashedForThisBodyInsteadOfInterfaceHash()
                             ? &tokenHashForThisDeclList
                             : CurrentTokenHash);
 
@@ -4569,7 +4566,7 @@ Parser::parseDeclList(SourceLoc LBLoc, SourceLoc &RBLoc, Diag<> ErrorDiag,
 bool Parser::canDelayMemberDeclParsing(bool &HasOperatorDeclarations,
                                        bool &HasNestedClassDeclarations) {
   // If explicitly disabled, respect the flag.
-  if (!DelayBodyParsing)
+  if (!isDelayedParsingEnabled())
     return false;
   // Recovering parser status later for #sourceLocation is not-trivial and
   // it may not worth it.
@@ -4629,21 +4626,24 @@ Parser::parseDeclExtension(ParseDeclOptions Flags, DeclAttributes &Attributes) {
 
   // Parse the optional where-clause.
   TrailingWhereClause *trailingWhereClause = nullptr;
+  bool trailingWhereHadCodeCompletion = false;
   if (Tok.is(tok::kw_where)) {
     SourceLoc whereLoc;
     SmallVector<RequirementRepr, 4> requirements;
     bool firstTypeInComplete;
     auto whereStatus = parseGenericWhereClause(whereLoc, requirements,
                                                firstTypeInComplete);
+    if (whereStatus.hasCodeCompletion()) {
+      if (isCodeCompletionFirstPass())
+        return whereStatus;
+      trailingWhereHadCodeCompletion = true;
+    }
+
     if (whereStatus.isSuccess()) {
       trailingWhereClause = TrailingWhereClause::create(Context, whereLoc,
                                                         requirements);
-    } else if (whereStatus.hasCodeCompletion()) {
-      if (CodeCompletion && firstTypeInComplete) {
-        CodeCompletion->completeGenericParams(extendedType.getPtrOrNull());
-      } else
-        return makeParserCodeCompletionResult<ExtensionDecl>();
     }
+    status |= whereStatus;
   }
 
   ExtensionDecl *ext = ExtensionDecl::create(Context, ExtensionLoc,
@@ -4652,6 +4652,8 @@ Parser::parseDeclExtension(ParseDeclOptions Flags, DeclAttributes &Attributes) {
                                              CurDeclContext,
                                              trailingWhereClause);
   ext->getAttrs() = Attributes;
+  if (trailingWhereHadCodeCompletion && CodeCompletion)
+    CodeCompletion->setParsedDecl(ext);
 
   SyntaxParsingContext BlockContext(SyntaxContext, SyntaxKind::MemberDeclBlock);
   SourceLoc LBLoc, RBLoc;
@@ -6408,8 +6410,8 @@ Parser::parseAbstractFunctionBodyImpl(AbstractFunctionDecl *AFD) {
   ParseFunctionBody CC(*this, AFD);
   setLocalDiscriminatorToParamList(AFD->getParameters());
 
-  if (Context.Stats)
-    Context.Stats->getFrontendCounters().NumFunctionsParsed++;
+  if (auto *Stats = Context.Stats)
+    Stats->getFrontendCounters().NumFunctionsParsed++;
 
   // In implicit getter, if a CC token is the first token after '{', it might
   // be a start of an accessor block. Perform special completion for that.
@@ -6444,7 +6446,10 @@ void Parser::parseAbstractFunctionBody(AbstractFunctionDecl *AFD) {
 
   llvm::SaveAndRestore<NullablePtr<llvm::MD5>> T(CurrentTokenHash, nullptr);
 
-  if (isDelayedParsingEnabled()) {
+  // If we can delay parsing this body, or this is the first pass of code
+  // completion, skip until the end. If we encounter a code completion token
+  // while skipping, we'll make a note of it.
+  if (isDelayedParsingEnabled() || isCodeCompletionFirstPass()) {
     consumeAbstractFunctionBody(AFD, AFD->getAttrs());
     return;
   }
@@ -7079,12 +7084,16 @@ parseDeclProtocol(ParseDeclOptions Flags, DeclAttributes &Attributes) {
   }
 
   TrailingWhereClause *TrailingWhere = nullptr;
+  bool whereClauseHadCodeCompletion = false;
   // Parse a 'where' clause if present.
   if (Tok.is(tok::kw_where)) {
     auto whereStatus = parseProtocolOrAssociatedTypeWhereClause(
         TrailingWhere, /*isProtocol=*/true);
-    if (whereStatus.shouldStopParsing())
-      return whereStatus;
+    if (whereStatus.hasCodeCompletion()) {
+      if (isCodeCompletionFirstPass())
+        return whereStatus;
+      whereClauseHadCodeCompletion = true;
+    }
   }
 
   ProtocolDecl *Proto = new (Context)
@@ -7093,6 +7102,8 @@ parseDeclProtocol(ParseDeclOptions Flags, DeclAttributes &Attributes) {
   // No need to setLocalDiscriminator: protocols can't appear in local contexts.
 
   Proto->getAttrs() = Attributes;
+  if (whereClauseHadCodeCompletion && CodeCompletion)
+    CodeCompletion->setParsedDecl(Proto);
 
   ContextChange CC(*this, Proto);
   Scope ProtocolBodyScope(this, ScopeKind::ProtocolBody);

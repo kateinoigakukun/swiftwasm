@@ -461,15 +461,13 @@ static void countStatsPostIRGen(UnifiedStatsReporter &Stats,
 
 template<typename ...ArgTypes>
 void
-diagnoseSync(DiagnosticEngine *Diags, llvm::sys::Mutex *DiagMutex,
+diagnoseSync(DiagnosticEngine &Diags, llvm::sys::Mutex *DiagMutex,
              SourceLoc Loc, Diag<ArgTypes...> ID,
              typename swift::detail::PassArgument<ArgTypes>::type... Args) {
-  if (!Diags)
-    return;
   if (DiagMutex)
     DiagMutex->lock();
 
-  Diags->diagnose(Loc, ID, std::move(Args)...);
+  Diags.diagnose(Loc, ID, std::move(Args)...);
 
   if (DiagMutex)
     DiagMutex->unlock();
@@ -477,7 +475,8 @@ diagnoseSync(DiagnosticEngine *Diags, llvm::sys::Mutex *DiagMutex,
 
 /// Run the LLVM passes. In multi-threaded compilation this will be done for
 /// multiple LLVM modules in parallel.
-bool swift::performLLVM(const IRGenOptions &Opts, DiagnosticEngine *Diags,
+bool swift::performLLVM(const IRGenOptions &Opts,
+                        DiagnosticEngine &Diags,
                         llvm::sys::Mutex *DiagMutex,
                         llvm::GlobalVariable *HashGlobal,
                         llvm::Module *Module,
@@ -861,20 +860,9 @@ void swift::irgen::deleteIRGenModule(
 /// IRGenModule.
 static void runIRGenPreparePasses(SILModule &Module,
                                   irgen::IRGenModule &IRModule) {
-  SILPassManager PM(&Module, &IRModule, "irgen", /*isMandatoryPipeline=*/ true);
-  bool largeLoadable = Module.getOptions().EnableLargeLoadableTypes;
-#define PASS(ID, Tag, Name)
-#define IRGEN_PASS(ID, Tag, Name)                                              \
-  if (swift::PassKind::ID == swift::PassKind::LoadableByAddress) {             \
-    if (largeLoadable) {                                                       \
-      PM.registerIRGenPass(swift::PassKind::ID, irgen::create##ID());          \
-    }                                                                          \
-  } else {                                                                     \
-    PM.registerIRGenPass(swift::PassKind::ID, irgen::create##ID());            \
-  }
-#include "swift/SILOptimizer/PassManager/Passes.def"
-  PM.executePassPipelinePlan(
-      SILPassPipelinePlan::getIRGenPreparePassPipeline(Module.getOptions()));
+  auto &opts = Module.getOptions();
+  auto plan = SILPassPipelinePlan::getIRGenPreparePassPipeline(opts);
+  executePassPipelinePlan(&Module, plan, /*isMandatory*/ true, &IRModule);
 }
 
 /// Generates LLVM IR, runs the LLVM passes and produces the output file.
@@ -982,7 +970,7 @@ performIRGeneration(const IRGenOptions &Opts, ModuleDecl *M,
     FrontendStatsTracer tracer(Ctx.Stats, "LLVM pipeline");
 
     // Since no out module hash was set, we need to performLLVM.
-    if (performLLVM(Opts, &IGM.Context.Diags, nullptr, IGM.ModuleHash,
+    if (performLLVM(Opts, IGM.Context.Diags, nullptr, IGM.ModuleHash,
                     IGM.getModule(), IGM.TargetMachine.get(),
                     IGM.Context.LangOpts.EffectiveLanguageVersion,
                     IGM.OutputFilename, IGM.Context.Stats))
@@ -1017,7 +1005,7 @@ struct LLVMCodeGenThreads {
                           << IGM->OutputFilename << "\n";
                    diagMutex->unlock(););
         embedBitcode(IGM->getModule(), parent.irgen->Opts);
-        performLLVM(parent.irgen->Opts, &IGM->Context.Diags, diagMutex,
+        performLLVM(parent.irgen->Opts, IGM->Context.Diags, diagMutex,
                     IGM->ModuleHash, IGM->getModule(), IGM->TargetMachine.get(),
                     IGM->Context.LangOpts.EffectiveLanguageVersion,
                     IGM->OutputFilename, IGM->Context.Stats);
@@ -1370,15 +1358,14 @@ swift::createSwiftModuleObjectFile(SILModule &SILMod, StringRef Buffer,
   }
   ASTSym->setSection(Section);
   ASTSym->setAlignment(llvm::MaybeAlign(serialization::SWIFTMODULE_ALIGNMENT));
-  ::performLLVM(Opts, &Ctx.Diags, nullptr, nullptr, IGM.getModule(),
+  ::performLLVM(Opts, Ctx.Diags, nullptr, nullptr, IGM.getModule(),
                 IGM.TargetMachine.get(),
                 Ctx.LangOpts.EffectiveLanguageVersion,
-                OutputPath);
+                OutputPath, Ctx.Stats);
 }
 
 bool swift::performLLVM(const IRGenOptions &Opts, ASTContext &Ctx,
-                        llvm::Module *Module, StringRef OutputFilename,
-                        UnifiedStatsReporter *Stats) {
+                        llvm::Module *Module, StringRef OutputFilename) {
   // Build TargetMachine.
   auto TargetMachine = createTargetMachine(Opts, Ctx);
   if (!TargetMachine)
@@ -1389,10 +1376,10 @@ bool swift::performLLVM(const IRGenOptions &Opts, ASTContext &Ctx,
   Module->setDataLayout(Clang->getTargetInfo().getDataLayout());
 
   embedBitcode(Module, Opts);
-  if (::performLLVM(Opts, &Ctx.Diags, nullptr, nullptr, Module,
+  if (::performLLVM(Opts, Ctx.Diags, nullptr, nullptr, Module,
                     TargetMachine.get(),
                     Ctx.LangOpts.EffectiveLanguageVersion,
-                    OutputFilename, Stats))
+                    OutputFilename, Ctx.Stats))
     return true;
   return false;
 }
