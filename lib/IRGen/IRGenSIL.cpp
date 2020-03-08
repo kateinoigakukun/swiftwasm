@@ -4760,25 +4760,6 @@ getLoweredFunctionPointer(IRGenSILFunction &IGF, SILValue v) {
 
 void IRGenSILFunction::visitThinToThickFunctionInst(
                                             swift::ThinToThickFunctionInst *i) {
-  auto fn = getLoweredFunctionPointer(*this, i->getCallee());
-  auto fnTy = i->getCallee()->getType().castTo<SILFunctionType>();
-  if (IGM.TargetInfo.OutputObjectFormat == llvm::Triple::Wasm && !fnTy->hasErrorResult()) {
-    Optional<FunctionPointer> staticFn;
-    if (fn.isConstant()) staticFn = fn;
-    auto thunkFn = getThinToThickForwarder(IGM, staticFn, fnTy);
-    Explosion from = getLoweredExplosion(i->getOperand());
-    Explosion to;
-    auto fnPtr = Builder.CreateBitCast(thunkFn, IGM.Int8PtrTy);
-    to.add(fnPtr);
-    llvm::Value *ctx = from.claimNext();
-    if (fnTy->isNoEscape())
-      ctx = Builder.CreateBitCast(ctx, IGM.OpaquePtrTy);
-    else
-      ctx = Builder.CreateBitCast(ctx, IGM.RefCountedPtrTy);
-    to.add(ctx);
-    setLoweredExplosion(i, to);
-    return;
-  }
   // Take the incoming function pointer and add a null context pointer to it.
   Explosion from = getLoweredExplosion(i->getOperand());
   Explosion to;
