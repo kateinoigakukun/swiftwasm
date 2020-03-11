@@ -232,6 +232,7 @@ public:
 
 static SimpleGlobalCache<BoxCacheEntry> Boxes;
 
+SWIFT_CC_swift
 BoxPair swift::swift_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
                                     size_t alignMask) {
   auto *inlineBuffer = reinterpret_cast<ValueBuffer*>(buffer);
@@ -257,6 +258,7 @@ BoxPair swift::swift_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
   }
 }
 
+SWIFT_CC_swift
 BoxPair swift::swift_allocBox(const Metadata *type) {
   // Get the heap metadata for the box.
   auto metadata = &Boxes.getOrInsert(type).first->Data;

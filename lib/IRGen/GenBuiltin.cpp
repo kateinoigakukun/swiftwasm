@@ -397,10 +397,12 @@ if (Builtin.ID == BuiltinValueKind::id) { \
     call->addAttribute(llvm::AttributeList::FirstArgIndex + 1,
                        llvm::Attribute::ReadOnly);
 
-    auto attrs = call->getAttributes();
-    IGF.IGM.addSwiftSelfAttributes(attrs, 0);
-    IGF.IGM.addSwiftErrorAttributes(attrs, 1);
-    call->setAttributes(attrs);
+    if (IGF.IGM.TargetInfo.OutputObjectFormat != llvm::Triple::Wasm) {
+      auto attrs = call->getAttributes();
+      IGF.IGM.addSwiftSelfAttributes(attrs, 0);
+      IGF.IGM.addSwiftErrorAttributes(attrs, 1);
+      call->setAttributes(attrs);
+    }
 
     IGF.Builder.CreateStore(llvm::ConstantPointerNull::get(IGF.IGM.ErrorPtrTy),
                             errorBuffer);

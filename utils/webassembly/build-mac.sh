@@ -14,6 +14,9 @@ $SWIFT_PATH/utils/build-script --wasm \
     -DSWIFT_BUILD_SYNTAXPARSERLIB=FALSE \
     -DCMAKE_AR='/usr/local/opt/llvm/bin/llvm-ar' \
     -DCMAKE_RANLIB='/usr/local/opt/llvm/bin/llvm-ranlib' \
+    -DCMAKE_ASM_COMPILER:FILEPATH=/Users/katei/projects/swiftwasm-source/build/Ninja-ReleaseAssert/llvm-macosx-x86_64-prebuilt/bin/clang \
+    -DCMAKE_CXX_COMPILER:PATH=/Users/katei/projects/swiftwasm-source/build/Ninja-ReleaseAssert/llvm-macosx-x86_64-prebuilt/bin/clang++ \
+    -DCMAKE_C_COMPILER:PATH=/Users/katei/projects/swiftwasm-source/build/Ninja-ReleaseAssert/llvm-macosx-x86_64-prebuilt/bin/clang \
   " \
   --build-stdlib-deployment-targets "wasi-wasm32" \
   --build-swift-dynamic-sdk-overlay false \
