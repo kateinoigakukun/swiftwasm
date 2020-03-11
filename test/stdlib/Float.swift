@@ -212,7 +212,7 @@ func checkQNaN(_ qnan: TestFloat) {
 func checkSNaN(_ snan: TestFloat) {
   checkNaN(snan)
 // sNaN cannot be fully supported on i386.
-#if !arch(i386)
+#if !arch(i386) && !arch(wasm32)
   precondition(snan.isSignalingNaN)
   precondition(snan.floatingPointClass == .signalingNaN)
 #endif

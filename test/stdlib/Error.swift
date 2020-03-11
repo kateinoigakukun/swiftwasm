@@ -105,6 +105,7 @@ ErrorTests.test("default domain and code") {
 
 enum SillyError: Error { case JazzHands }
 
+#if !os(WASI)
 ErrorTests.test("try!")
   .skip(.custom({ _isFastAssertConfiguration() },
                 reason: "trap is not guaranteed to happen in -Ounchecked"))
@@ -215,6 +216,7 @@ ErrorTests.test("willThrow") {
     expectEqual(SillyError.self, type(of: errors.last!))
   }
 }
+#endif
 
 runAllTests()
 

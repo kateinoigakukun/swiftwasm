@@ -395,16 +395,19 @@ void swift::swift_nonatomic_release_n(HeapObject *object, uint32_t n) {
     object->refCounts.decrementAndMaybeDeinitNonAtomic(n);
 }
 
+SWIFT_CC(swift)
 size_t swift::swift_retainCount(HeapObject *object) {
   if (isValidPointerForNativeRetain(object))
     return object->refCounts.getCount();
   return 0;
 }
 
+SWIFT_CC(swift)
 size_t swift::swift_unownedRetainCount(HeapObject *object) {
   return object->refCounts.getUnownedCount();
 }
 
+SWIFT_CC(swift)
 size_t swift::swift_weakRetainCount(HeapObject *object) {
   return object->refCounts.getWeakCount();
 }
