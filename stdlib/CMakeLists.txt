@@ -1,4 +1,4 @@
-
+cmake_minimum_required(VERSION 3.12.4)
 # TODO(compnerd) once we have a newer CMake we should be able to use the new
 # `Swift` LANGUAGE support in CMake to simplify the build.  For now, just add
 # the project so that it is possible to start working on extracting the Swift
@@ -7,8 +7,23 @@ project(swift-stdlib LANGUAGES C CXX)
 
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules")
+list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
+set(SWIFT_BUILT_STANDALONE TRUE)
+
+get_filename_component(SWIFT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/.. REALPATH)
+set(SWIFT_STDLIB_TOOLS_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(SWIFT_BINARY_DIR "${SWIFT_COMPILER_BUILD_DIR}")
+set(SWIFT_CMAKE_DIR "${SWIFT_SOURCE_DIR}/cmake/modules")
+set(SWIFT_MAIN_INCLUDE_DIR "${SWIFT_SOURCE_DIR}/include")
+set(SWIFT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+
+set(SWIFT_RUNTIME_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin")
+set(SWIFT_LIBRARY_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib")
+
+include(SwiftSharedCMakeInit)
 include(AddSwiftStdlib)
 
 # Create convenience targets for the Swift standard library.
@@ -134,9 +149,79 @@ if(SWIFT_STDLIB_ENABLE_SIB_TARGETS)
 endif()
 swift_create_stdlib_targets("swift-test-stdlib" "" FALSE)
 
+function(_swift_symlink name)
+  set(options IS_DIRECTORY)
+  set(oneValueArgs SOURCE DESTINATION COMMENT)
+  cmake_parse_arguments(SCB
+    "${options}"
+    "${oneValueArgs}"
+    ""
+    ${ARGN})
+  
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    if(SCB_IS_DIRECTORY)
+      set(cmake_symlink_option "copy_directory")
+    else()
+      set(cmake_symlink_option "copy_if_different")
+    endif()
+  else()
+      set(cmake_symlink_option "create_symlink")
+  endif()
+  
+  add_custom_target("${name}"
+    COMMAND
+      "${CMAKE_COMMAND}" "-E" "${cmake_symlink_option}"
+      "${SCB_SOURCE}"
+      "${SCB_DESTINATION}"
+    COMMENT "${SCB_COMMENT}")
+endfunction()
+
+add_subdirectory(include)
+
+_swift_symlink(link_apinotes
+  IS_DIRECTORY
+  SOURCE "${SWIFT_COMPILER_BUILD_DIR}/lib/swift/apinotes"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/lib/swift/apinotes"
+)
+
+_swift_symlink(link_clang_lib
+  IS_DIRECTORY
+  SOURCE "${SWIFT_COMPILER_BUILD_DIR}/lib/swift/clang"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/lib/swift/clang"
+)
+
+_swift_symlink(link_shims
+  IS_DIRECTORY
+  SOURCE "${SWIFT_COMPILER_BUILD_DIR}/lib/swift/shims"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/lib/swift/shims"
+)
+
+add_custom_target(link_target_sdks)
+foreach(sdk ${SWIFT_SDKS})
+  _swift_symlink("link_target_sdk_${sdk}"
+    IS_DIRECTORY
+    SOURCE "${SWIFT_LIBRARY_OUTPUT_INTDIR}/swift/${SWIFT_SDK_${sdk}_LIB_SUBDIR}"
+    DESTINATION "${SWIFT_COMPILER_BUILD_DIR}/lib/swift/${SWIFT_SDK_${sdk}_LIB_SUBDIR}")
+  add_dependencies(link_target_sdks "link_target_sdk_${sdk}")
+endforeach()
+
 # FIXME: Include the toolchain directory before the public directory. Otherwise
 # the clang resource directory symlink stops installing correctly.
 add_subdirectory(toolchain)
 add_subdirectory(public)
 add_subdirectory(private)
 add_subdirectory(tools)
+
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+  if(SWIFT_BUILD_PERF_TESTSUITE)
+    add_subdirectory("${SWIFT_SOURCE_DIR}/benchmark" "${CMAKE_CURRENT_BINARY_DIR}/benchmark")
+  endif()
+  if(SWIFT_BUILD_EXTERNAL_PERF_TESTSUITE)
+    include(SwiftExternalBenchmarkBuild)
+    add_external_benchmark_suite()
+  endif()
+endif()
+
+if(SWIFT_INCLUDE_TESTS)
+  add_subdirectory("${SWIFT_SOURCE_DIR}/test" "${CMAKE_CURRENT_BINARY_DIR}/test")
+endif()

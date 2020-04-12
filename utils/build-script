@@ -809,6 +809,7 @@ class BuildScriptInvocation(object):
         if self.args.build_libicu:
             product_classes.append(products.LibICU)
         product_classes.append(products.Swift)
+        product_classes.append(products.SwiftStdlib)
         if self.args.build_lldb:
             product_classes.append(products.LLDB)
         if self.args.build_libdispatch:

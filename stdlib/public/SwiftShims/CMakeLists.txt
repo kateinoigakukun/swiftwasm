@@ -74,7 +74,7 @@ endforeach()
 # Put the output dir itself last so that it isn't considered the primary output.
 list(APPEND outputs "${output_dir}")
 
-add_custom_target("copy_shim_headers"
+add_custom_target("copy_shim_headers" ALL
     DEPENDS "${outputs}"
     COMMENT "Copying SwiftShims module to ${output_dir}")
 
@@ -144,7 +144,7 @@ endif()
 
 swift_install_in_component(FILES ${sources}
                            DESTINATION "lib/swift/shims"
-                           COMPONENT stdlib)
+                           COMPONENT compiler)
 
 # Install Clang headers under the Swift library so that an installed Swift's
 # module importer can find the compiler headers corresponding to its Clang.

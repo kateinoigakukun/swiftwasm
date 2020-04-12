@@ -26,6 +26,7 @@ from .pythonkit import PythonKit
 from .skstresstester import SKStressTester
 from .sourcekitlsp import SourceKitLSP
 from .swift import Swift
+from .swiftstdlib import SwiftStdlib
 from .swiftevolve import SwiftEvolve
 from .swiftpm import SwiftPM
 from .swiftsyntax import SwiftSyntax
