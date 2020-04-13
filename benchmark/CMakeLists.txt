@@ -322,11 +322,7 @@ set(executable_targets)
 
 set(srcdir "${CMAKE_CURRENT_SOURCE_DIR}")
 
-if(SWIFT_BENCHMARK_BUILT_STANDALONE)
-  set(swift-bin-dir "${CMAKE_BINARY_DIR}/bin")
-else()
-  get_filename_component(swift-bin-dir "${SWIFT_EXEC}" DIRECTORY)
-endif()
+set(swift-bin-dir "${CMAKE_BINARY_DIR}/bin")
 
 set(benchmark-bin-dir "${CMAKE_CURRENT_BINARY_DIR}/bin")
 set(benchmark-lib-dir "${CMAKE_CURRENT_BINARY_DIR}/lib")
