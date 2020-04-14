@@ -1,4 +1,16 @@
 cmake_minimum_required(VERSION 3.12.4)
+
+# TODO: Fix RPATH usage to be CMP0068 compliant
+# Disable Policy CMP0068 for CMake 3.9
+# rdar://37725888
+if(POLICY CMP0068)
+  cmake_policy(SET CMP0068 OLD)
+endif()
+
+# Honour CMAKE_CXX_STANDARD in try_compile(), needed for check_cxx_native_regex.
+if(POLICY CMP0067)
+  cmake_policy(SET CMP0067 NEW)
+endif()
 # TODO(compnerd) once we have a newer CMake we should be able to use the new
 # `Swift` LANGUAGE support in CMake to simplify the build.  For now, just add
 # the project so that it is possible to start working on extracting the Swift
@@ -12,6 +24,7 @@ list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 set(SWIFT_BUILT_STANDALONE TRUE)
+set(SWIFT_BUILD_STDLIB TRUE)
 
 get_filename_component(SWIFT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/.. REALPATH)
 set(SWIFT_STDLIB_TOOLS_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
