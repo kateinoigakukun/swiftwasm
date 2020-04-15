@@ -1,4 +1,4 @@
-# swift_build_support/products/swift_stdlib.py -------------------------*- python -*-
+# swift_build_support/products/swiftstdlib.py -------------------------*- python -*-
 #
 # This source file is part of the Swift.org open source project
 #
@@ -11,6 +11,7 @@
 # ----------------------------------------------------------------------------
 
 from . import product
+from . import swift
 from ..cmake import CMakeOptions
 
 
@@ -38,10 +39,6 @@ class SwiftStdlib(product.Product):
         # Generate the compile db.
         self.cmake_options.extend(self._compile_db_flags)
 
-        # Add the flag if we are supposed to force the typechecker to compile
-        # with optimization.
-        self.cmake_options.extend(self._force_optimized_typechecker_flags)
-
         # Add any exclusivity checking flags for stdlibcore.
         self.cmake_options.extend(self._stdlibcore_exclusivity_checking_flags)
 
@@ -51,49 +48,15 @@ class SwiftStdlib(product.Product):
 
     @property
     def _runtime_sanitizer_flags(self):
-        sanitizer_list = []
-        if self.args.enable_tsan_runtime:
-            sanitizer_list += ['Thread']
-        if len(sanitizer_list) == 0:
-            return []
-        return [('SWIFT_RUNTIME_USE_SANITIZERS', ';'.join(sanitizer_list))]
+        return swift.swift_runtime_sanitizer_flags(self.args)
 
     @property
     def _compiler_vendor_flags(self):
-        if self.args.compiler_vendor == "none":
-            return []
-
-        if self.args.compiler_vendor != "apple":
-            raise RuntimeError("Unknown compiler vendor?! Was build-script \
-updated without updating swift.py?")
-
-        swift_compiler_version = ""
-        if self.args.swift_compiler_version is not None:
-            swift_compiler_version = self.args.swift_compiler_version
-
-        return [
-            ('SWIFT_VENDOR', 'Apple'),
-            ('SWIFT_VENDOR_UTI', 'com.apple.compilers.llvm.swift'),
-
-            # This has a default of 3.0, so it should be safe to use here.
-            ('SWIFT_VERSION', str(self.args.swift_user_visible_version)),
-
-            # FIXME: We are matching build-script-impl here. But it seems like
-            # bit rot since this flag is specified in another place with the
-            # exact same value in build-script-impl.
-            ('SWIFT_COMPILER_VERSION', str(swift_compiler_version)),
-        ]
+        return swift.swift_compiler_vendor_flags(self.args)
 
     @property
     def _version_flags(self):
-        r = CMakeOptions()
-        if self.args.swift_compiler_version is not None:
-            swift_compiler_version = self.args.swift_compiler_version
-            r.define('SWIFT_COMPILER_VERSION', str(swift_compiler_version))
-        if self.args.clang_compiler_version is not None:
-            clang_compiler_version = self.args.clang_compiler_version
-            r.define('CLANG_COMPILER_VERSION', str(clang_compiler_version))
-        return r
+        return swift.swift_version_flags(self.args)
 
     @property
     def _benchmark_flags(self):
@@ -110,11 +73,6 @@ updated without updating swift.py?")
     @property
     def _compile_db_flags(self):
         return [('CMAKE_EXPORT_COMPILE_COMMANDS', True)]
-
-    @property
-    def _force_optimized_typechecker_flags(self):
-        return [('SWIFT_FORCE_OPTIMIZED_TYPECHECKER:BOOL',
-                 self.args.force_optimized_typechecker)]
 
     @property
     def _stdlibcore_exclusivity_checking_flags(self):
