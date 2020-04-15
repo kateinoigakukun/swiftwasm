@@ -1,10 +1,3 @@
-# FIXME: katei
-# When building stdlib, tests depend on BlocksStub which uses _add_swift_target_library_single.
-# But we should move those tests that depends on stdlib into stdlib directory
-list(APPEND CMAKE_MODULE_PATH
-  "${CMAKE_CURRENT_SOURCE_DIR}/../stdlib/cmake/modules")
-include(AddSwiftStdlib)
-
 function(swift_configure_lit_site_cfg source_path destination_path installed_name)
   if (CMAKE_CFG_INTDIR STREQUAL ".")
     set(SWIFT_BUILD_MODE ".")
