@@ -311,7 +311,9 @@ add_swift_target_library(swiftCore
                   # when the shim header changes.  Therefore, we pass both the target
                   # and the generated directory as dependencies.
                   FILE_DEPENDS
-                    copy_shim_headers "${SWIFTLIB_DIR}/shims" ${GROUP_INFO_JSON_FILE}
+                    "${SWIFT_COMPILER_BUILD_DIR}/lib/swift/shims" ${GROUP_INFO_JSON_FILE}
+                  DEPENDS
+                    link_apinotes link_clang_lib link_shims link_target_sdks
                   SWIFT_COMPILE_FLAGS
                     ${swift_stdlib_compile_flags} -Xcc -DswiftCore_EXPORTS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
                   LINK_FLAGS

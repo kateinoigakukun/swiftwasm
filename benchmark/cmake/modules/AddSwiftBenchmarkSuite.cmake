@@ -694,7 +694,6 @@ function(swift_benchmark_compile)
   cmake_parse_arguments(SWIFT_BENCHMARK_COMPILE "" "PLATFORM" "" ${ARGN})
 
   if(NOT SWIFT_BENCHMARK_BUILT_STANDALONE)
-    set(stdlib_dependencies "swift")
     foreach(stdlib_dependency ${UNIVERSAL_LIBRARY_NAMES_${SWIFT_BENCHMARK_COMPILE_PLATFORM}})
       string(FIND "${stdlib_dependency}" "Unittest" find_output)
       if("${find_output}" STREQUAL "-1")

@@ -12,7 +12,7 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
 
-#include "../../stdlib/public/runtime/CompatibilityOverride.h"
+#include "../../public/runtime/CompatibilityOverride.h"
 #include "swift/Runtime/Casting.h"
 #include "swift/Runtime/Metadata.h"
 #include "gtest/gtest.h"
@@ -49,7 +49,7 @@ namespace  {
     Ran = true;                                                              \
     return getEmptyValue<ret>();                                             \
   }
-#include "../../stdlib/public/runtime/CompatibilityOverride.def"
+#include "../../public/runtime/CompatibilityOverride.def"
 
 
 struct OverrideSection {
@@ -57,14 +57,14 @@ struct OverrideSection {
   
 #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs) \
   Override_ ## name name;
-#include "../../stdlib/public/runtime/CompatibilityOverride.def"
+#include "../../public/runtime/CompatibilityOverride.def"
 };
 
 OverrideSection Overrides __attribute__((section("__DATA,__swift53_hooks"))) = {
   0,
 #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs) \
   name ## Override,
-#include "../../stdlib/public/runtime/CompatibilityOverride.def"
+#include "../../public/runtime/CompatibilityOverride.def"
 };
 
 class CompatibilityOverrideTest : public ::testing::Test {

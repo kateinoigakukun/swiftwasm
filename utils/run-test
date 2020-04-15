@@ -65,7 +65,12 @@ def error_exit(msg):
 
 
 # Return true if the path looks like swift build directory.
-def is_swift_build_dir(path, unified_build_dir):
+def is_swift_build_dir(path):
+    return (os.path.exists(os.path.join(path, "CMakeCache.txt")) and
+            os.path.isdir(os.path.join(path, "unittests")))
+
+# Return true if the path looks like swift stdlib build directory.
+def is_swift_stdlib_build_dir(path, unified_build_dir):
     if not unified_build_dir:
         tests_path = [path, "test-%s" % host_target]
     else:
@@ -73,7 +78,6 @@ def is_swift_build_dir(path, unified_build_dir):
 
     return (os.path.exists(os.path.join(path, "CMakeCache.txt")) and
             os.path.isdir(os.path.join(*tests_path)))
-
 
 # Return true if the swift build directory is configured with `Xcode`
 # generator.
@@ -122,6 +126,8 @@ def main():
                         help="run test with verbose output")
     parser.add_argument("--build-dir", type=os.path.realpath, metavar="PATH",
                         help="Swift build directory")
+    parser.add_argument("--stdlib-build-dir", type=os.path.realpath, metavar="PATH",
+                        help="Swift stdlib build directory")
     parser.add_argument("--build",
                         choices=["true", "verbose", "skip"], default='true',
                         help="build test dependencies before running tests "
@@ -166,6 +172,7 @@ def main():
     paths = []
 
     build_dir = args.build_dir
+    stdlib_build_dir = args.stdlib_build_dir
     if build_dir is not None:
         # Fixup build directory.
         # build_dir can be:
@@ -174,11 +181,21 @@ def main():
         for d in [
                 build_dir,
                 os.path.join(build_dir, 'swift-%s' % host_target)]:
-            if is_swift_build_dir(d, args.unified):
+            if is_swift_build_dir(d):
                 build_dir = d
                 break
         else:
             error_exit("'%s' is not a swift build directory" % args.build_dir)
+        if stdlib_build_dir is not None:
+            if not is_swift_stdlib_build_dir(stdlib_build_dir, args.unified):
+                error_exit("'%s' is not a swift stdlib build directory" % args.stdlib_build_dir)
+        else:
+            stdlib_d = os.path.join(os.path.dirname(build_dir), "swiftstdlib-%s" % host_target)
+            if is_swift_stdlib_build_dir(stdlib_d, args.unified):
+                stdlib_build_dir = stdlib_d
+            else:
+                error_exit("Can't infer swift stdlib directory from compiler build directory")
+
 
         # If no path given, run primary test suite.
         if not args.paths:
@@ -187,7 +204,7 @@ def main():
         # $ run-test --build-dir=<swift-build-dir> <test-dir-in-source> ... \
         #       --target macosx-x86_64 --target iphonesimulator-i386
         for target in targets:
-            paths += [normalize_test_path(p, build_dir, target, args.unified)
+            paths += [normalize_test_path(p, stdlib_build_dir, target, args.unified)
                       for p in args.paths]
 
     else:
@@ -203,12 +220,14 @@ def main():
             # Traverse the first test path to find the `build_dir`
             d = os.path.dirname(paths[0])
             while d not in ['', os.sep]:
-                if is_swift_build_dir(d, args.unified):
-                    build_dir = d
+                compiler_d = os.path.join(os.path.dirname(d), "swift-%s" % host_target)
+                if is_swift_stdlib_build_dir(d, args.unified) and is_swift_build_dir(compiler_d):
+                    build_dir = compiler_d
+                    stdlib_build_dir = d
                     break
                 d = os.path.dirname(d)
             else:
-                error_exit("Can't infer swift build directory")
+                error_exit("Can't infer swift build directory and swift stdlib directory")
 
     # Ensure we have up to date test dependency
     if args.build != 'skip' and is_build_dir_xcode(build_dir):
@@ -229,16 +248,22 @@ def main():
             else:
                 dependency_targets += ["swift-test-stdlib-%s" % target]
 
-        cmake_build = ['cmake', '--build', build_dir, '--']
-        if args.build == 'verbose':
-            cmake_build += ['-v']
-        cmake_build += ['-j%d' % multiprocessing.cpu_count()]
+        def cmake_build_cmd(build_dir):
+            cmake_build = ['cmake', '--build', build_dir, '--']
+            if args.build == 'verbose':
+                cmake_build += ['-v']
+            cmake_build += ['-j%d' % multiprocessing.cpu_count()]
+            return cmake_build
+
+        cmake_compiler_build = cmake_build_cmd(build_dir)
+        cmake_stdlib_build = cmake_build_cmd(stdlib_build_dir)
 
         print("--- Building test dependencies %s ---" %
               ', '.join(dependency_targets))
         sys.stdout.flush()
-        shell.call(cmake_build + dependency_targets)
-        shell.call(cmake_build + upload_stdlib_targets)
+        shell.call(cmake_compiler_build + ["all", "SwiftUnitTests"])
+        shell.call(cmake_stdlib_build + dependency_targets)
+        shell.call(cmake_stdlib_build + upload_stdlib_targets)
         print("--- Build finished ---")
         sys.stdout.flush()
 

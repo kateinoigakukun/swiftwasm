@@ -35,10 +35,6 @@ endfunction()
 function(get_test_dependencies SDK result_var_name)
   set(deps)
 
-  if(SWIFT_BUILD_STDLIB)
-    list(APPEND deps SwiftUnitTests)
-  endif()
-
   set(deps_binaries)
 
   if (SWIFT_INCLUDE_TOOLS)
@@ -231,6 +227,11 @@ foreach(SDK ${SWIFT_SDKS})
     swift_configure_lit_site_cfg(
         "${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.site.cfg.in"
         "${test_bin_dir}/Unit/lit.site.cfg"
+        "")
+
+    swift_configure_lit_site_cfg(
+        "${CMAKE_CURRENT_SOURCE_DIR}/StdlibUnit/lit.site.cfg.in"
+        "${test_bin_dir}/StdlibUnit/lit.site.cfg"
         "")
 
     swift_configure_lit_site_cfg(

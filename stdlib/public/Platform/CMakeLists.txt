@@ -4,13 +4,6 @@ set(swift_platform_sources
 set(swift_platform_gyb_sources
     tgmath.swift.gyb)
 
-set(darwin_depends)
-if(NOT BUILD_STANDALONE)
-  # This is overly conservative, but we have so few API notes files that
-  # haven't migrated to the Swift repo that it's probably fine in practice.
-  list(APPEND darwin_depends copy_apinotes)
-endif()
-
 add_swift_target_library(swiftDarwin ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
     ${swift_platform_sources}
     POSIXError.swift
@@ -28,9 +21,7 @@ add_swift_target_library(swiftDarwin ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_
       -Xfrontend -disable-objc-attr-requires-foundation-module
     LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
     TARGET_SDKS ALL_APPLE_PLATFORMS
-    INSTALL_IN_COMPONENT sdk-overlay
-
-    DEPENDS ${darwin_depends})
+    INSTALL_IN_COMPONENT sdk-overlay)
 
 add_swift_target_library(swiftGlibc ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
     ${swift_platform_sources}
