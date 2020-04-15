@@ -1,6 +1,7 @@
-# Add path for custom CMake modules.
-list(APPEND CMAKE_MODULE_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules")
+# This is included from both compiler and stdlib cmake unit.
+# FIXME:
+# There are a lot of stdlib specific and compiler specific configs in this file.
+# We should move them to compiler or stdlib cmake unit appropriately.
 
 set(CMAKE_DISABLE_IN_SOURCE_BUILD YES)
 
@@ -216,9 +217,6 @@ set(SWIFT_NATIVE_CLANG_TOOLS_PATH "" CACHE STRING
 
 set(SWIFT_NATIVE_SWIFT_TOOLS_PATH "" CACHE STRING
    "Path to the directory that contains Swift tools that are executable on the build machine")
-
-set(SWIFT_COMPILER_BUILD_DIR "" CACHE STRING
-   "Path to the build directory for the compiler")
 
 option(SWIFT_ENABLE_MODULE_INTERFACES
        "Generate .swiftinterface files alongside .swiftmodule files"

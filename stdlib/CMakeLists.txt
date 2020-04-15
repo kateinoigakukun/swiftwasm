@@ -35,8 +35,12 @@ list(APPEND CMAKE_MODULE_PATH "${SWIFT_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
+# Include shared prologue
 include(SwiftSharedCMakeInit)
 include(AddSwiftStdlib)
+
+set(SWIFT_COMPILER_BUILD_DIR "" CACHE STRING
+   "Path to the build directory for the compiler")
 
 # Create convenience targets for the Swift standard library.
 
