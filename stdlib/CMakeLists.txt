@@ -17,12 +17,6 @@ endif()
 # standard library from the Swift compiler build.
 project(swift-stdlib LANGUAGES C CXX)
 
-# Add path for custom CMake modules.
-list(APPEND CMAKE_MODULE_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules")
-list(APPEND CMAKE_MODULE_PATH
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
-
 set(SWIFT_BUILT_STANDALONE TRUE)
 set(SWIFT_BUILD_STDLIB TRUE)
 
@@ -35,6 +29,11 @@ set(SWIFT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 set(SWIFT_RUNTIME_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin")
 set(SWIFT_LIBRARY_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib")
+
+# Add path for custom CMake modules.
+list(APPEND CMAKE_MODULE_PATH "${SWIFT_CMAKE_DIR}")
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 include(SwiftSharedCMakeInit)
 include(AddSwiftStdlib)
