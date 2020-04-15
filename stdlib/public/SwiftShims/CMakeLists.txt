@@ -144,7 +144,7 @@ endif()
 
 swift_install_in_component(FILES ${sources}
                            DESTINATION "lib/swift/shims"
-                           COMPONENT compiler)
+                           COMPONENT stdlib)
 
 # Install Clang headers under the Swift library so that an installed Swift's
 # module importer can find the compiler headers corresponding to its Clang.
