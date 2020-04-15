@@ -12,16 +12,6 @@ if(POLICY CMP0067)
   cmake_policy(SET CMP0067 NEW)
 endif()
 
-
-set(SWIFT_BUILT_STANDALONE FALSE)
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-  set(SWIFT_BUILT_STANDALONE TRUE)
-endif()
-
-if(SWIFT_BUILT_STANDALONE)
-  project(Swift C CXX ASM)
-endif()
-
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
