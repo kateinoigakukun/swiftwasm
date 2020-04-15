@@ -230,6 +230,11 @@ foreach(SDK ${SWIFT_SDKS})
         "")
 
     swift_configure_lit_site_cfg(
+        "${CMAKE_CURRENT_SOURCE_DIR}/StdlibUnit/lit.site.cfg.in"
+        "${test_bin_dir}/StdlibUnit/lit.site.cfg"
+        "")
+
+    swift_configure_lit_site_cfg(
         "${CMAKE_CURRENT_SOURCE_DIR}/../validation-test/lit.site.cfg.in"
         "${validation_test_bin_dir}/lit.site.cfg"
         "validation-test${VARIANT_SUFFIX}.lit.site.cfg")

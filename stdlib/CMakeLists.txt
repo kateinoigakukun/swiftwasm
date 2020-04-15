@@ -235,5 +235,6 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
 endif()
 
 if(SWIFT_INCLUDE_TESTS)
+  add_subdirectory(unittests)
   add_subdirectory("${SWIFT_SOURCE_DIR}/test" "${CMAKE_CURRENT_BINARY_DIR}/test")
 endif()

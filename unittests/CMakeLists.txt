@@ -17,16 +17,6 @@ if(SWIFT_INCLUDE_TOOLS)
     add_subdirectory(SyntaxParser)
   endif()
 
-  if(SWIFT_BUILD_SDK_OVERLAY)
-    # Runtime tests depend on symbols in StdlibUnittest.
-    #
-    # FIXME: cross-compile runtime unittests.
-    # FIXME: katei
-    # Move them to stdlib directory
-    # add_subdirectory(runtime)
-    # add_subdirectory(Reflection)
-  endif()
-
   if(SWIFT_BUILD_SOURCEKIT)
     add_subdirectory(SourceKit)
   endif()

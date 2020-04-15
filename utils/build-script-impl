@@ -2350,7 +2350,9 @@ for host in "${ALL_HOSTS[@]}"; do
                 fi
                 ;;
             swiftstdlib)
+                executable_target=
                 if ! [[ "${SKIP_TEST_SWIFT}" ]]; then
+                    executable_target=SwiftUnitTests
                     results_targets=("${SWIFT_TEST_TARGETS[@]}")
                     if ! [[ "${SKIP_TEST_BENCHMARKS}" ]]; then
                         results_targets=(
