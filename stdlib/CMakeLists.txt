@@ -188,7 +188,7 @@ function(_swift_symlink name)
     COMMENT "${SCB_COMMENT}")
 endfunction()
 
-add_subdirectory(include)
+add_subdirectory("${SWIFT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 _swift_symlink(link_apinotes
   IS_DIRECTORY
