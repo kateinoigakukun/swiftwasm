@@ -1434,12 +1434,15 @@ static bool isSDKTooOld(StringRef sdkPath, const llvm::Triple &target) {
 void Driver::buildOutputInfo(const ToolChain &TC, const DerivedArgList &Args,
                              const bool BatchMode, const InputFileList &Inputs,
                              OutputInfo &OI) const {
+  auto LinkerInputType = Args.hasArg(options::OPT_llvm_lto)
+                            ? file_types::TY_LLVM_BC
+                            : file_types::TY_Object;
   // By default, the driver does not link its output; this will be updated
   // appropriately below if linking is required.
 
   OI.CompilerOutputType = driverKind == DriverKind::Interactive
                               ? file_types::TY_Nothing
-                              : file_types::TY_Object;
+                              : LinkerInputType;
 
   if (const Arg *A = Args.getLastArg(options::OPT_num_threads)) {
     if (BatchMode) {
@@ -1469,14 +1472,14 @@ void Driver::buildOutputInfo(const ToolChain &TC, const DerivedArgList &Args,
                        diag::error_static_emit_executable_disallowed);
                        
       OI.LinkAction = LinkKind::Executable;
-      OI.CompilerOutputType = file_types::TY_Object;
+      OI.CompilerOutputType = LinkerInputType;
       break;
 
     case options::OPT_emit_library:
       OI.LinkAction = Args.hasArg(options::OPT_static) ?
                       LinkKind::StaticLibrary :
                       LinkKind::DynamicLibrary;
-      OI.CompilerOutputType = file_types::TY_Object;
+      OI.CompilerOutputType = LinkerInputType;
       break;
 
     case options::OPT_static:
