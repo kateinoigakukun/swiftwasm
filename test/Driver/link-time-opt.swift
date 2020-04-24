@@ -1,7 +1,6 @@
-// REQUIRES: OS=macosx
-// RUN: %target-swiftc_driver -driver-print-jobs %S/../Inputs/empty.swift -lto=llvm | %FileCheck %s
-// CHECK: bin/swift -frontend -emit-bc
-// CHECK-NEXT: bin/ld {{.+}} -lto_library {{.+}}/lib/libLTO.dylib
+// RUN: %target-swiftc_driver -driver-print-jobs %S/../Inputs/empty.swift -lto=llvm | %FileCheck %s --check-prefix=CHECK-%target-os
+// CHECK-macosx: bin/swift -frontend -emit-bc
+// CHECK-macosx-NEXT: bin/ld {{.+}} -lto_library {{.+}}/lib/libLTO.dylib
 
 // RUN: rm -rf %t
 // RUN: %empty-directory(%t/thin)
