@@ -65,6 +65,12 @@ enum class IRGenDebugInfoFormat : unsigned {
   CodeView
 };
 
+enum class IRGenLLVMLTOKind : unsigned {
+  None,
+  Thin,
+  Full
+};
+
 enum class IRGenEmbedMode : unsigned {
   None,
   EmbedMarker,
@@ -219,6 +225,8 @@ public:
 
   /// Whether we should embed the bitcode file.
   IRGenEmbedMode EmbedMode : 2;
+
+  IRGenLLVMLTOKind LLVMLTOKind: 2;
 
   /// Add names to LLVM values.
   unsigned HasValueNamesSetting : 1;

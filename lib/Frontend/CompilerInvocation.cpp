@@ -1367,6 +1367,15 @@ static bool ParseIRGenArgs(IRGenOptions &Opts, ArgList &Args,
     }
   }
 
+  if (const Arg *A = Args.getLastArg(options::OPT_lto)) {
+    if (A->containsValue("llvm"))
+      Opts.LLVMLTOKind = IRGenLLVMLTOKind::Thin;
+    else if (A->containsValue("llvm-full"))
+      Opts.LLVMLTOKind = IRGenLLVMLTOKind::Full;
+    else
+      Diags.diagnose(SourceLoc(), diag::error_invalid_arg_value,
+                     A->getAsString(Args), A->getValue());
+  }
 
   if (const Arg *A = Args.getLastArg(options::OPT_sanitize_coverage_EQ)) {
     Opts.SanitizeCoverage =
