@@ -29,6 +29,7 @@ class LLVM_LIBRARY_VISIBILITY Darwin : public ToolChain {
 protected:
 
   void addLinkerInputArgs(InvocationInfo &II,
+                          const file_types::ID InputType,
                           const JobContext &context) const;
 
   void addArgsToLinkARCLite(llvm::opt::ArgStringList &Arguments,

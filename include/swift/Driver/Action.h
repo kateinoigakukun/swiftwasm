@@ -329,15 +329,20 @@ public:
 class DynamicLinkJobAction : public JobAction {
   virtual void anchor();
   LinkKind Kind;
+  file_types::ID inputType;
 
 public:
-  DynamicLinkJobAction(ArrayRef<const Action *> Inputs, LinkKind K)
+  DynamicLinkJobAction(ArrayRef<const Action *> Inputs, LinkKind K, file_types::ID inputType)
       : JobAction(Action::Kind::DynamicLinkJob, Inputs, file_types::TY_Image),
-        Kind(K) {
+        Kind(K), inputType(inputType) {
     assert(Kind != LinkKind::None && Kind != LinkKind::StaticLibrary);
   }
 
   LinkKind getKind() const { return Kind; }
+
+  file_types::ID getInputType() const {
+    return inputType;
+  }
 
   static bool classof(const Action *A) {
     return A->getKind() == Action::Kind::DynamicLinkJob;
@@ -346,11 +351,17 @@ public:
 
 class StaticLinkJobAction : public JobAction {
   virtual void anchor();
+  file_types::ID inputType;
 
 public:
-  StaticLinkJobAction(ArrayRef<const Action *> Inputs, LinkKind K)
-      : JobAction(Action::Kind::StaticLinkJob, Inputs, file_types::TY_Image) {
+  StaticLinkJobAction(ArrayRef<const Action *> Inputs, LinkKind K, file_types::ID inputType)
+      : JobAction(Action::Kind::StaticLinkJob, Inputs, file_types::TY_Image),
+        inputType(inputType) {
     assert(K == LinkKind::StaticLibrary);
+  }
+
+  file_types::ID getInputType() const {
+    return inputType;
   }
 
   static bool classof(const Action *A) {

@@ -232,11 +232,9 @@ static bool wantsObjCRuntime(const llvm::Triple &triple) {
 
 void
 toolchains::Darwin::addLinkerInputArgs(InvocationInfo &II,
+                                       const file_types::ID InputType,
                                        const JobContext &context) const {
   ArgStringList &Arguments = II.Arguments;
-  auto InputType = context.Args.hasArg(options::OPT_llvm_lto) ?
-                      file_types::TY_LLVM_BC :
-                      file_types::TY_Object;
   if (context.shouldUseInputFileList()) {
     Arguments.push_back("-filelist");
     Arguments.push_back(context.getTemporaryFilePath("inputs", "LinkFileList"));
@@ -704,7 +702,7 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
   InvocationInfo II = {LD};
   ArgStringList &Arguments = II.Arguments;
 
-  addLinkerInputArgs(II, context);
+  addLinkerInputArgs(II, job.getInputType(), context);
 
   switch (job.getKind()) {
   case LinkKind::None:
@@ -740,7 +738,7 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
 
   addArgsToLinkARCLite(Arguments, context);
 
-  if (context.Args.hasArg(options::OPT_llvm_lto)) {
+  if (context.Args.hasArg(options::OPT_lto)) {
     addLTOLibArgs(Arguments, context);
   }
 
@@ -807,20 +805,18 @@ toolchains::Darwin::constructInvocation(const StaticLinkJobAction &job,
   ArgStringList &Arguments = II.Arguments;
 
   Arguments.push_back("-static");
-  auto InputType = context.Args.hasArg(options::OPT_llvm_lto) ?
-                      file_types::TY_LLVM_BC :
-                      file_types::TY_Object;
+
   if (context.shouldUseInputFileList()) {
     Arguments.push_back("-filelist");
     Arguments.push_back(context.getTemporaryFilePath("inputs", "LinkFileList"));
-    II.FilelistInfos.push_back({Arguments.back(), InputType,
+    II.FilelistInfos.push_back({Arguments.back(), job.getInputType(),
                                 FilelistInfo::WhichFiles::InputJobs});
   } else {
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                           InputType);
+                           job.getInputType());
   }
 
-  addInputsOfType(Arguments, context.InputActions, InputType);
+  addInputsOfType(Arguments, context.InputActions, job.getInputType());
 
   Arguments.push_back("-o");
 

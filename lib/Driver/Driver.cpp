@@ -1434,7 +1434,7 @@ static bool isSDKTooOld(StringRef sdkPath, const llvm::Triple &target) {
 void Driver::buildOutputInfo(const ToolChain &TC, const DerivedArgList &Args,
                              const bool BatchMode, const InputFileList &Inputs,
                              OutputInfo &OI) const {
-  auto LinkerInputType = Args.hasArg(options::OPT_llvm_lto)
+  auto LinkerInputType = Args.hasArg(options::OPT_lto)
                             ? file_types::TY_LLVM_BC
                             : file_types::TY_Object;
   // By default, the driver does not link its output; this will be updated
@@ -2119,10 +2119,12 @@ void Driver::buildActions(SmallVectorImpl<const Action *> &TopLevelActions,
 
     if (OI.LinkAction == LinkKind::StaticLibrary) {
       LinkAction = C.createAction<StaticLinkJobAction>(AllLinkerInputs,
-                                                    OI.LinkAction);
+                                                       OI.LinkAction,
+                                                       OI.CompilerOutputType);
     } else {
       LinkAction = C.createAction<DynamicLinkJobAction>(AllLinkerInputs,
-                                                 OI.LinkAction);
+                                                        OI.LinkAction,
+                                                        OI.CompilerOutputType);
     }
 
     // On ELF platforms there's no built in autolinking mechanism, so we
