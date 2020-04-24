@@ -1781,6 +1781,16 @@ void Driver::buildOutputInfo(const ToolChain &TC, const DerivedArgList &Args,
 
   }
 
+  if (const Arg *A = Args.getLastArg(options::OPT_lto)) {
+    if (A->containsValue("llvm"))
+      OI.LTOVariant = OutputInfo::LTOKind::LLVMThin;
+    else if (A->containsValue("llvm-full"))
+      OI.LTOVariant = OutputInfo::LTOKind::LLVMFull;
+    else
+      Diags.diagnose(SourceLoc(), diag::error_invalid_arg_value,
+                     A->getAsString(Args), A->getValue());
+  }
+
   if (TC.getTriple().isOSWindows()) {
     if (const Arg *A = Args.getLastArg(options::OPT_libc)) {
       OI.RuntimeVariant =
