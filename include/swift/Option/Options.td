@@ -500,9 +500,9 @@ def disable_bridging_pch : Flag<["-"], "disable-bridging-pch">,
   Flags<[HelpHidden]>,
   HelpText<"Disable automatic generation of bridging PCH files">;
 
-def llvm_lto : Flag<["-"], "llvm-lto">,
+def lto : Joined<["-"], "lto=">,
   Flags<[FrontendOption, NoInteractiveOption]>,
-  HelpText<"Enable LLVM LTO">;
+  HelpText<"Specify the LTO type to either 'llvm' or 'llvm-full'">;
 
 // Experimental feature options
 
