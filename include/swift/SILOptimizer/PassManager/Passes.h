@@ -52,6 +52,8 @@ namespace swift {
   /// Remove dead functions from \p M.
   void performSILDeadFunctionElimination(SILModule *M);
 
+  void performSILCrossModuleDeadFunctionElimination(SILModule *M);
+
   /// Convert SIL to a lowered form suitable for IRGen.
   void runSILLoweringPasses(SILModule &M);
 
