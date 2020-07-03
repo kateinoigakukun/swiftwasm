@@ -581,7 +581,6 @@ DeclID Serializer::addDeclRef(const Decl *D, bool allowTypeAliasXRef) {
   assert((!D || allowTypeAliasXRef || !isa<TypeAliasDecl>(D) ||
           D->getModuleContext() == M) &&
          "cannot cross-reference typealiases directly (use the TypeAliasType)");
-
   return DeclsToSerialize.addRef(D);
 }
 

@@ -418,6 +418,14 @@ static void addPerfDebugSerializationPipeline(SILPassPipelinePlan &P) {
   P.addPerformanceSILLinker();
 }
 
+static void addCrossModuleOptimizationsPipeline(SILPassPipelinePlan &P,
+                                                const SILOptions &Options) {
+  P.startPipeline("Cross Module Optimization Passes");
+  if (!Options.ModuleSummaryPath.empty()) {
+    P.addCrossDeadFunctionElimination();
+  }
+  P.addMandatorySILLinker();
+}
 
 static void addPrepareOptimizationsPipeline(SILPassPipelinePlan &P) {
   P.startPipeline("PrepareOptimizationPasses");
@@ -711,6 +719,13 @@ SILPassPipelinePlan::getIRGenPreparePassPipeline(const SILOptions &Options) {
 }
 
 SILPassPipelinePlan
+SILPassPipelinePlan::getCrossModuleEliminatorPassPipeline(const SILOptions &Options) {
+  SILPassPipelinePlan P(Options);
+  addCrossModuleOptimizationsPipeline(P, Options);
+  return P;
+}
+
+SILPassPipelinePlan
 SILPassPipelinePlan::getPerformancePassPipeline(const SILOptions &Options) {
   SILPassPipelinePlan P(Options);
 
@@ -718,7 +733,7 @@ SILPassPipelinePlan::getPerformancePassPipeline(const SILOptions &Options) {
     addPerfDebugSerializationPipeline(P);
     return P;
   }
-  
+
   // Passes which run once before all other optimizations run. Those passes are
   // _not_ intended to run later again.
   addPrepareOptimizationsPipeline(P);

@@ -1111,12 +1111,30 @@ void SerializedASTFile::getImportedModules(
 
 void SerializedASTFile::collectLinkLibrariesFromImports(
     ModuleDecl::LinkLibraryCallback callback) const {
-  llvm::SmallVector<ModuleDecl::ImportedModule, 8> Imports;
-  File.getImportedModules(Imports, {ModuleDecl::ImportFilterKind::Exported,
-                                    ModuleDecl::ImportFilterKind::Default});
+  llvm::SmallDenseSet<ModuleDecl *, 32> visited;
+  SmallVector<ModuleDecl::ImportedModule, 32> stack;
 
-  for (auto Import : Imports)
-    Import.importedModule->collectLinkLibraries(callback);
+  ModuleDecl::ImportFilter filter = {ModuleDecl::ImportFilterKind::Exported,
+                                     ModuleDecl::ImportFilterKind::Default};
+  File.getImportedModules(stack, filter);
+
+  // Make sure the top-level module is first; we want pre-order-ish traversal.
+  auto topLevelModule =
+      ModuleDecl::ImportedModule{ModuleDecl::AccessPathTy(), getParentModule()};
+  stack.emplace_back(topLevelModule);
+
+  while (!stack.empty()) {
+    auto next = stack.pop_back_val().importedModule;
+
+    if (!visited.insert(next).second)
+      continue;
+
+    if (next->getName() != getParentModule()->getName()) {
+      next->collectLinkLibraries(callback);
+    }
+
+    next->getImportedModules(stack, filter);
+  }
 }
 
 void SerializedASTFile::collectLinkLibraries(
