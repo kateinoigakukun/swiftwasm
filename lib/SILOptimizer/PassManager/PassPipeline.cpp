@@ -714,6 +714,13 @@ SILPassPipelinePlan::getIRGenPreparePassPipeline(const SILOptions &Options) {
 }
 
 SILPassPipelinePlan
+SILPassPipelinePlan::getCrossModuleEliminatorPassPipeline(const SILOptions &Options) {
+  SILPassPipelinePlan P(Options);
+  addCrossModuleOptimizationsPipeline(P, Options);
+  return P;
+}
+
+SILPassPipelinePlan
 SILPassPipelinePlan::getPerformancePassPipeline(const SILOptions &Options) {
   SILPassPipelinePlan P(Options);
 
@@ -722,7 +729,6 @@ SILPassPipelinePlan::getPerformancePassPipeline(const SILOptions &Options) {
     return P;
   }
 
-  addCrossModuleOptimizationsPipeline(P, Options);
   // Passes which run once before all other optimizations run. Those passes are
   // _not_ intended to run later again.
   addPrepareOptimizationsPipeline(P);
