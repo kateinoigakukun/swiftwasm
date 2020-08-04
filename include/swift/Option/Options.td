@@ -454,6 +454,17 @@ def emit_module_interface_path :
          ArgumentIsPath, SupplementaryOutput]>,
   MetaVarName<"<path>">, HelpText<"Output module interface file to <path>">;
 
+def emit_module_summary :
+  Flag<["-"], "emit-module-summary">,
+  Flags<[NoInteractiveOption, DoesNotAffectIncrementalBuild,
+         SupplementaryOutput]>,
+  HelpText<"Output module summary file">;
+def emit_module_summary_path :
+  Separate<["-"], "emit-module-summary-path">,
+  Flags<[FrontendOption, NoInteractiveOption, DoesNotAffectIncrementalBuild,
+         ArgumentIsPath, SupplementaryOutput]>,
+  MetaVarName<"<path>">, HelpText<"Output module summary file to <path>">;
+
 def emit_private_module_interface_path :
   Separate<["-"], "emit-private-module-interface-path">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden,
