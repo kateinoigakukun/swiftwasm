@@ -1900,12 +1900,15 @@ static bool serializeSIB(SILModule *SM, const PrimarySpecificPaths &PSPs,
   return Context.hadError();
 }
 
-static bool emitModuleSummary(SILModule *SM,
-                              const std::string &ModuleSummaryOutputPath,
-                              const ASTContext &Context) {
-  auto Summary = modulesummary::buildModuleSummaryIndex(*SM);
-  return modulesummary::writeModuleSummaryIndex(*Summary.get(), Context.Diags,
-                                                ModuleSummaryOutputPath);
+static bool serializeModuleSummary(SILModule *SM,
+                                   const PrimarySpecificPaths &PSPs,
+                                   const ASTContext &Context) {
+  auto summaryOutputPath = PSPs.SupplementaryOutputs.ModuleSummaryOutputPath;
+  return withOutputFile(Context.Diags, summaryOutputPath,
+                        [&](llvm::raw_ostream &out) {
+                          out << "Some stuff";
+                          return false;
+                        });
 }
 
 static GeneratedModule
@@ -2132,8 +2135,8 @@ static bool performCompileStepsPostSILGen(CompilerInstance &Instance,
   if (observer)
     observer->performedSILProcessing(*SM);
 
-  if (!opts.ModuleSummaryOutputPath.empty()) {
-    if (emitModuleSummary(SM.get(), opts.ModuleSummaryOutputPath, Context)) {
+  if (PSPs.haveModuleSummaryOutputPath()) {
+    if (serializeModuleSummary(SM.get(), PSPs, Context)) {
       return true;
     }
   }

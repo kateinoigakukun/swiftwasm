@@ -620,6 +620,7 @@ const char *ToolChain::JobContext::computeFrontendModeForCompile() const {
   case file_types::TY_BitstreamOptRecord:
   case file_types::TY_SwiftModuleInterfaceFile:
   case file_types::TY_PrivateSwiftModuleInterfaceFile:
+  case file_types::TY_SwiftModuleSummaryFile:
   case file_types::TY_SwiftSourceInfoFile:
   case file_types::TY_SwiftCrossImportDir:
   case file_types::TY_SwiftModuleSummaryFile: // FIXME(katei)
@@ -766,6 +767,9 @@ void ToolChain::JobContext::addFrontendSupplementaryOutputArguments(
                    "-emit-loaded-module-trace-path");
   addOutputsOfType(arguments, Output, Args, file_types::TY_TBD,
                    "-emit-tbd-path");
+  addOutputsOfType(arguments, Output, Args,
+                   file_types::TY_SwiftModuleSummaryFile,
+                   "-emit-module-summary-path");
 }
 
 ToolChain::InvocationInfo
@@ -878,6 +882,7 @@ ToolChain::constructInvocation(const BackendJobAction &job,
     case file_types::TY_BitstreamOptRecord:
     case file_types::TY_SwiftModuleInterfaceFile:
     case file_types::TY_PrivateSwiftModuleInterfaceFile:
+    case file_types::TY_SwiftModuleSummaryFile:
     case file_types::TY_SwiftSourceInfoFile:
     case file_types::TY_SwiftCrossImportDir:
     case file_types::TY_SwiftModuleSummaryFile:
