@@ -112,9 +112,29 @@ struct CustomMappingTraits<ModuleSummaryIndex::FunctionSummaryMapTy> {
       io.mapRequired(llvm::utostr(P.first).c_str(), P.second);
   }
 };
+
+template <>
+struct CustomMappingTraits<ModuleSummaryIndex::VirtualFunctionMapTy> {
+  static void inputOne(IO &io, StringRef Key,
+                       ModuleSummaryIndex::VirtualFunctionMapTy &V) {
+    GUID KeyInt;
+    if (Key.getAsInteger(0, KeyInt)) {
+      io.setError("key not an integer");
+      return;
+    }
+    io.mapRequired(Key.str().c_str(), V[KeyInt]);
+  }
+  static void output(IO &io, ModuleSummaryIndex::VirtualFunctionMapTy &V) {
+    for (auto &P : V)
+      io.mapRequired(llvm::utostr(P.first).c_str(), P.second);
+  }
+};
+
 void MappingTraits<ModuleSummaryIndex>::mapping(IO &io, ModuleSummaryIndex &V) {
   io.mapRequired("module_name", V.ModuleName);
   io.mapRequired("functions", V.FunctionSummaryInfoMap);
+  io.mapRequired("witness_tables", V.WitnessFunctionMap);
+  io.mapRequired("vtables", V.VTableFunctionMap);
 }
 } // namespace yaml
 } // namespace llvm
@@ -172,8 +192,7 @@ int main(int argc, char *argv[]) {
       llvm::errs() << "Failed to write binary module summary\n";
       return 1;
     }
-
-    return 1;
+    break;
   }
   return 0;
 }

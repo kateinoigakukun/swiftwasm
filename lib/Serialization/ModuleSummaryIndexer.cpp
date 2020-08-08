@@ -118,7 +118,7 @@ class ModuleSummaryIndexer {
   std::unique_ptr<ModuleSummaryIndex> TheSummary;
   const SILModule &Mod;
   void ensurePreserved(const SILFunction &F);
-  void ensurePreserved(const SILDeclRef &Ref, VirtualMethodSlot::Kind Kind);
+  void ensurePreserved(const SILDeclRef &Ref, VirtualMethodSlot::KindTy Kind);
   void preserveKeyPathFunctions(const SILProperty &P);
   void indexWitnessTable(const SILWitnessTable &WT);
   void indexVTable(const SILVTable &VT);
@@ -139,7 +139,7 @@ void ModuleSummaryIndexer::ensurePreserved(const SILFunction &F) {
 }
 
 void ModuleSummaryIndexer::ensurePreserved(const SILDeclRef &Ref,
-                                           VirtualMethodSlot::Kind Kind) {
+                                           VirtualMethodSlot::KindTy Kind) {
   VirtualMethodSlot slot(Ref, Kind);
   auto Impls = TheSummary->getImplementations(slot);
   if (!Impls)
