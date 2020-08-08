@@ -15,27 +15,26 @@ using GUID = uint64_t;
 GUID getGUIDFromUniqueName(llvm::StringRef Name);
 
 struct VirtualMethodSlot {
-  enum KindTy {
+  enum Kind {
     Witness,
     VTable,
     kindCount,
   };
 
-  KindTy Kind;
-  GUID VirtualFuncID;
-  VirtualMethodSlot(KindTy kind, GUID virtualFuncID)
-      : Kind(kind), VirtualFuncID(virtualFuncID) {}
-  VirtualMethodSlot(const SILDeclRef &VirtualFuncRef, KindTy kind)
-      : Kind(kind) {
-    VirtualFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
+  Kind kind;
+  GUID virtualFuncID;
+  VirtualMethodSlot(Kind kind, GUID virtualFuncID)
+      : kind(kind), virtualFuncID(virtualFuncID) {}
+  VirtualMethodSlot(const SILDeclRef &VirtualFuncRef, Kind kind) : kind(kind) {
+    virtualFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
   }
 
   bool operator<(const VirtualMethodSlot &rhs) const {
-    if (Kind > rhs.Kind)
+    if (kind > rhs.kind)
       return false;
-    if (Kind < rhs.Kind)
+    if (kind < rhs.kind)
       return true;
-    return VirtualFuncID < rhs.VirtualFuncID;
+    return virtualFuncID < rhs.virtualFuncID;
   }
 };
 
@@ -90,7 +89,7 @@ public:
     }
 
     VirtualMethodSlot slot() const {
-      VirtualMethodSlot::KindTy slotKind;
+      VirtualMethodSlot::Kind slotKind;
       switch (kind) {
       case Kind::Witness: {
         slotKind = VirtualMethodSlot::Witness;
@@ -157,38 +156,13 @@ public:
 class ModuleSummaryIndex {
 public:
   using FunctionSummaryMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;
-  using VirtualFunctionMapTy = std::map<GUID, std::vector<GUID>>;
+  using VirtualMethodMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
 
 private:
   FunctionSummaryMapTy FunctionSummaryInfoMap;
-  VirtualFunctionMapTy WitnessFunctionMap;
-  VirtualFunctionMapTy VTableFunctionMap;
+  VirtualMethodMapTy VirtualMethodInfoMap;
 
   std::string ModuleName;
-
-  const VirtualFunctionMapTy &
-  getFunctionMap(VirtualMethodSlot::KindTy kind) const {
-    switch (kind) {
-    case VirtualMethodSlot::Witness:
-      return WitnessFunctionMap;
-    case VirtualMethodSlot::VTable:
-      return VTableFunctionMap;
-    case VirtualMethodSlot::kindCount: {
-      llvm_unreachable("impossible");
-    }
-    }
-  }
-  VirtualFunctionMapTy &getFunctionMap(VirtualMethodSlot::KindTy kind) {
-    switch (kind) {
-    case VirtualMethodSlot::Witness:
-      return WitnessFunctionMap;
-    case VirtualMethodSlot::VTable:
-      return VTableFunctionMap;
-    case VirtualMethodSlot::kindCount: {
-      llvm_unreachable("impossible");
-    }
-    }
-  }
 
 public:
   friend ::llvm::yaml::MappingTraits<ModuleSummaryIndex>;
@@ -210,32 +184,27 @@ public:
     return found->second.get();
   }
 
-  void addImplementation(VirtualMethodSlot slot, GUID implFuncGUID) {
-    auto table = getFunctionMap(slot.Kind);
-    auto found = table.find(slot.VirtualFuncID);
-    if (found == table.end()) {
-      table.insert(
-          std::make_pair(slot.VirtualFuncID, std::vector<GUID>{implFuncGUID}));
+  void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
+    auto found = VirtualMethodInfoMap.find(slot);
+    if (found == VirtualMethodInfoMap.end()) {
+      VirtualMethodInfoMap.insert(
+          std::make_pair(slot, std::vector<GUID>{funcGUID}));
       return;
     }
-    found->second.push_back(implFuncGUID);
+    found->second.push_back(funcGUID);
   }
 
   llvm::Optional<ArrayRef<GUID>>
   getImplementations(VirtualMethodSlot slot) const {
-    auto table = getFunctionMap(slot.Kind);
-    auto found = table.find(slot.VirtualFuncID);
-    if (found == table.end()) {
+    auto found = VirtualMethodInfoMap.find(slot);
+    if (found == VirtualMethodInfoMap.end()) {
       return None;
     }
     return ArrayRef<GUID>(found->second);
   }
 
-  const VirtualFunctionMapTy &getWitnessMethods() const {
-    return WitnessFunctionMap;
-  }
-  const VirtualFunctionMapTy &getVTableMethods() const {
-    return VTableFunctionMap;
+  const VirtualMethodMapTy &virtualMethods() const {
+    return VirtualMethodInfoMap;
   }
 
   FunctionSummaryMapTy::const_iterator functions_begin() const {

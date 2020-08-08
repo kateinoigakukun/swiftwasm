@@ -19,43 +19,60 @@ using llvm::BCVBR;
 
 const unsigned char MODULE_SUMMARY_SIGNATURE[] = {'M', 'O', 'D', 'S'};
 
-const unsigned RECORD_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID;
+enum BlockID {
+  MODULE_SUMMARY_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID,
 
-namespace record_block {
-enum {
-  MODULE_METADATA = 1,
-  METHOD_METADATA,
-  METHOD_IMPL_ENTRY,
-  FUNC_METADATA,
-  CALL_GRAPH_ENTRY,
+  FUNCTION_SUMMARY_ID,
+
+  VIRTUAL_METHOD_INFO_ID,
 };
 
+namespace module_summary {
+enum {
+  MODULE_METADATA,
+};
 
-using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
+using MetadataLayout = BCRecordLayout<MODULE_METADATA,
                                       BCBlob // Module name
                                       >;
+}; // namespace module_summary
+
+namespace virtual_method_info {
+enum {
+  METHOD_METADATA,
+  METHOD_IMPL,
+};
+
 using MethodMetadataLayout =
     BCRecordLayout<METHOD_METADATA,
                    BCFixed<1>, // KindTy (WitnessTable or VTable)
                    BCVBR<16>   // VirtualFunc GUID
                    >;
-using MethodImplEntryLayout = BCRecordLayout<METHOD_IMPL_ENTRY,
+
+using MethodImplLayout = BCRecordLayout<METHOD_IMPL,
                                         BCVBR<16> // Impl func GUID
                                         >;
+}; // namespace virtual_method_info
 
-using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
+namespace function_summary {
+enum {
+  METADATA,
+  CALL_GRAPH_EDGE,
+};
+
+using MetadataLayout = BCRecordLayout<METADATA,
                                       BCVBR<16>,  // Function GUID
                                       BCFixed<1>, // live
                                       BCFixed<1>, // preserved
                                       BCBlob      // Name string
                                       >;
-using CallGraphEntryLayout =
-    BCRecordLayout<CALL_GRAPH_ENTRY,
+using CallGraphEdgeLayout =
+    BCRecordLayout<CALL_GRAPH_EDGE,
                    BCFixed<32>, // FunctionSummary::Edge::Kind
                    BCVBR<16>,   // Target Function GUID
                    BCBlob       // Name string
                    >;
-};
+} // namespace function_summary
 } // namespace modulesummary
 } // namespace swift
 
