@@ -5,6 +5,7 @@
 #include "swift/AST/Decl.h"
 #include "swift/SIL/SILDeclRef.h"
 #include "swift/SIL/SILFunction.h"
+#include "llvm/Support/YAMLTraits.h"
 
 namespace swift {
 
@@ -54,6 +55,7 @@ public:
     std::string debugName;
 
   public:
+    friend ::llvm::yaml::MappingTraits<Call>;
     Call() = default;
     Call(GUID callee, Kind kind, std::string debugName)
         : calleeFn(callee), kind(kind), debugName(debugName) {}
@@ -163,6 +165,7 @@ private:
   std::string ModuleName;
 
 public:
+  friend ::llvm::yaml::MappingTraits<ModuleSummaryIndex>;
   ModuleSummaryIndex() = default;
 
   std::string getModuleName() const { return this->ModuleName; }
