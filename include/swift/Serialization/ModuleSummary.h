@@ -39,7 +39,7 @@ struct VirtualMethodSlot {
 
 class FunctionSummary {
 public:
-  class EdgeTy {
+  class Call {
     GUID CalleeFn;
     std::string Name;
   public:
@@ -53,73 +53,72 @@ public:
 
     Kind kind;
 
-    EdgeTy(SILDeclRef &CalleeFn, Kind kind) : kind(kind) {
+    Call(SILDeclRef &CalleeFn, Kind kind) : kind(kind) {
       this->Name = CalleeFn.mangle();
       this->CalleeFn = getGUID(CalleeFn.mangle());
     }
+    Call(GUID callee, std::string name, Kind kind)
+        : CalleeFn(callee), Name(name), kind(kind) {}
 
   public:
     Kind getKind() const { return kind; }
     GUID getCallee() const { return CalleeFn; }
     std::string getName() const { return Name; };
     
-    void dump() const {
-      llvm::dbgs() << "FunctionSummary(kind: ";
+    void dump(llvm::raw_ostream &os) const {
+      os << "call: (kind: ";
       switch (kind) {
       case Kind::Witness: {
-        llvm::dbgs() << "Witness";
+        os << "witness";
         break;
       }
       case Kind::VTable: {
-        llvm::dbgs() << "VTable";
+        os << "vtable";
         break;
       }
       case Kind::Static: {
-        llvm::dbgs() << "Static";
+        os << "direct";
         break;
       }
       case Kind::kindCount: {
         llvm_unreachable("impossible");
       }
       }
-      llvm::dbgs() << ", name: " << getName() << " , callee: ";
-      llvm::dbgs() << getCallee() << ")\n";
+      os << ", name: " << getName() << " , callee: " << getCallee()
+         << ")\n";
     }
-    
+
     VirtualMethodSlot slot() const {
       VirtualMethodSlot::KindTy slotKind;
       switch (kind) {
-        case Kind::Witness: {
+      case Kind::Witness: {
         slotKind = VirtualMethodSlot::KindTy::Witness;
         break;
-        }
-        case Kind::VTable: {
+      }
+      case Kind::VTable: {
         slotKind = VirtualMethodSlot::KindTy::VTable;
         break;
-        }
-        case Kind::Static: {
-          llvm_unreachable("Can't get slot for static call");
-        }
-        case Kind::kindCount: {
-          llvm_unreachable("impossible");
-        }
+      }
+      case Kind::Static: {
+        llvm_unreachable("Can't get slot for static call");
+      }
+      case Kind::kindCount: {
+        llvm_unreachable("impossible");
+      }
       }
       return VirtualMethodSlot(slotKind, CalleeFn);
     }
 
-    EdgeTy(GUID callee, std::string name, Kind kind)
-      : CalleeFn(callee), Name(name), kind(kind) {}
-
-    static EdgeTy staticCall(SILFunction *CalleeFn) {
+    static Call staticCall(SILFunction *CalleeFn) {
       GUID guid = getGUID(CalleeFn->getName());
-      return EdgeTy(guid, CalleeFn->getName(), Kind::Static);
+      return Call(guid, CalleeFn->getName(), Kind::Static);
     }
 
-    static EdgeTy witnessCall(SILDeclRef Callee) {
-      return EdgeTy(Callee, Kind::Witness);
+    static Call witnessCall(SILDeclRef Callee) {
+      return Call(Callee, Kind::Witness);
     }
-    static EdgeTy vtableCall(SILDeclRef Callee) {
-      return EdgeTy(Callee, Kind::VTable);
+    static Call vtableCall(SILDeclRef Callee) {
+      return Call(Callee, Kind::VTable);
     }
   };
 
@@ -128,24 +127,24 @@ public:
     unsigned Live : 1;
     unsigned Preserved: 1;
   };
-  
-  using CallGraphEdgeListTy = std::vector<EdgeTy>;
+
+  using CallGraphEdgeListTy = std::vector<Call>;
 
 private:
   FlagsTy Flags;
   CallGraphEdgeListTy CallGraphEdgeList;
 
 public:
-  FunctionSummary(std::vector<EdgeTy> CGEdges)
+  FunctionSummary(std::vector<Call> CGEdges)
       : CallGraphEdgeList(std::move(CGEdges)) {}
   FunctionSummary() = default;
 
-  void addCall(GUID targetGUID, std::string name, EdgeTy::Kind kind) {
+  void addCall(GUID targetGUID, std::string name, Call::Kind kind) {
     CallGraphEdgeList.emplace_back(targetGUID, name, kind);
   }
 
-  ArrayRef<EdgeTy> calls() const { return CallGraphEdgeList; }
-  
+  ArrayRef<Call> calls() const { return CallGraphEdgeList; }
+
   bool isLive() const { return Flags.Live; }
   void setLive(bool Live) { Flags.Live = Live; }
 

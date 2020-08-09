@@ -18,7 +18,7 @@ GUID modulesummary::getGUIDFromUniqueName(llvm::StringRef Name) {
 }
 namespace {
 class FunctionSummaryIndexer {
-  std::vector<FunctionSummary::EdgeTy> CallGraphEdgeList;
+  std::vector<FunctionSummary::Call> CallGraphEdgeList;
 public:
   void indexInstruction(SILFunction &F, SILInstruction *I);
   void indexFunction(SILFunction &F);
@@ -34,19 +34,19 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, SILInstruction *I)
     SILFunction *callee = FRI->getReferencedFunctionOrNull();
     assert(callee);
     auto edge =
-        FunctionSummary::EdgeTy::staticCall(callee);
+        FunctionSummary::Call::staticCall(callee);
     CallGraphEdgeList.push_back(edge);
     return;
   }
 
   if (auto *WMI = dyn_cast<WitnessMethodInst>(I)) {
-    auto edge = FunctionSummary::EdgeTy::witnessCall(WMI->getMember());
+    auto edge = FunctionSummary::Call::witnessCall(WMI->getMember());
     CallGraphEdgeList.push_back(edge);
     return;
   }
 
   if (auto *MI = dyn_cast<MethodInst>(I)) {
-    auto edge = FunctionSummary::EdgeTy::vtableCall(MI->getMember());
+    auto edge = FunctionSummary::Call::vtableCall(MI->getMember());
     CallGraphEdgeList.push_back(edge);
     return;
   }
@@ -56,16 +56,16 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, SILInstruction *I)
       component.visitReferencedFunctionsAndMethods(
         [this](SILFunction *F) {
           auto edge =
-              FunctionSummary::EdgeTy::staticCall(F);
+              FunctionSummary::Call::staticCall(F);
           CallGraphEdgeList.push_back(edge);
         },
         [this](SILDeclRef method) {
           auto decl = cast<AbstractFunctionDecl>(method.getDecl());
           if (auto clas = dyn_cast<ClassDecl>(decl->getDeclContext())) {
-            auto edge = FunctionSummary::EdgeTy::vtableCall(method);
+            auto edge = FunctionSummary::Call::vtableCall(method);
             CallGraphEdgeList.push_back(edge);
           } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
-            auto edge = FunctionSummary::EdgeTy::witnessCall(method);
+            auto edge = FunctionSummary::Call::witnessCall(method);
             CallGraphEdgeList.push_back(edge);
           } else {
             llvm_unreachable("key path keyed by a non-class, non-protocol method");
@@ -93,7 +93,7 @@ buildFunctionSummaryIndex(SILFunction &F) {
 }
 
 void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::EdgeTy> Preserved;
+  std::vector<FunctionSummary::Call> Preserved;
   for (auto &WT : M.getWitnessTableList()) {
     auto isExternalProto = WT.getDeclContext()->getParentModule() != M.getSwiftModule() ||
                            WT.getProtocol()->getParentModule() != M.getSwiftModule();
@@ -106,7 +106,7 @@ void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
       VirtualMethodSlot slot(methodWitness.Requirement, VirtualMethodSlot::KindTy::Witness);
       index.addImplementation(slot, getGUID(Witness->getName()));
       if (isExternalProto) {
-        auto edge = FunctionSummary::EdgeTy::staticCall(Witness);
+        auto edge = FunctionSummary::Call::staticCall(Witness);
         Preserved.push_back(edge);
       }
     }
@@ -120,21 +120,21 @@ void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
 
 
 void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::EdgeTy> Preserved;
+  std::vector<FunctionSummary::Call> Preserved;
   for (auto &VT : M.getVTables()) {
     for (auto entry : VT->getEntries()) {
       auto Impl = entry.getImplementation();
       if (entry.getMethod().kind == SILDeclRef::Kind::Deallocator ||
           entry.getMethod().kind == SILDeclRef::Kind::IVarDestroyer) {
         // Destructors are alive because they are called from swift_release
-        auto edge = FunctionSummary::EdgeTy::staticCall(Impl);
+        auto edge = FunctionSummary::Call::staticCall(Impl);
         LLVM_DEBUG(llvm::dbgs() << "Preserve deallocator '" << Impl->getName() << "'\n");
         Preserved.push_back(edge);
       }
       auto methodMod = entry.getMethod().getDecl()->getModuleContext();
       auto isExternalMethod = methodMod != M.getSwiftModule();
       if (entry.getKind() == SILVTableEntry::Override && isExternalMethod) {
-        auto edge = FunctionSummary::EdgeTy::staticCall(Impl);
+        auto edge = FunctionSummary::Call::staticCall(Impl);
         Preserved.push_back(edge);
       }
       VirtualMethodSlot slot(entry.getMethod(), VirtualMethodSlot::KindTy::VTable);
@@ -149,7 +149,7 @@ void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
 }
 
 void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::EdgeTy> CallGraphEdgeList;
+  std::vector<FunctionSummary::Call> CallGraphEdgeList;
   for (SILProperty &P : M.getPropertyList()) {
     if (auto component = P.getComponent()) {
       component->visitReferencedFunctionsAndMethods(
@@ -162,10 +162,10 @@ void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
         [&](SILDeclRef method) {
           auto decl = cast<AbstractFunctionDecl>(method.getDecl());
           if (auto clas = dyn_cast<ClassDecl>(decl->getDeclContext())) {
-            auto edge = FunctionSummary::EdgeTy::vtableCall(method);
+            auto edge = FunctionSummary::Call::vtableCall(method);
             CallGraphEdgeList.push_back(edge);
           } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
-            auto edge = FunctionSummary::EdgeTy::witnessCall(method);
+            auto edge = FunctionSummary::Call::witnessCall(method);
             CallGraphEdgeList.push_back(edge);
           } else {
             llvm_unreachable("key path keyed by a non-class, non-protocol method");
