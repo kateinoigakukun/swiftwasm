@@ -123,13 +123,13 @@ private:
   std::string debugName;
 
 public:
-  FunctionSummary(std::vector<Call> CGEdges)
-      : CallGraphEdgeList(std::move(CGEdges)) {}
   FunctionSummary() = default;
 
   void addCall(GUID targetGUID, std::string name, Call::Kind kind) {
     CallGraphEdgeList.emplace_back(targetGUID, name, kind);
   }
+
+  void addCall(Call call) { CallGraphEdgeList.push_back(call); }
 
   ArrayRef<Call> calls() const { return CallGraphEdgeList; }
 

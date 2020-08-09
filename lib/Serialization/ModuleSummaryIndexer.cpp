@@ -18,7 +18,7 @@ GUID modulesummary::getGUIDFromUniqueName(llvm::StringRef Name) {
 }
 namespace {
 class FunctionSummaryIndexer {
-  std::vector<FunctionSummary::Call> CallGraphEdgeList;
+  std::unique_ptr<FunctionSummary> TheSummary;
 
   void indexDirectFunctionCall(const SILFunction &Callee);
   void indexIndirectFunctionCall(const SILDeclRef &Callee,
@@ -28,7 +28,7 @@ public:
   void indexFunction(SILFunction &F);
 
   std::unique_ptr<FunctionSummary> takeSummary() {
-    return std::make_unique<FunctionSummary>(std::move(CallGraphEdgeList));
+    return std::move(TheSummary);
   }
 };
 
@@ -36,7 +36,7 @@ void FunctionSummaryIndexer::indexDirectFunctionCall(
     const SILFunction &Callee) {
   GUID guid = getGUIDFromUniqueName(Callee.getName());
   FunctionSummary::Call call(guid, Callee.getName(), FunctionSummary::Call::Direct);
-  CallGraphEdgeList.push_back(call);
+  TheSummary->addCall(call);
 }
 
 void FunctionSummaryIndexer::indexIndirectFunctionCall(
@@ -44,7 +44,7 @@ void FunctionSummaryIndexer::indexIndirectFunctionCall(
   StringRef mangledName = Callee.mangle();
   GUID guid = getGUIDFromUniqueName(mangledName);
   FunctionSummary::Call call(guid, mangledName, Kind);
-  CallGraphEdgeList.push_back(call);
+  TheSummary->addCall(call);
 }
 
 void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstruction *I) {
@@ -89,6 +89,7 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstructi
 }
 
 void FunctionSummaryIndexer::indexFunction(SILFunction &F) {
+  TheSummary = std::make_unique<FunctionSummary>();
   for (auto &BB : F) {
      for (auto &I : BB) {
        indexInstruction(F, &I);
@@ -105,7 +106,7 @@ buildFunctionSummaryIndex(SILFunction &F) {
 }
 
 void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::Call> Preserved;
+  auto FS = std::make_unique<FunctionSummary>();
   for (auto &WT : M.getWitnessTableList()) {
     auto isExternalProto = WT.getDeclContext()->getParentModule() != M.getSwiftModule() ||
                            WT.getProtocol()->getParentModule() != M.getSwiftModule();
@@ -121,20 +122,20 @@ void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
         GUID guid = getGUIDFromUniqueName(Witness->getName());
         FunctionSummary::Call edge(guid, Witness->getName(),
                                    FunctionSummary::Call::Direct);
-        Preserved.push_back(edge);
+        FS->addCall(edge);
       }
     }
   }
-  
-  auto FS = std::make_unique<FunctionSummary>(Preserved);
+
   FS->setPreserved(true);
-  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << Preserved.size() << " external witnesses\n");
+  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
+                          << " external witnesses\n");
   index.addFunctionSummary("__external_witnesses_preserved_fs", std::move(FS));
 }
 
 
 void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::Call> Preserved;
+  auto FS = std::make_unique<FunctionSummary>();
   for (auto &VT : M.getVTables()) {
     for (auto entry : VT->getEntries()) {
       auto Impl = entry.getImplementation();
@@ -145,7 +146,7 @@ void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
         FunctionSummary::Call edge(guid, Impl->getName(),
                                    FunctionSummary::Call::Direct);
         LLVM_DEBUG(llvm::dbgs() << "Preserve deallocator '" << Impl->getName() << "'\n");
-        Preserved.push_back(edge);
+        FS->addCall(edge);
       }
       auto methodMod = entry.getMethod().getDecl()->getModuleContext();
       auto isExternalMethod = methodMod != M.getSwiftModule();
@@ -153,21 +154,22 @@ void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
         GUID guid = getGUIDFromUniqueName(Impl->getName());
         FunctionSummary::Call edge(guid, Impl->getName(),
                                    FunctionSummary::Call::Direct);
-        Preserved.push_back(edge);
+        FS->addCall(edge);
       }
       VirtualMethodSlot slot(entry.getMethod(), VirtualMethodSlot::KindTy::VTable);
       index.addImplementation(slot, getGUID(Impl->getName()));
     }
   }
-  
-  auto FS = std::make_unique<FunctionSummary>(Preserved);
+
   FS->setPreserved(true);
-  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << Preserved.size() << " deallocators\n");
+  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
+                          << " deallocators\n");
   index.addFunctionSummary("__vtable_destructors_and_externals_preserved_fs", std::move(FS));
 }
 
 void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
-  std::vector<FunctionSummary::Call> CallGraphEdgeList;
+  auto FS = std::make_unique<FunctionSummary>();
+
   for (SILProperty &P : M.getPropertyList()) {
     if (auto component = P.getComponent()) {
       component->visitReferencedFunctionsAndMethods(
@@ -183,12 +185,12 @@ void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
             GUID guid = getGUIDFromUniqueName(method.mangle());
             FunctionSummary::Call edge(guid, method.mangle(),
                                        FunctionSummary::Call::VTable);
-            CallGraphEdgeList.push_back(edge);
+            FS->addCall(edge);
           } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
             GUID guid = getGUIDFromUniqueName(method.mangle());
             FunctionSummary::Call edge(guid, method.mangle(),
                                        FunctionSummary::Call::Witness);
-            CallGraphEdgeList.push_back(edge);
+            FS->addCall(edge);
           } else {
             llvm_unreachable("key path keyed by a non-class, non-protocol method");
           }
@@ -196,7 +198,6 @@ void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
       );
     }
   }
-  auto FS = std::make_unique<FunctionSummary>(std::move(CallGraphEdgeList));
   FS->setPreserved(true);
   index.addFunctionSummary("__keypath_preserved_fs", std::move(FS));
 }
