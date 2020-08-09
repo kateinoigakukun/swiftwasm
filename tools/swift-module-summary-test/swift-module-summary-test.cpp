@@ -59,7 +59,7 @@ LLVM_YAML_DECLARE_MAPPING_TRAITS(modulesummary::ModuleSummaryIndex)
 LLVM_YAML_DECLARE_MAPPING_TRAITS(modulesummary::FunctionSummary)
 LLVM_YAML_DECLARE_MAPPING_TRAITS(modulesummary::FunctionSummary::Call)
 LLVM_YAML_IS_SEQUENCE_VECTOR(modulesummary::FunctionSummary::Call)
-LLVM_YAML_DECLARE_ENUM_TRAITS(modulesummary::FunctionSummary::Call::Kind)
+LLVM_YAML_DECLARE_ENUM_TRAITS(modulesummary::FunctionSummary::Call::KindTy)
 
 namespace llvm {
 namespace yaml {
@@ -73,9 +73,9 @@ template <> struct MappingTraits<std::unique_ptr<FunctionSummary>> {
   }
 };
 
-void ScalarEnumerationTraits<FunctionSummary::Call::Kind>::enumeration(
-    IO &io, FunctionSummary::Call::Kind &V) {
-  using Kind = FunctionSummary::Call::Kind;
+void ScalarEnumerationTraits<FunctionSummary::Call::KindTy>::enumeration(
+    IO &io, FunctionSummary::Call::KindTy &V) {
+  using Kind = FunctionSummary::Call::KindTy;
   io.enumCase(V, "direct", Kind::Direct);
   io.enumCase(V, "vtable", Kind::VTable);
   io.enumCase(V, "witness", Kind::Witness);
@@ -83,16 +83,16 @@ void ScalarEnumerationTraits<FunctionSummary::Call::Kind>::enumeration(
 
 void MappingTraits<FunctionSummary::Call>::mapping(IO &io,
                                                    FunctionSummary::Call &V) {
-  io.mapRequired("callee_name", V.debugName);
-  io.mapRequired("callee", V.calleeFn);
-  io.mapRequired("kind", V.kind);
+  io.mapRequired("callee_name", V.Name);
+  io.mapRequired("callee", V.CalleeFn);
+  io.mapRequired("kind", V.Kind);
 }
 
 void MappingTraits<FunctionSummary>::mapping(IO &io, FunctionSummary &V) {
-  io.mapRequired("name", V.debugName);
-  io.mapRequired("guid", V.guid);
-  io.mapRequired("live", V.flags.Live);
-  io.mapRequired("preserved", V.flags.Preserved);
+  io.mapRequired("name", V.Name);
+  io.mapRequired("guid", V.Guid);
+  io.mapRequired("live", V.Flags.Live);
+  io.mapRequired("preserved", V.Flags.Preserved);
   io.mapRequired("calls", V.CallGraphEdgeList);
 }
 
@@ -114,9 +114,8 @@ struct CustomMappingTraits<ModuleSummaryIndex::FunctionSummaryMapTy> {
 };
 
 template <>
-struct CustomMappingTraits<ModuleSummaryIndex::VirtualFunctionMapTy> {
-  static void inputOne(IO &io, StringRef Key,
-                       ModuleSummaryIndex::VirtualFunctionMapTy &V) {
+struct CustomMappingTraits<VirtualFunctionMapTy> {
+  static void inputOne(IO &io, StringRef Key, VirtualFunctionMapTy &V) {
     GUID KeyInt;
     if (Key.getAsInteger(0, KeyInt)) {
       io.setError("key not an integer");
@@ -124,7 +123,7 @@ struct CustomMappingTraits<ModuleSummaryIndex::VirtualFunctionMapTy> {
     }
     io.mapRequired(Key.str().c_str(), V[KeyInt]);
   }
-  static void output(IO &io, ModuleSummaryIndex::VirtualFunctionMapTy &V) {
+  static void output(IO &io, VirtualFunctionMapTy &V) {
     for (auto &P : V)
       io.mapRequired(llvm::utostr(P.first).c_str(), P.second);
   }

@@ -27,15 +27,15 @@ static cl::opt<bool> ModuleSummaryEmbedDebugName(
     cl::desc("Embed function names for debugging purpose"));
 
 namespace {
-static Optional<FunctionSummary::Call::Kind> getEdgeKind(unsigned edgeKind) {
-  if (edgeKind < unsigned(FunctionSummary::Call::Kind::kindCount))
-    return FunctionSummary::Call::Kind(edgeKind);
+static Optional<FunctionSummary::Call::KindTy> getEdgeKind(unsigned edgeKind) {
+  if (edgeKind < unsigned(FunctionSummary::Call::KindTy::kindCount))
+    return FunctionSummary::Call::KindTy(edgeKind);
   return None;
 }
 
 
 static Optional<VirtualMethodSlot::KindTy> getSlotKind(unsigned kind) {
-  if (kind < unsigned(FunctionSummary::Call::Kind::kindCount))
+  if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
     return VirtualMethodSlot::KindTy(kind);
   return None;
 }
@@ -54,7 +54,7 @@ class Serializer {
 
   void emitRecordID(unsigned ID, StringRef name,
                     SmallVectorImpl<unsigned char> &nameBuffer);
-
+  void emitVFuncTable(const VFuncToImplsMapTy T, VirtualMethodSlot::KindTy kind);
 public:
   void emitHeader();
   void emitModuleSummary(const ModuleSummaryIndex &index);
@@ -119,7 +119,7 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   using namespace function_summary;
   function_summary::MetadataLayout MDlayout(Out);
   StringRef debugFuncName =
-      ModuleSummaryEmbedDebugName ? summary->getDebugName() : "";
+      ModuleSummaryEmbedDebugName ? summary->getName() : "";
   MDlayout.emit(ScratchRecord, summary->getGUID(), summary->isLive(),
                 summary->isPreserved(), debugFuncName);
 
@@ -129,6 +129,24 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
         ModuleSummaryEmbedDebugName ? call.getName() : "";
     edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
                     call.getCallee(), debugName);
+  }
+}
+
+void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VirtualMethodSlot::KindTy kind) {
+  for (auto &pair : T) {
+    BCBlockRAII restoreBlock(Out, VIRTUAL_METHOD_INFO_ID, 32);
+    auto &guid = pair.first;
+    auto impls = pair.second;
+    using namespace virtual_method_info;
+
+    MethodMetadataLayout MDLayout(Out);
+
+    MDLayout.emit(ScratchRecord, unsigned(kind), guid);
+
+    for (auto impl : impls) {
+      MethodImplLayout ImplLayout(Out);
+      ImplLayout.emit(ScratchRecord, impl);
+    }
   }
 }
 
@@ -143,23 +161,8 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
     emitFunctionSummary(FI->second.get());
   }
 
-  {
-    for (auto &method : index.virtualMethods()) {
-      BCBlockRAII restoreBlock(Out, VIRTUAL_METHOD_INFO_ID, 32);
-      auto &slot = method.first;
-      auto impls = method.second;
-      using namespace virtual_method_info;
-
-      MethodMetadataLayout MDLayout(Out);
-
-      MDLayout.emit(ScratchRecord, unsigned(slot.Kind), slot.VirtualFuncID);
-
-      for (auto impl : impls) {
-        MethodImplLayout ImplLayout(Out);
-        ImplLayout.emit(ScratchRecord, impl);
-      }
-    }
-  }
+  emitVFuncTable(index.getWitnessTableMethodMap(), VirtualMethodSlot::Witness);
+  emitVFuncTable(index.getVTableMethodMap(), VirtualMethodSlot::VTable);
 }
 
 void Serializer::write(raw_ostream &os) {
@@ -222,7 +225,7 @@ bool Deserializer::readModuleSummaryMetadata() {
     return true;
   }
 
-  moduleSummary.setModuleName(BlobData.str());
+  moduleSummary.setName(BlobData.str());
 
   return false;
 }
@@ -265,7 +268,7 @@ bool Deserializer::readFunctionSummary() {
       }
       FS->setLive(isLive);
       FS->setPreserved(isPreserved);
-      FS->setDebugName(Name);
+      FS->setName(Name);
       break;
     }
     case function_summary::CALL_GRAPH_EDGE: {

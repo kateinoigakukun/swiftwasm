@@ -24,7 +24,7 @@ class FunctionSummaryIndexer {
 
   void indexDirectFunctionCall(const SILFunction &Callee);
   void indexIndirectFunctionCall(const SILDeclRef &Callee,
-                                 FunctionSummary::Call::Kind Kind);
+                                 FunctionSummary::Call::KindTy Kind);
   void indexInstruction(const SILInstruction *I);
 
 public:
@@ -44,7 +44,7 @@ void FunctionSummaryIndexer::indexDirectFunctionCall(
 }
 
 void FunctionSummaryIndexer::indexIndirectFunctionCall(
-    const SILDeclRef &Callee, FunctionSummary::Call::Kind Kind) {
+    const SILDeclRef &Callee, FunctionSummary::Call::KindTy Kind) {
   StringRef mangledName = Callee.mangle();
   GUID guid = getGUIDFromUniqueName(mangledName);
   FunctionSummary::Call call(guid, mangledName, Kind);
@@ -105,7 +105,7 @@ bool shouldPreserveFunction(const SILFunction &F) {
 void FunctionSummaryIndexer::indexFunction() {
   GUID guid = getGUIDFromUniqueName(F.getName());
   TheSummary = std::make_unique<FunctionSummary>(guid);
-  TheSummary->setDebugName(F.getName());
+  TheSummary->setName(F.getName());
   for (auto &BB : F) {
     for (auto &I : BB) {
       indexInstruction(&I);
@@ -220,7 +220,7 @@ void ModuleSummaryIndexer::indexVTable(const SILVTable &VT) {
 void ModuleSummaryIndexer::indexModule() {
   TheSummary = std::make_unique<ModuleSummaryIndex>();
   auto moduleName = Mod.getSwiftModule()->getName().str();
-  TheSummary->setModuleName(moduleName);
+  TheSummary->setName(moduleName);
 
   for (auto &F : Mod) {
     FunctionSummaryIndexer indexer(F);
