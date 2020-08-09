@@ -16,16 +16,20 @@ using namespace modulesummary;
 GUID modulesummary::getGUIDFromUniqueName(llvm::StringRef Name) {
   return llvm::MD5Hash(Name);
 }
+
 namespace {
 class FunctionSummaryIndexer {
+  const SILFunction &F;
   std::unique_ptr<FunctionSummary> TheSummary;
 
   void indexDirectFunctionCall(const SILFunction &Callee);
   void indexIndirectFunctionCall(const SILDeclRef &Callee,
                                  FunctionSummary::Call::Kind Kind);
-  void indexInstruction(SILFunction &F, const SILInstruction *I);
+  void indexInstruction(const SILInstruction *I);
+
 public:
-  void indexFunction(SILFunction &F);
+  FunctionSummaryIndexer(const SILFunction &F) : F(F) {}
+  void indexFunction();
 
   std::unique_ptr<FunctionSummary> takeSummary() {
     return std::move(TheSummary);
@@ -47,7 +51,7 @@ void FunctionSummaryIndexer::indexIndirectFunctionCall(
   TheSummary->addCall(call);
 }
 
-void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstruction *I) {
+void FunctionSummaryIndexer::indexInstruction(const SILInstruction *I) {
   // TODO: Handle dynamically replacable function ref inst
   if (auto *FRI = dyn_cast<FunctionRefInst>(I)) {
     SILFunction *callee = FRI->getReferencedFunctionOrNull();
@@ -88,22 +92,22 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstructi
   }
 }
 
-void FunctionSummaryIndexer::indexFunction(SILFunction &F) {
+void FunctionSummaryIndexer::indexFunction() {
   GUID guid = getGUIDFromUniqueName(F.getName());
   TheSummary = std::make_unique<FunctionSummary>(guid);
   TheSummary->setDebugName(F.getName());
   for (auto &BB : F) {
-     for (auto &I : BB) {
-       indexInstruction(F, &I);
-     }
+    for (auto &I : BB) {
+      indexInstruction(&I);
+    }
   }
 }
 };
 
 std::unique_ptr<FunctionSummary>
 buildFunctionSummaryIndex(SILFunction &F) {
-  FunctionSummaryIndexer indexer;
-  indexer.indexFunction(F);
+  FunctionSummaryIndexer indexer(F);
+  indexer.indexFunction();
   return indexer.takeSummary();
 }
 
