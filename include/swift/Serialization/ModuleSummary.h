@@ -199,10 +199,10 @@ public:
     return VirtualMethodInfoMap;
   }
 
-  FunctionSummaryMapTy::const_iterator begin() const {
+  FunctionSummaryMapTy::const_iterator functions_begin() const {
     return FunctionSummaryInfoMap.begin();
   }
-  FunctionSummaryMapTy::const_iterator end() const {
+  FunctionSummaryMapTy::const_iterator functions_end() const {
     return FunctionSummaryInfoMap.end();
   }
 };
