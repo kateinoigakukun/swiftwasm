@@ -118,14 +118,17 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   BCBlockRAII restoreBlock(Out, FUNCTION_SUMMARY_ID, 32);
   using namespace function_summary;
   function_summary::MetadataLayout MDlayout(Out);
-
+  StringRef debugFuncName =
+      ModuleSummaryEmbedDebugName ? summary->getDebugName() : "";
   MDlayout.emit(ScratchRecord, summary->getGUID(), summary->isLive(),
-                summary->isPreserved(), summary->getDebugName());
+                summary->isPreserved(), debugFuncName);
 
   for (auto call : summary->calls()) {
-      CallGraphEdgeLayout edgeLayout(Out);
-      edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
-                      call.getCallee(), call.getName());
+    CallGraphEdgeLayout edgeLayout(Out);
+    StringRef debugName =
+        ModuleSummaryEmbedDebugName ? call.getName() : "";
+    edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
+                    call.getCallee(), debugName);
   }
 }
 
