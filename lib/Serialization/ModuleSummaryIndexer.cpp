@@ -89,7 +89,9 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstructi
 }
 
 void FunctionSummaryIndexer::indexFunction(SILFunction &F) {
-  TheSummary = std::make_unique<FunctionSummary>();
+  GUID guid = getGUIDFromUniqueName(F.getName());
+  TheSummary = std::make_unique<FunctionSummary>(guid);
+  TheSummary->setDebugName(F.getName());
   for (auto &BB : F) {
      for (auto &I : BB) {
        indexInstruction(F, &I);
@@ -106,7 +108,7 @@ buildFunctionSummaryIndex(SILFunction &F) {
 }
 
 void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>();
+  auto FS = std::make_unique<FunctionSummary>(1);
   for (auto &WT : M.getWitnessTableList()) {
     auto isExternalProto = WT.getDeclContext()->getParentModule() != M.getSwiftModule() ||
                            WT.getProtocol()->getParentModule() != M.getSwiftModule();
@@ -128,14 +130,15 @@ void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
   }
 
   FS->setPreserved(true);
+  FS->setDebugName("__external_witnesses_preserved_fs");
   LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
                           << " external witnesses\n");
-  index.addFunctionSummary("__external_witnesses_preserved_fs", std::move(FS));
+  index.addFunctionSummary(std::move(FS));
 }
 
 
 void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>();
+  auto FS = std::make_unique<FunctionSummary>(2);
   for (auto &VT : M.getVTables()) {
     for (auto entry : VT->getEntries()) {
       auto Impl = entry.getImplementation();
@@ -162,13 +165,14 @@ void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
   }
 
   FS->setPreserved(true);
+  FS->setDebugName("__vtable_destructors_and_externals_preserved_fs");
   LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
                           << " deallocators\n");
-  index.addFunctionSummary("__vtable_destructors_and_externals_preserved_fs", std::move(FS));
+  index.addFunctionSummary(std::move(FS));
 }
 
 void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>();
+  auto FS = std::make_unique<FunctionSummary>(3);
 
   for (SILProperty &P : M.getPropertyList()) {
     if (auto component = P.getComponent()) {
@@ -177,7 +181,7 @@ void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
           auto FS = buildFunctionSummaryIndex(*F);
           LLVM_DEBUG(llvm::dbgs() << "Preserve keypath funcs " << F->getName() << "\n");
           FS->setPreserved(true);
-          index.addFunctionSummary(F->getName(), std::move(FS));
+          index.addFunctionSummary(std::move(FS));
         },
         [&](SILDeclRef method) {
           auto decl = cast<AbstractFunctionDecl>(method.getDecl());
@@ -199,7 +203,8 @@ void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
     }
   }
   FS->setPreserved(true);
-  index.addFunctionSummary("__keypath_preserved_fs", std::move(FS));
+  FS->setDebugName("__keypath_preserved_fs");
+  index.addFunctionSummary(std::move(FS));
 }
 
 ModuleSummaryIndex modulesummary::buildModuleSummaryIndex(SILModule &M) {
@@ -222,7 +227,7 @@ ModuleSummaryIndex modulesummary::buildModuleSummaryIndex(SILModule &M) {
     }
 
     FS->setLive(false);
-    index.addFunctionSummary(F.getName(), std::move(FS));
+    index.addFunctionSummary(std::move(FS));
   }
 
   indexWitnessTable(index, M);

@@ -54,7 +54,7 @@ public:
 
     Call(SILDeclRef &CalleeFn, Kind kind) : kind(kind) {
       this->Name = CalleeFn.mangle();
-      this->CalleeFn = getGUID(CalleeFn.mangle());
+      this->CalleeFn = getGUIDFromUniqueName(CalleeFn.mangle());
     }
     Call(GUID callee, std::string name, Kind kind)
         : CalleeFn(callee), Name(name), kind(kind) {}
@@ -118,12 +118,14 @@ public:
   using CallGraphEdgeListTy = std::vector<Call>;
 
 private:
+  GUID guid;
   FlagsTy Flags;
   CallGraphEdgeListTy CallGraphEdgeList;
   std::string debugName;
 
 public:
-  FunctionSummary() = default;
+  FunctionSummary(GUID guid) : guid(guid) {}
+//  FunctionSummary() = default;
 
   void addCall(GUID targetGUID, std::string name, Call::Kind kind) {
     CallGraphEdgeList.emplace_back(targetGUID, name, kind);
@@ -140,6 +142,7 @@ public:
   void setPreserved(bool Preserved) { Flags.Preserved = Preserved; }
   std::string getDebugName() const { return debugName; }
   void setDebugName(std::string name) { this->debugName = name; }
+  GUID getGUID() const { return guid; }
 };
 
 class ModuleSummaryIndex {
@@ -159,12 +162,9 @@ public:
     this->ModuleName = name;
   }
 
-  void addFunctionSummary(std::string name,
-                          std::unique_ptr<FunctionSummary> summary) {
-    auto guid = getGUID(name);
-    summary->setDebugName(name);
+  void addFunctionSummary(std::unique_ptr<FunctionSummary> summary) {
     FunctionSummaryInfoMap.insert(
-        std::make_pair(guid, std::move(summary)));
+        std::make_pair(summary->getGUID(), std::move(summary)));
   }
 
   const llvm::Optional<std::pair<FunctionSummary *, StringRef>>

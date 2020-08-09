@@ -256,11 +256,12 @@ bool Deserializer::readFunctionSummary() {
       if (auto info = moduleSummary.getFunctionInfo(guid)) {
         FS = info.getValue().first;
       } else {
-        NewFSOwner = std::make_unique<FunctionSummary>();
+        NewFSOwner = std::make_unique<FunctionSummary>(guid);
         FS = NewFSOwner.get();
       }
       FS->setLive(isLive);
       FS->setPreserved(isPreserved);
+      FS->setDebugName(Name);
       break;
     }
     case function_summary::CALL_GRAPH_EDGE: {
@@ -287,7 +288,7 @@ bool Deserializer::readFunctionSummary() {
   }
 
   if (auto &FS = NewFSOwner) {
-    moduleSummary.addFunctionSummary(Name, std::move(FS));
+    moduleSummary.addFunctionSummary(std::move(FS));
   }
   return false;
 }
