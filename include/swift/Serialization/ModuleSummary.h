@@ -13,187 +13,194 @@ namespace modulesummary {
 using GUID = uint64_t;
 
 GUID getGUIDFromUniqueName(llvm::StringRef Name);
-
+static GUID getGUID(llvm::StringRef Str) { return llvm::MD5Hash(Str); }
 struct VirtualMethodSlot {
-  enum Kind {
-    Witness,
-    VTable,
+  enum class KindTy {
+    Witness, VTable,
     kindCount,
   };
 
-  Kind kind;
-  GUID virtualFuncID;
-  VirtualMethodSlot(Kind kind, GUID virtualFuncID)
-      : kind(kind), virtualFuncID(virtualFuncID) {}
-  VirtualMethodSlot(const SILDeclRef &VirtualFuncRef, Kind kind) : kind(kind) {
-    virtualFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
+  KindTy Kind;
+  GUID VirtualFuncID;
+  VirtualMethodSlot(KindTy kind, GUID virtualFuncID)
+    : Kind(kind), VirtualFuncID(virtualFuncID) { }
+  VirtualMethodSlot(SILDeclRef VirtualFuncRef, KindTy kind) : Kind(kind) {
+    VirtualFuncID = getGUID(VirtualFuncRef.mangle());
   }
 
-  bool operator<(const VirtualMethodSlot &rhs) const {
-    if (kind > rhs.kind)
+  bool operator<(const VirtualMethodSlot &rhs)  const {
+    if (Kind > rhs.Kind)
       return false;
-    if (kind < rhs.kind)
+    if (Kind < rhs.Kind)
       return true;
-    return virtualFuncID < rhs.virtualFuncID;
+    return VirtualFuncID < rhs.VirtualFuncID;
   }
 };
 
 class FunctionSummary {
 public:
-  class Call {
+  class EdgeTy {
+    GUID CalleeFn;
+    std::string Name;
   public:
-    enum Kind {
-      Direct,
+
+    enum class Kind {
+      Static,
       Witness,
       VTable,
       kindCount,
     };
 
-  private:
-    GUID calleeFn;
     Kind kind;
-    std::string debugName;
+
+    EdgeTy(SILDeclRef &CalleeFn, Kind kind) : kind(kind) {
+      this->Name = CalleeFn.mangle();
+      this->CalleeFn = getGUID(CalleeFn.mangle());
+    }
 
   public:
-    friend ::llvm::yaml::MappingTraits<Call>;
-    Call() = default;
-    Call(GUID callee, Kind kind, std::string debugName)
-        : calleeFn(callee), kind(kind), debugName(debugName) {}
-
     Kind getKind() const { return kind; }
-    GUID getCallee() const { return calleeFn; }
-    std::string getDebugName() const { return debugName; };
-    void setDebugName(std::string name) { debugName = name; }
-
-    void dump(llvm::raw_ostream &os) const {
-      os << "call: (kind: ";
+    GUID getCallee() const { return CalleeFn; }
+    std::string getName() const { return Name; };
+    
+    void dump() const {
+      llvm::dbgs() << "FunctionSummary(kind: ";
       switch (kind) {
       case Kind::Witness: {
-        os << "witness";
+        llvm::dbgs() << "Witness";
         break;
       }
       case Kind::VTable: {
-        os << "vtable";
+        llvm::dbgs() << "VTable";
         break;
       }
-      case Kind::Direct: {
-        os << "direct";
+      case Kind::Static: {
+        llvm::dbgs() << "Static";
         break;
       }
       case Kind::kindCount: {
         llvm_unreachable("impossible");
       }
       }
-      os << ", name: " << getDebugName() << " , callee: " << getCallee()
-         << ")\n";
+      llvm::dbgs() << ", name: " << getName() << " , callee: ";
+      llvm::dbgs() << getCallee() << ")\n";
     }
-
+    
     VirtualMethodSlot slot() const {
-      VirtualMethodSlot::Kind slotKind;
+      VirtualMethodSlot::KindTy slotKind;
       switch (kind) {
-      case Kind::Witness: {
-        slotKind = VirtualMethodSlot::Witness;
+        case Kind::Witness: {
+        slotKind = VirtualMethodSlot::KindTy::Witness;
         break;
-      }
-      case Kind::VTable: {
-        slotKind = VirtualMethodSlot::VTable;
+        }
+        case Kind::VTable: {
+        slotKind = VirtualMethodSlot::KindTy::VTable;
         break;
+        }
+        case Kind::Static: {
+          llvm_unreachable("Can't get slot for static call");
+        }
+        case Kind::kindCount: {
+          llvm_unreachable("impossible");
+        }
       }
-      case Kind::Direct: {
-        llvm_unreachable("Can't get slot for static call");
-      }
-      case Kind::kindCount: {
-        llvm_unreachable("impossible");
-      }
-      }
-      return VirtualMethodSlot(slotKind, calleeFn);
+      return VirtualMethodSlot(slotKind, CalleeFn);
+    }
+
+    EdgeTy(GUID callee, std::string name, Kind kind)
+      : CalleeFn(callee), Name(name), kind(kind) {}
+
+    static EdgeTy staticCall(SILFunction *CalleeFn) {
+      GUID guid = getGUID(CalleeFn->getName());
+      return EdgeTy(guid, CalleeFn->getName(), Kind::Static);
+    }
+
+    static EdgeTy witnessCall(SILDeclRef Callee) {
+      return EdgeTy(Callee, Kind::Witness);
+    }
+    static EdgeTy vtableCall(SILDeclRef Callee) {
+      return EdgeTy(Callee, Kind::VTable);
     }
   };
 
+  
   struct FlagsTy {
-    bool Live;
-    bool Preserved;
+    unsigned Live : 1;
+    unsigned Preserved: 1;
   };
-
-  using CallGraphEdgeListTy = std::vector<Call>;
+  
+  using CallGraphEdgeListTy = std::vector<EdgeTy>;
 
 private:
-  GUID guid;
-  FlagsTy flags;
+  FlagsTy Flags;
   CallGraphEdgeListTy CallGraphEdgeList;
-  std::string debugName;
 
 public:
-  friend ::llvm::yaml::MappingTraits<FunctionSummary>;
+  FunctionSummary(std::vector<EdgeTy> CGEdges)
+      : CallGraphEdgeList(std::move(CGEdges)) {}
   FunctionSummary() = default;
-  FunctionSummary(GUID guid) : guid(guid) {}
 
-  GUID getGUID() const { return guid; }
-  void addCall(Call call) { CallGraphEdgeList.push_back(call); }
-
-  ArrayRef<Call> calls() const { return CallGraphEdgeList; }
-
-  bool isLive() const { return flags.Live; }
-  void setLive(bool Live) { flags.Live = Live; }
-
-  bool isPreserved() const { return flags.Preserved; }
-  void setPreserved(bool Preserved) { flags.Preserved = Preserved; }
-
-  std::string getDebugName() const { return debugName; }
-  void setDebugName(std::string name) { this->debugName = name; }
-
-  void dump(llvm::raw_ostream &os) const {
-    os << "(func " << getDebugName();
-    if (!getDebugName().empty()) {
-      os << "name: " << getDebugName() << ", ";
-    }
-    os << "live: " << isLive() << ", ";
-    os << "preserved: " << isPreserved() << ", ";
-    os << "guid: " << getGUID() << ")\n";
+  void addCall(GUID targetGUID, std::string name, EdgeTy::Kind kind) {
+    CallGraphEdgeList.emplace_back(targetGUID, name, kind);
   }
+
+  ArrayRef<EdgeTy> calls() const { return CallGraphEdgeList; }
+  
+  bool isLive() const { return Flags.Live; }
+  void setLive(bool Live) { Flags.Live = Live; }
+
+  bool isPreserved() const { return Flags.Preserved; }
+  void setPreserved(bool Preserved) { Flags.Preserved = Preserved; }
+};
+
+struct FunctionSummaryInfo {
+  std::string Name;
+  std::unique_ptr<FunctionSummary> TheSummary;
 };
 
 class ModuleSummaryIndex {
-public:
-  using FunctionSummaryMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;
-  using VirtualMethodMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
+  using FunctionSummaryInfoMapTy = std::map<GUID, FunctionSummaryInfo>;
+  using VirtualMethodInfoMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
 
-private:
-  FunctionSummaryMapTy FunctionSummaryInfoMap;
-  VirtualMethodMapTy VirtualMethodInfoMap;
+  FunctionSummaryInfoMapTy FunctionSummaryInfoMap;
+  VirtualMethodInfoMapTy VirtualMethodInfoMap;
 
-  std::string ModuleName;
+  std::string ModuleName; // Only for debug purpose
 
 public:
-  friend ::llvm::yaml::MappingTraits<ModuleSummaryIndex>;
   ModuleSummaryIndex() = default;
 
   std::string getModuleName() const { return this->ModuleName; }
-  void setModuleName(std::string name) { this->ModuleName = name; }
-
-  void addFunctionSummary(std::unique_ptr<FunctionSummary> summary) {
-    auto guid = summary->getGUID();
-    FunctionSummaryInfoMap.insert(std::make_pair(guid, std::move(summary)));
+  void setModuleName(std::string name) {
+    this->ModuleName = name;
   }
 
-  const llvm::Optional<FunctionSummary *> getFunctionSummary(GUID guid) const {
+  void addFunctionSummary(std::string name,
+                          std::unique_ptr<FunctionSummary> summary) {
+    auto guid = getGUID(name);
+    FunctionSummaryInfoMap.insert(
+        std::make_pair(guid, FunctionSummaryInfo{name, std::move(summary)}));
+  }
+
+  const llvm::Optional<std::pair<FunctionSummary *, StringRef>>
+  getFunctionInfo(GUID guid) const {
     auto found = FunctionSummaryInfoMap.find(guid);
     if (found == FunctionSummaryInfoMap.end()) {
       return None;
     }
-    return found->second.get();
+    auto &entry = found->second;
+    return std::make_pair(entry.TheSummary.get(), StringRef(entry.Name));
   }
-
+  
   void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
     auto found = VirtualMethodInfoMap.find(slot);
     if (found == VirtualMethodInfoMap.end()) {
-      VirtualMethodInfoMap.insert(
-          std::make_pair(slot, std::vector<GUID>{funcGUID}));
+      VirtualMethodInfoMap.insert(std::make_pair(slot, std::vector<GUID>{ funcGUID }));
       return;
     }
     found->second.push_back(funcGUID);
   }
-
+  
   llvm::Optional<ArrayRef<GUID>>
   getImplementations(VirtualMethodSlot slot) const {
     auto found = VirtualMethodInfoMap.find(slot);
@@ -203,26 +210,19 @@ public:
     return ArrayRef<GUID>(found->second);
   }
 
-  const VirtualMethodMapTy &virtualMethods() const {
+  const VirtualMethodInfoMapTy &virtualMethods() const {
     return VirtualMethodInfoMap;
   }
 
-  FunctionSummaryMapTy::const_iterator functions_begin() const {
+  FunctionSummaryInfoMapTy::const_iterator begin() const {
     return FunctionSummaryInfoMap.begin();
   }
-  FunctionSummaryMapTy::const_iterator functions_end() const {
+  FunctionSummaryInfoMapTy::const_iterator end() const {
     return FunctionSummaryInfoMap.end();
-  }
-
-  void dump(llvm::raw_ostream &os) const {
-    os << "(module name: " << ModuleName << ")\n";
-    for (auto &entry : FunctionSummaryInfoMap) {
-      entry.second->dump(os);
-    }
   }
 };
 
-std::unique_ptr<ModuleSummaryIndex> buildModuleSummaryIndex(SILModule &M);
+ModuleSummaryIndex buildModuleSummaryIndex(SILModule &M);
 
 bool emitModuleSummaryIndex(const ModuleSummaryIndex &index,
                             DiagnosticEngine &diags, StringRef path);
