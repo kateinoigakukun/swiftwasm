@@ -113,130 +113,147 @@ void FunctionSummaryIndexer::indexFunction() {
   }
   TheSummary->setPreserved(shouldPreserveFunction(F));
 }
+
+class ModuleSummaryIndexer {
+  std::unique_ptr<ModuleSummaryIndex> TheSummary;
+  const SILModule &Mod;
+  void ensurePreserved(const SILFunction &F);
+  void ensurePreserved(const SILDeclRef &Ref, VirtualMethodSlot::KindTy Kind);
+  void preserveKeyPathFunctions(const SILProperty &P);
+  void indexWitnessTable(const SILWitnessTable &WT);
+  void indexVTable(const SILVTable &VT);
+
+public:
+  ModuleSummaryIndexer(const SILModule &M) : Mod(M) {}
+  void indexModule();
+  std::unique_ptr<ModuleSummaryIndex> takeSummary() {
+    return std::move(TheSummary);
+  }
 };
 
-std::unique_ptr<FunctionSummary>
-buildFunctionSummaryIndex(SILFunction &F) {
+void ModuleSummaryIndexer::ensurePreserved(const SILFunction &F) {
+  GUID guid = getGUIDFromUniqueName(F.getName());
+  auto FS = TheSummary->getFunctionSummary(guid);
+  assert(FS);
+  FS->setPreserved(true);
+}
+
+void ModuleSummaryIndexer::ensurePreserved(const SILDeclRef &Ref,
+                                           VirtualMethodSlot::KindTy Kind) {
+  VirtualMethodSlot slot(Ref, Kind);
+  auto Impls = TheSummary->getImplementations(slot);
+  if (Impls.empty())
+    return;
+
+  for (GUID Impl : Impls) {
+    auto FS = TheSummary->getFunctionSummary(Impl);
+    assert(FS);
+    FS->setPreserved(true);
+  }
+}
+
+void ModuleSummaryIndexer::preserveKeyPathFunctions(const SILProperty &P) {
+  auto maybeComponent = P.getComponent();
+  if (!maybeComponent)
+    return;
+
+  KeyPathPatternComponent component = maybeComponent.getValue();
+  component.visitReferencedFunctionsAndMethods(
+      [&](SILFunction *F) { ensurePreserved(*F); },
+      [&](SILDeclRef method) {
+        auto decl = cast<AbstractFunctionDecl>(method.getDecl());
+        if (isa<ClassDecl>(decl->getDeclContext())) {
+          ensurePreserved(method, VirtualMethodSlot::VTable);
+        } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
+          ensurePreserved(method, VirtualMethodSlot::Witness);
+        } else {
+          llvm_unreachable(
+              "key path keyed by a non-class, non-protocol method");
+        }
+      });
+}
+
+void ModuleSummaryIndexer::indexWitnessTable(const SILWitnessTable &WT) {
+  auto isPossibllyUsedExternally =
+      WT.getDeclContext()->getParentModule() != Mod.getSwiftModule() ||
+      WT.getProtocol()->getParentModule() != Mod.getSwiftModule();
+  for (auto entry : WT.getEntries()) {
+    if (entry.getKind() != SILWitnessTable::Method)
+      continue;
+
+    auto methodWitness = entry.getMethodWitness();
+    auto Witness = methodWitness.Witness;
+    if (!Witness)
+      continue;
+    VirtualMethodSlot slot(methodWitness.Requirement,
+                           VirtualMethodSlot::Witness);
+    TheSummary->addImplementation(slot,
+                                  getGUIDFromUniqueName(Witness->getName()));
+
+    if (isPossibllyUsedExternally) {
+      ensurePreserved(*Witness);
+    }
+  }
+}
+
+void ModuleSummaryIndexer::indexVTable(const SILVTable &VT) {
+
+  for (auto entry : VT.getEntries()) {
+    auto Impl = entry.getImplementation();
+    if (entry.getMethod().kind == SILDeclRef::Kind::Deallocator ||
+        entry.getMethod().kind == SILDeclRef::Kind::IVarDestroyer) {
+      // Destructors are preserved because they can be called from swift_release
+      // dynamically
+      ensurePreserved(*Impl);
+    }
+    auto methodModule = entry.getMethod().getDecl()->getModuleContext();
+    auto isExternalMethod = methodModule != Mod.getSwiftModule();
+
+    if (entry.getKind() == SILVTableEntry::Override && isExternalMethod) {
+      ensurePreserved(*Impl);
+    }
+    VirtualMethodSlot slot(entry.getMethod(), VirtualMethodSlot::VTable);
+    TheSummary->addImplementation(slot, getGUIDFromUniqueName(Impl->getName()));
+  }
+}
+
+void ModuleSummaryIndexer::indexModule() {
+  TheSummary = std::make_unique<ModuleSummaryIndex>();
+  auto moduleName = Mod.getSwiftModule()->getName().str();
+  TheSummary->setModuleName(moduleName);
+
+  for (auto &F : Mod) {
+    FunctionSummaryIndexer indexer(F);
+    indexer.indexFunction();
+    std::unique_ptr<FunctionSummary> FS = indexer.takeSummary();
+    FS->setPreserved(shouldPreserveFunction(F));
+    TheSummary->addFunctionSummary(std::move(FS));
+  }
+
+  // FIXME: KeyPaths can be eliminated but now preserved conservatively.
+  for (const SILProperty &P : Mod.getPropertyList()) {
+    preserveKeyPathFunctions(P);
+  }
+
+  for (auto WT : Mod.getWitnessTableList()) {
+    indexWitnessTable(WT);
+  }
+
+  for (auto VT : Mod.getVTables()) {
+    indexVTable(*VT);
+  }
+}
+}; // namespace
+
+std::unique_ptr<FunctionSummary> buildFunctionSummaryIndex(SILFunction &F) {
   FunctionSummaryIndexer indexer(F);
   indexer.indexFunction();
   return indexer.takeSummary();
 }
 
-void indexWitnessTable(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>(1);
-  for (auto &WT : M.getWitnessTableList()) {
-    auto isExternalProto = WT.getDeclContext()->getParentModule() != M.getSwiftModule() ||
-                           WT.getProtocol()->getParentModule() != M.getSwiftModule();
-    for (auto entry : WT.getEntries()) {
-      if (entry.getKind() != SILWitnessTable::Method) continue;
-      
-      auto methodWitness = entry.getMethodWitness();
-      auto Witness = methodWitness.Witness;
-      if (!Witness) continue;
-      VirtualMethodSlot slot(methodWitness.Requirement, VirtualMethodSlot::KindTy::Witness);
-      index.addImplementation(slot, getGUID(Witness->getName()));
-      if (isExternalProto) {
-        GUID guid = getGUIDFromUniqueName(Witness->getName());
-        FunctionSummary::Call edge(guid, Witness->getName(),
-                                   FunctionSummary::Call::Direct);
-        FS->addCall(edge);
-      }
-    }
-  }
-
-  FS->setPreserved(true);
-  FS->setDebugName("__external_witnesses_preserved_fs");
-  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
-                          << " external witnesses\n");
-  index.addFunctionSummary(std::move(FS));
-}
-
-
-void indexVTable(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>(2);
-  for (auto &VT : M.getVTables()) {
-    for (auto entry : VT->getEntries()) {
-      auto Impl = entry.getImplementation();
-      if (entry.getMethod().kind == SILDeclRef::Kind::Deallocator ||
-          entry.getMethod().kind == SILDeclRef::Kind::IVarDestroyer) {
-        // Destructors are alive because they are called from swift_release
-        GUID guid = getGUIDFromUniqueName(Impl->getName());
-        FunctionSummary::Call edge(guid, Impl->getName(),
-                                   FunctionSummary::Call::Direct);
-        LLVM_DEBUG(llvm::dbgs() << "Preserve deallocator '" << Impl->getName() << "'\n");
-        FS->addCall(edge);
-      }
-      auto methodMod = entry.getMethod().getDecl()->getModuleContext();
-      auto isExternalMethod = methodMod != M.getSwiftModule();
-      if (entry.getKind() == SILVTableEntry::Override && isExternalMethod) {
-        GUID guid = getGUIDFromUniqueName(Impl->getName());
-        FunctionSummary::Call edge(guid, Impl->getName(),
-                                   FunctionSummary::Call::Direct);
-        FS->addCall(edge);
-      }
-      VirtualMethodSlot slot(entry.getMethod(), VirtualMethodSlot::KindTy::VTable);
-      index.addImplementation(slot, getGUID(Impl->getName()));
-    }
-  }
-
-  FS->setPreserved(true);
-  FS->setDebugName("__vtable_destructors_and_externals_preserved_fs");
-  LLVM_DEBUG(llvm::dbgs() << "Summary: Preserved " << FS->calls().size()
-                          << " deallocators\n");
-  index.addFunctionSummary(std::move(FS));
-}
-
-void indexKeyPathComponent(ModuleSummaryIndex &index, SILModule &M) {
-  auto FS = std::make_unique<FunctionSummary>(3);
-
-  for (SILProperty &P : M.getPropertyList()) {
-    if (auto component = P.getComponent()) {
-      component->visitReferencedFunctionsAndMethods(
-        [&](SILFunction *F) {
-          auto FS = buildFunctionSummaryIndex(*F);
-          LLVM_DEBUG(llvm::dbgs() << "Preserve keypath funcs " << F->getName() << "\n");
-          FS->setPreserved(true);
-          index.addFunctionSummary(std::move(FS));
-        },
-        [&](SILDeclRef method) {
-          auto decl = cast<AbstractFunctionDecl>(method.getDecl());
-          if (auto clas = dyn_cast<ClassDecl>(decl->getDeclContext())) {
-            GUID guid = getGUIDFromUniqueName(method.mangle());
-            FunctionSummary::Call edge(guid, method.mangle(),
-                                       FunctionSummary::Call::VTable);
-            FS->addCall(edge);
-          } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
-            GUID guid = getGUIDFromUniqueName(method.mangle());
-            FunctionSummary::Call edge(guid, method.mangle(),
-                                       FunctionSummary::Call::Witness);
-            FS->addCall(edge);
-          } else {
-            llvm_unreachable("key path keyed by a non-class, non-protocol method");
-          }
-        }
-      );
-    }
-  }
-  FS->setPreserved(true);
-  FS->setDebugName("__keypath_preserved_fs");
-  index.addFunctionSummary(std::move(FS));
-}
-
-ModuleSummaryIndex modulesummary::buildModuleSummaryIndex(SILModule &M) {
-  ModuleSummaryIndex index;
-
-  index.setModuleName(M.getSwiftModule()->getName().str());
-  
-  // Preserve keypath things temporarily
-  indexKeyPathComponent(index, M);
-
-  for (auto &F : M) {
-    auto FS = buildFunctionSummaryIndex(F);
-    FS->setLive(false);
-    index.addFunctionSummary(std::move(FS));
-  }
-
-  indexWitnessTable(index, M);
-  indexVTable(index, M);
-  return index;
+std::unique_ptr<ModuleSummaryIndex>
+modulesummary::buildModuleSummaryIndex(SILModule &M) {
+  ModuleSummaryIndexer indexer(M);
+  indexer.indexModule();
+  return indexer.takeSummary();
 }

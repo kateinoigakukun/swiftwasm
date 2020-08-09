@@ -15,8 +15,9 @@ using GUID = uint64_t;
 GUID getGUIDFromUniqueName(llvm::StringRef Name);
 static GUID getGUID(llvm::StringRef Str) { return llvm::MD5Hash(Str); }
 struct VirtualMethodSlot {
-  enum class KindTy {
-    Witness, VTable,
+  enum KindTy {
+    Witness,
+    VTable,
     kindCount,
   };
 
@@ -206,7 +207,7 @@ public:
   }
 };
 
-ModuleSummaryIndex buildModuleSummaryIndex(SILModule &M);
+std::unique_ptr<ModuleSummaryIndex> buildModuleSummaryIndex(SILModule &M);
 
 bool emitModuleSummaryIndex(const ModuleSummaryIndex &index,
                             DiagnosticEngine &diags, StringRef path);

@@ -1830,7 +1830,7 @@ static bool serializeModuleSummary(SILModule *SM,
                                    const ASTContext &Context) {
   auto summaryOutputPath = PSPs.SupplementaryOutputs.ModuleSummaryOutputPath;
   auto summary = modulesummary::buildModuleSummaryIndex(*SM);
-  return modulesummary::emitModuleSummaryIndex(summary, Context.Diags,
+  return modulesummary::emitModuleSummaryIndex(*summary.get(), Context.Diags,
                                                summaryOutputPath);
 }
 
