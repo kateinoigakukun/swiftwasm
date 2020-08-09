@@ -14,7 +14,7 @@
 // DIRECT-CALL-NEXT:   preserved:       false
 // DIRECT-CALL-NEXT:   calls:
 // DIRECT-CALL-NEXT:     - callee_name:     '$s16function_summary3fooyyF'
-// DIRECT-CALL-NEXT:       callee:          3365867516365370991
+// DIRECT-CALL-NEXT:       callee_guid:     3365867516365370991
 // DIRECT-CALL-NEXT:       kind:            direct
 func foo() {}
 
@@ -32,7 +32,7 @@ func bar() {
 // WITNESS-CALL-NEXT:   preserved:       false
 // WITNESS-CALL-NEXT:   calls:
 // WITNESS-CALL-NEXT:     - callee_name:     '$s16function_summary1PP11protoMemberyyF'
-// WITNESS-CALL-NEXT:       callee:          12061107285276415735
+// WITNESS-CALL-NEXT:       callee_guid:     12061107285276415735
 // WITNESS-CALL-NEXT:       kind:            witness
 
 protocol P {
@@ -53,7 +53,7 @@ func useExistentialP(_ v: P) {
 // VTABLE-CALL-NEXT:   preserved:       false
 // VTABLE-CALL-NEXT:   calls:
 // VTABLE-CALL-NEXT:     - callee_name:     '$s16function_summary1CC11classMemberyyF'
-// VTABLE-CALL-NEXT:       callee:          7506985369146111998
+// VTABLE-CALL-NEXT:       callee_guid:     7506985369146111998
 // VTABLE-CALL-NEXT:       kind:            vtable
 
 class C {
