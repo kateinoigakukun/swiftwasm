@@ -56,11 +56,11 @@ class Serializer {
 
   void emitRecordID(unsigned ID, StringRef name,
                     SmallVectorImpl<unsigned char> &nameBuffer);
-
 public:
 
   void emitHeader();
   void emitModuleSummary(const ModuleSummaryIndex &index);
+  void emitFunctionSummary(const std::pair<const GUID, FunctionSummaryInfo> &pair);
   void write(llvm::raw_ostream &os);
 };
 
@@ -109,12 +109,27 @@ void Serializer::writeBlockInfoBlock() {
   BLOCK(VIRTUAL_METHOD_INFO);
   BLOCK_RECORD(virtual_method_info, METHOD_METADATA);
   BLOCK_RECORD(virtual_method_info, METHOD_IMPL);
-
 }
 
 void Serializer::emitHeader() {
   writeSignature();
   writeBlockInfoBlock();
+}
+
+void Serializer::emitFunctionSummary(const std::pair<const GUID, FunctionSummaryInfo> &pair) {
+  llvm::BCBlockRAII restoreBlock(Out, FUNCTION_SUMMARY_ID, 32);
+  auto &info = pair.second;
+  auto &summary = info.TheSummary;
+  using namespace function_summary;
+  function_summary::MetadataLayout MDlayout(Out);
+
+  MDlayout.emit(ScratchRecord, pair.first, summary->isLive(), summary->isPreserved(), info.Name);
+
+  for (auto call : summary->calls()) {
+      CallGraphEdgeLayout edgeLayout(Out);
+      edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
+                      call.getCallee(), call.getName());
+  }
 }
 
 void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
@@ -123,24 +138,10 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   llvm::BCBlockRAII restoreBlock(Out, MODULE_SUMMARY_ID, 4);
   module_summary::MetadataLayout MDLayout(Out);
   MDLayout.emit(ScratchRecord, index.getModuleName());
-  {
-    for (const auto &pair : index) {
-      llvm::BCBlockRAII restoreBlock(Out, FUNCTION_SUMMARY_ID, 32);
-      auto &info = pair.second;
-      auto &summary = info.TheSummary;
-      using namespace function_summary;
-      function_summary::MetadataLayout MDlayout(Out);
-
-      MDlayout.emit(ScratchRecord, pair.first, summary->isLive(), summary->isPreserved(), info.Name);
-
-      for (auto call : summary->calls()) {
-        CallGraphEdgeLayout edgeLayout(Out);
-        edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
-                        call.getCallee(), call.getName());
-      }
-    }
+  for (const auto &pair : index) {
+      emitFunctionSummary(pair);
   }
-  
+
   {
     for (auto &method : index.virtualMethods()) {
       llvm::BCBlockRAII restoreBlock(Out, VIRTUAL_METHOD_INFO_ID, 32);
