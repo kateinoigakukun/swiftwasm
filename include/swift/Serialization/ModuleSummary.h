@@ -133,6 +133,7 @@ public:
 private:
   FlagsTy Flags;
   CallGraphEdgeListTy CallGraphEdgeList;
+  std::string debugName;
 
 public:
   FunctionSummary(std::vector<Call> CGEdges)
@@ -150,17 +151,16 @@ public:
 
   bool isPreserved() const { return Flags.Preserved; }
   void setPreserved(bool Preserved) { Flags.Preserved = Preserved; }
-};
-
-struct FunctionSummaryInfo {
-  std::string Name;
-  std::unique_ptr<FunctionSummary> TheSummary;
+  std::string getDebugName() const { return debugName; }
+  void setDebugName(std::string name) { this->debugName = name; }
 };
 
 class ModuleSummaryIndex {
-  using FunctionSummaryInfoMapTy = std::map<GUID, FunctionSummaryInfo>;
+  using FunctionSummaryInfoMapTy = std::map<GUID, FunctionSummary *>;
+  using FunctionSummaryOwnerTy = std::vector<std::unique_ptr<FunctionSummary>>;
   using VirtualMethodInfoMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
 
+  FunctionSummaryOwnerTy FunctionSummaryOwner;
   FunctionSummaryInfoMapTy FunctionSummaryInfoMap;
   VirtualMethodInfoMapTy VirtualMethodInfoMap;
 
@@ -177,8 +177,10 @@ public:
   void addFunctionSummary(std::string name,
                           std::unique_ptr<FunctionSummary> summary) {
     auto guid = getGUID(name);
+    summary->setDebugName(name);
+    FunctionSummaryOwner.push_back(std::move(summary));
     FunctionSummaryInfoMap.insert(
-        std::make_pair(guid, FunctionSummaryInfo{name, std::move(summary)}));
+        std::make_pair(guid, FunctionSummaryOwner.back().get()));
   }
 
   const llvm::Optional<std::pair<FunctionSummary *, StringRef>>
@@ -188,9 +190,9 @@ public:
       return None;
     }
     auto &entry = found->second;
-    return std::make_pair(entry.TheSummary.get(), StringRef(entry.Name));
+    return std::make_pair(entry, StringRef(entry->getDebugName()));
   }
-  
+
   void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
     auto found = VirtualMethodInfoMap.find(slot);
     if (found == VirtualMethodInfoMap.end()) {
@@ -199,7 +201,7 @@ public:
     }
     found->second.push_back(funcGUID);
   }
-  
+
   llvm::Optional<ArrayRef<GUID>>
   getImplementations(VirtualMethodSlot slot) const {
     auto found = VirtualMethodInfoMap.find(slot);
