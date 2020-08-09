@@ -256,8 +256,8 @@ bool Deserializer::readFunctionSummary() {
       function_summary::MetadataLayout::readRecord(Scratch, guid, isLive,
                                                    isPreserved);
       Name = BlobData.str();
-      if (auto info = moduleSummary.getFunctionInfo(guid)) {
-        FS = info.getValue().first;
+      if (auto summary = moduleSummary.getFunctionSummary(guid)) {
+        FS = summary;
       } else {
         NewFSOwner = std::make_unique<FunctionSummary>(guid);
         FS = NewFSOwner.get();

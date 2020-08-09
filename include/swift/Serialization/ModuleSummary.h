@@ -167,14 +167,13 @@ public:
         std::make_pair(summary->getGUID(), std::move(summary)));
   }
 
-  const llvm::Optional<std::pair<FunctionSummary *, StringRef>>
-  getFunctionInfo(GUID guid) const {
+  FunctionSummary *getFunctionSummary(GUID guid) const {
     auto found = FunctionSummaryInfoMap.find(guid);
     if (found == FunctionSummaryInfoMap.end()) {
-      return None;
+      return nullptr;
     }
     auto &entry = found->second;
-    return std::make_pair(entry.get(), StringRef(entry->getDebugName()));
+    return entry.get();
   }
 
   void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
