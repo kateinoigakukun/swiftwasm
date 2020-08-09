@@ -92,6 +92,16 @@ void FunctionSummaryIndexer::indexInstruction(const SILInstruction *I) {
   }
 }
 
+bool shouldPreserveFunction(const SILFunction &F) {
+  if (F.getRepresentation() == SILFunctionTypeRepresentation::ObjCMethod) {
+    return true;
+  }
+  if (F.hasCReferences()) {
+    return true;
+  }
+  return false;
+}
+
 void FunctionSummaryIndexer::indexFunction() {
   GUID guid = getGUIDFromUniqueName(F.getName());
   TheSummary = std::make_unique<FunctionSummary>(guid);
@@ -101,6 +111,7 @@ void FunctionSummaryIndexer::indexFunction() {
       indexInstruction(&I);
     }
   }
+  TheSummary->setPreserved(shouldPreserveFunction(F));
 }
 };
 
@@ -221,15 +232,6 @@ ModuleSummaryIndex modulesummary::buildModuleSummaryIndex(SILModule &M) {
 
   for (auto &F : M) {
     auto FS = buildFunctionSummaryIndex(F);
-    if (F.getRepresentation() == SILFunctionTypeRepresentation::ObjCMethod) {
-      LLVM_DEBUG(llvm::dbgs() << "Preserve " << F.getName() << " due to ObjCMethod\n");
-      FS->setPreserved(true);
-    }
-    if (F.hasCReferences()) {
-      LLVM_DEBUG(llvm::dbgs() << "Preserve " << F.getName() << " due to @_silgen_name or @_cdecl\n");
-      FS->setPreserved(true);
-    }
-
     FS->setLive(false);
     index.addFunctionSummary(std::move(FS));
   }
