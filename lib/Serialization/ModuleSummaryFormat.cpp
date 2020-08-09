@@ -58,7 +58,7 @@ class Serializer {
 public:
   void emitHeader();
   void emitModuleSummary(const ModuleSummaryIndex &index);
-  void emitFunctionSummary(const std::pair<const GUID, FunctionSummary*> &pair);
+  void emitFunctionSummary(const FunctionSummary *summary);
   void write(raw_ostream &os);
 };
 
@@ -114,13 +114,13 @@ void Serializer::emitHeader() {
   writeBlockInfoBlock();
 }
 
-void Serializer::emitFunctionSummary(const std::pair<const GUID, FunctionSummary*> &pair) {
+void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   BCBlockRAII restoreBlock(Out, FUNCTION_SUMMARY_ID, 32);
-  auto &summary = pair.second;
   using namespace function_summary;
   function_summary::MetadataLayout MDlayout(Out);
 
-  MDlayout.emit(ScratchRecord, pair.first, summary->isLive(), summary->isPreserved(), summary->getDebugName());
+  MDlayout.emit(ScratchRecord, summary->getGUID(), summary->isLive(),
+                summary->isPreserved(), summary->getDebugName());
 
   for (auto call : summary->calls()) {
       CallGraphEdgeLayout edgeLayout(Out);
@@ -136,7 +136,7 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   module_summary::MetadataLayout MDLayout(Out);
   MDLayout.emit(ScratchRecord, index.getModuleName());
   for (auto FI = index.begin(), FE = index.end(); FI != FE; ++FI) {
-    emitFunctionSummary(std::make_pair(FI->first, FI->second.get()));
+    emitFunctionSummary(FI->second.get());
   }
 
   {
