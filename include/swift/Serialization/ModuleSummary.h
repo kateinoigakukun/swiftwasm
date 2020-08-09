@@ -185,11 +185,11 @@ public:
     found->second.push_back(funcGUID);
   }
 
-  llvm::Optional<ArrayRef<GUID>>
+  ArrayRef<GUID>
   getImplementations(VirtualMethodSlot slot) const {
     auto found = VirtualMethodInfoMap.find(slot);
     if (found == VirtualMethodInfoMap.end()) {
-      return None;
+      return ArrayRef<GUID>();
     }
     return ArrayRef<GUID>(found->second);
   }
