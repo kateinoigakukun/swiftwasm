@@ -245,12 +245,6 @@ void ModuleSummaryIndexer::indexModule() {
 }
 }; // namespace
 
-std::unique_ptr<FunctionSummary> buildFunctionSummaryIndex(SILFunction &F) {
-  FunctionSummaryIndexer indexer(F);
-  indexer.indexFunction();
-  return indexer.takeSummary();
-}
-
 std::unique_ptr<ModuleSummaryIndex>
 modulesummary::buildModuleSummaryIndex(SILModule &M) {
   ModuleSummaryIndexer indexer(M);
