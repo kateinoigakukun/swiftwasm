@@ -43,9 +43,8 @@ public:
     GUID CalleeFn;
     std::string Name;
   public:
-
-    enum class Kind {
-      Static,
+    enum Kind {
+      Direct,
       Witness,
       VTable,
       kindCount,
@@ -76,7 +75,7 @@ public:
         os << "vtable";
         break;
       }
-      case Kind::Static: {
+      case Kind::Direct: {
         os << "direct";
         break;
       }
@@ -99,7 +98,7 @@ public:
         slotKind = VirtualMethodSlot::KindTy::VTable;
         break;
       }
-      case Kind::Static: {
+      case Kind::Direct: {
         llvm_unreachable("Can't get slot for static call");
       }
       case Kind::kindCount: {
@@ -111,7 +110,7 @@ public:
 
     static Call staticCall(SILFunction *CalleeFn) {
       GUID guid = getGUID(CalleeFn->getName());
-      return Call(guid, CalleeFn->getName(), Kind::Static);
+      return Call(guid, CalleeFn->getName(), Kind::Direct);
     }
 
     static Call witnessCall(SILDeclRef Callee) {
