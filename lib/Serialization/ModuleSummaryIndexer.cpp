@@ -19,8 +19,12 @@ GUID modulesummary::getGUIDFromUniqueName(llvm::StringRef Name) {
 namespace {
 class FunctionSummaryIndexer {
   std::vector<FunctionSummary::Call> CallGraphEdgeList;
+
+  void indexDirectFunctionCall(const SILFunction &Callee);
+  void indexIndirectFunctionCall(const SILDeclRef &Callee,
+                                 FunctionSummary::Call::Kind Kind);
+  void indexInstruction(SILFunction &F, const SILInstruction *I);
 public:
-  void indexInstruction(SILFunction &F, SILInstruction *I);
   void indexFunction(SILFunction &F);
 
   std::unique_ptr<FunctionSummary> takeSummary() {
@@ -28,31 +32,37 @@ public:
   }
 };
 
-void FunctionSummaryIndexer::indexInstruction(SILFunction &F, SILInstruction *I) {
+void FunctionSummaryIndexer::indexDirectFunctionCall(
+    const SILFunction &Callee) {
+  GUID guid = getGUIDFromUniqueName(Callee.getName());
+  FunctionSummary::Call call(guid, Callee.getName(), FunctionSummary::Call::Direct);
+  CallGraphEdgeList.push_back(call);
+}
+
+void FunctionSummaryIndexer::indexIndirectFunctionCall(
+    const SILDeclRef &Callee, FunctionSummary::Call::Kind Kind) {
+  StringRef mangledName = Callee.mangle();
+  GUID guid = getGUIDFromUniqueName(mangledName);
+  FunctionSummary::Call call(guid, mangledName, Kind);
+  CallGraphEdgeList.push_back(call);
+}
+
+void FunctionSummaryIndexer::indexInstruction(SILFunction &F, const SILInstruction *I) {
   // TODO: Handle dynamically replacable function ref inst
   if (auto *FRI = dyn_cast<FunctionRefInst>(I)) {
     SILFunction *callee = FRI->getReferencedFunctionOrNull();
     assert(callee);
-    GUID guid = getGUIDFromUniqueName(callee->getName());
-    FunctionSummary::Call edge(guid, callee->getName(),
-                               FunctionSummary::Call::Direct);
-    CallGraphEdgeList.push_back(edge);
+    indexDirectFunctionCall(*callee);
     return;
   }
 
   if (auto *WMI = dyn_cast<WitnessMethodInst>(I)) {
-    GUID guid = getGUIDFromUniqueName(WMI->getMember().mangle());
-    FunctionSummary::Call edge(guid, WMI->getMember().mangle(),
-                               FunctionSummary::Call::Witness);
-    CallGraphEdgeList.push_back(edge);
+    indexIndirectFunctionCall(WMI->getMember(), FunctionSummary::Call::Witness);
     return;
   }
 
   if (auto *MI = dyn_cast<MethodInst>(I)) {
-    GUID guid = getGUIDFromUniqueName(MI->getMember().mangle());
-    FunctionSummary::Call edge(guid, MI->getMember().mangle(),
-                               FunctionSummary::Call::VTable);
-    CallGraphEdgeList.push_back(edge);
+    indexIndirectFunctionCall(MI->getMember(), FunctionSummary::Call::VTable);
     return;
   }
 
@@ -60,23 +70,15 @@ void FunctionSummaryIndexer::indexInstruction(SILFunction &F, SILInstruction *I)
     for (auto &component : KPI->getPattern()->getComponents()) {
       component.visitReferencedFunctionsAndMethods(
           [this](SILFunction *F) {
-            GUID guid = getGUIDFromUniqueName(F->getName());
-            FunctionSummary::Call edge(guid, F->getName(),
-                                       FunctionSummary::Call::Direct);
-            CallGraphEdgeList.push_back(edge);
+            assert(F);
+            indexDirectFunctionCall(*F);
           },
           [this](SILDeclRef method) {
             auto decl = cast<AbstractFunctionDecl>(method.getDecl());
             if (auto clas = dyn_cast<ClassDecl>(decl->getDeclContext())) {
-              GUID guid = getGUIDFromUniqueName(method.mangle());
-              FunctionSummary::Call edge(guid, method.mangle(),
-                                         FunctionSummary::Call::VTable);
-              CallGraphEdgeList.push_back(edge);
+              indexIndirectFunctionCall(method, FunctionSummary::Call::VTable);
             } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
-              GUID guid = getGUIDFromUniqueName(method.mangle());
-              FunctionSummary::Call edge(guid, method.mangle(),
-                                         FunctionSummary::Call::Witness);
-              CallGraphEdgeList.push_back(edge);
+              indexIndirectFunctionCall(method, FunctionSummary::Call::Witness);
             } else {
               llvm_unreachable(
                   "key path keyed by a non-class, non-protocol method");
