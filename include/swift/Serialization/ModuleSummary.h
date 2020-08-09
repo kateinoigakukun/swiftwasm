@@ -107,18 +107,6 @@ public:
       }
       return VirtualMethodSlot(slotKind, CalleeFn);
     }
-
-    static Call staticCall(SILFunction *CalleeFn) {
-      GUID guid = getGUID(CalleeFn->getName());
-      return Call(guid, CalleeFn->getName(), Kind::Direct);
-    }
-
-    static Call witnessCall(SILDeclRef Callee) {
-      return Call(Callee, Kind::Witness);
-    }
-    static Call vtableCall(SILDeclRef Callee) {
-      return Call(Callee, Kind::VTable);
-    }
   };
 
   
