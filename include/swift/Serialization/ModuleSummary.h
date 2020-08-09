@@ -55,11 +55,7 @@ public:
     KindTy Kind;
   public:
     friend llvm::yaml::MappingTraits<FunctionSummary::Call>;
-
-    Call(SILDeclRef &CalleeFn, KindTy kind) : Kind(kind) {
-      this->Name = CalleeFn.mangle();
-      this->Callee = getGUIDFromUniqueName(CalleeFn.mangle());
-    }
+    Call() = default;
     Call(GUID callee, std::string name, KindTy kind)
         : Callee(callee), Name(name), Kind(kind) {}
 
@@ -114,8 +110,8 @@ public:
 
   
   struct FlagsTy {
-    unsigned Live : 1;
-    unsigned Preserved: 1;
+    bool Live;
+    bool Preserved;
   };
 
   using CallGraphEdgeListTy = std::vector<Call>;
@@ -127,6 +123,7 @@ private:
   std::string Name;
 
 public:
+  friend llvm::yaml::MappingTraits<FunctionSummary>;
   FunctionSummary(GUID guid) : Guid(guid) {}
   FunctionSummary() = default;
 
@@ -176,6 +173,7 @@ class ModuleSummaryIndex {
         }
     }
 public:
+  friend llvm::yaml::MappingTraits<ModuleSummaryIndex>;
   ModuleSummaryIndex() = default;
 
   std::string getModuleName() const { return this->Name; }

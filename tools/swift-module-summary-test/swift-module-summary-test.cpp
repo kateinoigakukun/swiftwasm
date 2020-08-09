@@ -84,7 +84,7 @@ void ScalarEnumerationTraits<FunctionSummary::Call::KindTy>::enumeration(
 void MappingTraits<FunctionSummary::Call>::mapping(IO &io,
                                                    FunctionSummary::Call &V) {
   io.mapRequired("callee_name", V.Name);
-  io.mapRequired("callee", V.CalleeFn);
+  io.mapRequired("callee_guid", V.Callee);
   io.mapRequired("kind", V.Kind);
 }
 
@@ -97,9 +97,9 @@ void MappingTraits<FunctionSummary>::mapping(IO &io, FunctionSummary &V) {
 }
 
 template <>
-struct CustomMappingTraits<ModuleSummaryIndex::FunctionSummaryMapTy> {
+struct CustomMappingTraits<FunctionSummaryMapTy> {
   static void inputOne(IO &io, StringRef Key,
-                       ModuleSummaryIndex::FunctionSummaryMapTy &V) {
+                       FunctionSummaryMapTy &V) {
     GUID KeyInt;
     if (Key.getAsInteger(0, KeyInt)) {
       io.setError("key not an integer");
@@ -107,15 +107,15 @@ struct CustomMappingTraits<ModuleSummaryIndex::FunctionSummaryMapTy> {
     }
     io.mapRequired(Key.str().c_str(), V[KeyInt]);
   }
-  static void output(IO &io, ModuleSummaryIndex::FunctionSummaryMapTy &V) {
+  static void output(IO &io, FunctionSummaryMapTy &V) {
     for (auto &P : V)
       io.mapRequired(llvm::utostr(P.first).c_str(), P.second);
   }
 };
 
 template <>
-struct CustomMappingTraits<VirtualFunctionMapTy> {
-  static void inputOne(IO &io, StringRef Key, VirtualFunctionMapTy &V) {
+struct CustomMappingTraits<VFuncToImplsMapTy> {
+  static void inputOne(IO &io, StringRef Key, VFuncToImplsMapTy &V) {
     GUID KeyInt;
     if (Key.getAsInteger(0, KeyInt)) {
       io.setError("key not an integer");
@@ -123,17 +123,17 @@ struct CustomMappingTraits<VirtualFunctionMapTy> {
     }
     io.mapRequired(Key.str().c_str(), V[KeyInt]);
   }
-  static void output(IO &io, VirtualFunctionMapTy &V) {
+  static void output(IO &io, VFuncToImplsMapTy &V) {
     for (auto &P : V)
       io.mapRequired(llvm::utostr(P.first).c_str(), P.second);
   }
 };
 
 void MappingTraits<ModuleSummaryIndex>::mapping(IO &io, ModuleSummaryIndex &V) {
-  io.mapRequired("module_name", V.ModuleName);
+  io.mapRequired("module_name", V.Name);
   io.mapRequired("functions", V.FunctionSummaryInfoMap);
-  io.mapRequired("witness_tables", V.WitnessFunctionMap);
-  io.mapRequired("vtables", V.VTableFunctionMap);
+  io.mapRequired("witness_tables", V.WitnessTableMethodMap);
+  io.mapRequired("vtables", V.VTableMethodMap);
 }
 } // namespace yaml
 } // namespace llvm
