@@ -146,10 +146,10 @@ public:
 };
 
 class ModuleSummaryIndex {
-  using FunctionSummaryInfoMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;
+  using FunctionSummaryMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;
   using VirtualFunctionMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
 
-  FunctionSummaryInfoMapTy FunctionSummaryInfoMap;
+  FunctionSummaryMapTy FunctionSummaryInfoMap;
   VirtualFunctionMapTy VirtualMethodInfoMap;
 
   std::string ModuleName;
@@ -198,10 +198,10 @@ public:
     return VirtualMethodInfoMap;
   }
 
-  FunctionSummaryInfoMapTy::const_iterator begin() const {
+  FunctionSummaryMapTy::const_iterator begin() const {
     return FunctionSummaryInfoMap.begin();
   }
-  FunctionSummaryInfoMapTy::const_iterator end() const {
+  FunctionSummaryMapTy::const_iterator end() const {
     return FunctionSummaryInfoMap.end();
   }
 };
