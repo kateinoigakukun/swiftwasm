@@ -156,15 +156,13 @@ public:
 };
 
 class ModuleSummaryIndex {
-  using FunctionSummaryInfoMapTy = std::map<GUID, FunctionSummary *>;
-  using FunctionSummaryOwnerTy = std::vector<std::unique_ptr<FunctionSummary>>;
-  using VirtualMethodInfoMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
+  using FunctionSummaryInfoMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;
+  using VirtualFunctionMapTy = std::map<VirtualMethodSlot, std::vector<GUID>>;
 
-  FunctionSummaryOwnerTy FunctionSummaryOwner;
   FunctionSummaryInfoMapTy FunctionSummaryInfoMap;
-  VirtualMethodInfoMapTy VirtualMethodInfoMap;
+  VirtualFunctionMapTy VirtualMethodInfoMap;
 
-  std::string ModuleName; // Only for debug purpose
+  std::string ModuleName;
 
 public:
   ModuleSummaryIndex() = default;
@@ -178,9 +176,8 @@ public:
                           std::unique_ptr<FunctionSummary> summary) {
     auto guid = getGUID(name);
     summary->setDebugName(name);
-    FunctionSummaryOwner.push_back(std::move(summary));
     FunctionSummaryInfoMap.insert(
-        std::make_pair(guid, FunctionSummaryOwner.back().get()));
+        std::make_pair(guid, std::move(summary)));
   }
 
   const llvm::Optional<std::pair<FunctionSummary *, StringRef>>
@@ -190,7 +187,7 @@ public:
       return None;
     }
     auto &entry = found->second;
-    return std::make_pair(entry, StringRef(entry->getDebugName()));
+    return std::make_pair(entry.get(), StringRef(entry->getDebugName()));
   }
 
   void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
@@ -211,7 +208,7 @@ public:
     return ArrayRef<GUID>(found->second);
   }
 
-  const VirtualMethodInfoMapTy &virtualMethods() const {
+  const VirtualFunctionMapTy &virtualMethods() const {
     return VirtualMethodInfoMap;
   }
 

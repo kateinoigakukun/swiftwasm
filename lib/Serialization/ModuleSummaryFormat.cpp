@@ -135,8 +135,8 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   BCBlockRAII restoreBlock(Out, MODULE_SUMMARY_ID, 4);
   module_summary::MetadataLayout MDLayout(Out);
   MDLayout.emit(ScratchRecord, index.getModuleName());
-  for (const auto &pair : index) {
-      emitFunctionSummary(pair);
+  for (auto FI = index.begin(), FE = index.end(); FI != FE; ++FI) {
+    emitFunctionSummary(std::make_pair(FI->first, FI->second.get()));
   }
 
   {
