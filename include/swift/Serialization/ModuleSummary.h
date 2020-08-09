@@ -10,10 +10,11 @@
 namespace swift {
 
 namespace modulesummary {
+
 using GUID = uint64_t;
 
 GUID getGUIDFromUniqueName(llvm::StringRef Name);
-static GUID getGUID(llvm::StringRef Str) { return llvm::MD5Hash(Str); }
+
 struct VirtualMethodSlot {
   enum KindTy {
     Witness,
@@ -26,7 +27,7 @@ struct VirtualMethodSlot {
   VirtualMethodSlot(KindTy kind, GUID virtualFuncID)
     : Kind(kind), VirtualFuncID(virtualFuncID) { }
   VirtualMethodSlot(SILDeclRef VirtualFuncRef, KindTy kind) : Kind(kind) {
-    VirtualFuncID = getGUID(VirtualFuncRef.mangle());
+    VirtualFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
   }
 
   bool operator<(const VirtualMethodSlot &rhs)  const {
