@@ -154,24 +154,24 @@ class ModuleSummaryIndex {
   VFuncToImplsMapTy VTableMethodMap;
 
   std::string Name;
-    VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) {
-        switch (kind) {
-            case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
-            case VirtualMethodSlot::VTable: return VTableMethodMap;
-            case VirtualMethodSlot::kindCount: {
+  VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) {
+      switch (kind) {
+          case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
+          case VirtualMethodSlot::VTable: return VTableMethodMap;
+          case VirtualMethodSlot::kindCount: {
               llvm_unreachable("impossible");
-            }
-        }
-    }
-    const VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) const {
-        switch (kind) {
-            case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
-            case VirtualMethodSlot::VTable: return VTableMethodMap;
-            case VirtualMethodSlot::kindCount: {
+          }
+      }
+  }
+  const VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) const {
+      switch (kind) {
+          case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
+          case VirtualMethodSlot::VTable: return VTableMethodMap;
+          case VirtualMethodSlot::kindCount: {
               llvm_unreachable("impossible");
-            }
-        }
-    }
+          }
+      }
+  }
 public:
   friend llvm::yaml::MappingTraits<ModuleSummaryIndex>;
   ModuleSummaryIndex() = default;
@@ -194,7 +194,7 @@ public:
   }
 
   void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
-      auto table = getVFuncMap(slot.Kind);
+    VFuncToImplsMapTy &table = getVFuncMap(slot.Kind);
     auto found = table.find(slot.VFuncID);
     if (found == table.end()) {
       table.insert(std::make_pair(slot.VFuncID, std::vector<GUID>{ funcGUID }));
@@ -205,7 +205,7 @@ public:
 
   ArrayRef<GUID>
   getImplementations(VirtualMethodSlot slot) const {
-      auto table = getVFuncMap(slot.Kind);
+    const VFuncToImplsMapTy &table = getVFuncMap(slot.Kind);
     auto found = table.find(slot.VFuncID);
     if (found == table.end()) {
       return ArrayRef<GUID>();
@@ -216,9 +216,9 @@ public:
   const VFuncToImplsMapTy &getWitnessTableMethodMap() const {
     return WitnessTableMethodMap;
   }
-    const VFuncToImplsMapTy &getVTableMethodMap() const {
-      return VTableMethodMap;
-    }
+  const VFuncToImplsMapTy &getVTableMethodMap() const {
+    return VTableMethodMap;
+  }
 
   FunctionSummaryMapTy::const_iterator functions_begin() const {
     return FunctionSummaryInfoMap.begin();
