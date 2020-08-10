@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
 // RUN: %target-swift-frontend -emit-sib -emit-module-summary-path %t/tables.swiftmodule.summary -module-name tables -Xllvm -module-summary-embed-debug-name %s
-// RUN: llvm-bcanalyzer -dump %t/function_summary.swiftmodule.summary | %FileCheck %s -check-prefix BCANALYZER
+// RUN: llvm-bcanalyzer -dump %t/tables.swiftmodule.summary | %FileCheck %s -check-prefix BCANALYZER
 
 // BCANALYZER-NOT: UnknownCode
 
