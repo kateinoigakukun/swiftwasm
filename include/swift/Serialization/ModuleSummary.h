@@ -124,7 +124,7 @@ private:
 
 public:
   friend llvm::yaml::MappingTraits<FunctionSummary>;
-  FunctionSummary(GUID guid) : Guid(guid) {}
+  FunctionSummary(GUID guid) : Guid(guid), Flags({false, false}) {}
   FunctionSummary() = default;
 
   void addCall(GUID targetGUID, std::string name, Call::KindTy kind) {
