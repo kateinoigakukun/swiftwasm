@@ -231,11 +231,11 @@ void ModuleSummaryIndexer::indexModule() {
   }
 
   // FIXME: KeyPaths can be eliminated but now preserved conservatively.
-  for (const SILProperty &P : Mod.getPropertyList()) {
+  for (auto &P : Mod.getPropertyList()) {
     preserveKeyPathFunctions(P);
   }
 
-  for (auto WT : Mod.getWitnessTableList()) {
+  for (auto &WT : Mod.getWitnessTableList()) {
     indexWitnessTable(WT);
   }
 
