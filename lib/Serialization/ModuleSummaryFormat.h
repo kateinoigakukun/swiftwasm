@@ -1,7 +1,6 @@
 #ifndef SWIFT_SERIALIZATION_MODULE_SUMMARY_FILE_H
 #define SWIFT_SERIALIZATION_MODULE_SUMMARY_FILE_H
 
-#include "swift/Serialization/ModuleSummary.h"
 #include "llvm/Bitcode/RecordLayout.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include <memory>

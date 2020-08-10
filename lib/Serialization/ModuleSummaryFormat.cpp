@@ -14,6 +14,7 @@
 #include "BCReadingExtras.h"
 #include "memory"
 #include "swift/AST/FileSystem.h"
+#include "swift/Serialization/ModuleSummary.h"
 #include "llvm/Bitstream/BitstreamReader.h"
 #include "llvm/Bitstream/BitstreamWriter.h"
 #include "llvm/Support/CommandLine.h"
