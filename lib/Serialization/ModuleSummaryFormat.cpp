@@ -120,8 +120,9 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   function_summary::MetadataLayout MDlayout(Out);
   StringRef debugFuncName =
       ModuleSummaryEmbedDebugName ? summary->getName() : "";
-  MDlayout.emit(ScratchRecord, summary->getGUID(), summary->isLive(),
-                summary->isPreserved(), debugFuncName);
+  MDlayout.emit(ScratchRecord, summary->getGUID(),
+                unsigned(summary->isLive()),
+                unsigned(summary->isPreserved()), debugFuncName);
 
   for (auto call : summary->calls()) {
     CallGraphEdgeLayout edgeLayout(Out);
