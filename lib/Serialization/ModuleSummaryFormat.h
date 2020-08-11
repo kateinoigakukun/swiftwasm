@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #ifndef SWIFT_SERIALIZATION_MODULE_SUMMARY_FILE_H
 #define SWIFT_SERIALIZATION_MODULE_SUMMARY_FILE_H
 
@@ -45,22 +44,22 @@ using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
                                             >;
 
 using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
-                                              BCGUID,  // function guid
+                                              BCGUID,     // function guid
                                               BCFixed<1>, // live
                                               BCFixed<1>, // preserved
-                                              BCBlob      // name (debug purpose)
+                                              BCBlob // name (debug purpose)
                                               >;
 using CallGraphEdgeLayout =
     BCRecordLayout<CALL_GRAPH_EDGE,
                    BCFixed<2>, // call kind (direct, vtable or witness)
-                   BCGUID,  // callee func guid
+                   BCGUID,     // callee func guid
                    BCBlob      // name (debug purpose)
                    >;
 
 using VFuncMetadataLayout =
     BCRecordLayout<VFUNC_METADATA,
                    BCFixed<1>, // vfunc kind (vtable or witness)
-                   BCGUID   // vfunc guid
+                   BCGUID      // vfunc guid
                    >;
 
 using VFuncImplLayout = BCRecordLayout<VFUNC_IMPL,

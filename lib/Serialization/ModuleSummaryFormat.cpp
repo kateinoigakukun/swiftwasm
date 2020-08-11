@@ -53,6 +53,7 @@ class Serializer {
   void emitRecordID(unsigned ID, StringRef name,
                     SmallVectorImpl<unsigned char> &nameBuffer);
   void emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kind);
+
 public:
   void emitHeader();
   void emitModuleSummary(const ModuleSummaryIndex &index);
@@ -120,15 +121,15 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
       unsigned(summary->isPreserved()), debugFuncName);
 
   for (auto call : summary->calls()) {
-    StringRef debugName =
-        ModuleSummaryEmbedDebugName ? call.getName() : "";
+    StringRef debugName = ModuleSummaryEmbedDebugName ? call.getName() : "";
     CallGraphEdgeLayout::emitRecord(
         Out, ScratchRecord, AbbrCodes[CallGraphEdgeLayout::Code],
         unsigned(call.getKind()), call.getCallee(), debugName);
   }
 }
 
-void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kind) {
+void Serializer::emitVFuncTable(const VFuncToImplsMapTy T,
+                                VFuncSlot::KindTy kind) {
   for (auto &pair : T) {
     GUID guid = pair.first;
     std::vector<GUID> impls = pair.second;
@@ -274,13 +275,11 @@ bool Deserializer::readModuleMetadata() {
   return false;
 }
 
-
 static Optional<FunctionSummary::Call::KindTy> getCallKind(unsigned kind) {
   if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
     return FunctionSummary::Call::KindTy(kind);
   return None;
 }
-
 
 static Optional<VFuncSlot::KindTy> getSlotKind(unsigned kind) {
   if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
@@ -400,8 +399,8 @@ bool Deserializer::readModuleSummary() {
 }; // namespace
 
 bool modulesummary::writeModuleSummaryIndex(const ModuleSummaryIndex &index,
-                                           DiagnosticEngine &diags,
-                                           StringRef path) {
+                                            DiagnosticEngine &diags,
+                                            StringRef path) {
   return withOutputFile(diags, path, [&](raw_ostream &out) {
     Serializer serializer;
     serializer.emitHeader();

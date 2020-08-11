@@ -39,7 +39,8 @@ public:
 void FunctionSummaryIndexer::indexDirectFunctionCall(
     const SILFunction &Callee) {
   GUID guid = getGUIDFromUniqueName(Callee.getName());
-  FunctionSummary::Call call(guid, Callee.getName(), FunctionSummary::Call::Direct);
+  FunctionSummary::Call call(guid, Callee.getName(),
+                             FunctionSummary::Call::Direct);
   TheSummary->addCall(call);
 }
 
@@ -185,8 +186,7 @@ void ModuleSummaryIndexer::indexWitnessTable(const SILWitnessTable &WT) {
     auto Witness = methodWitness.Witness;
     if (!Witness)
       continue;
-    VFuncSlot slot(methodWitness.Requirement,
-                           VFuncSlot::Witness);
+    VFuncSlot slot(methodWitness.Requirement, VFuncSlot::Witness);
     TheSummary->addImplementation(slot,
                                   getGUIDFromUniqueName(Witness->getName()));
 
