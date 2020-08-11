@@ -177,11 +177,7 @@ class Deserializer {
 
   bool readSignature();
   bool enterTopLevelBlock();
-  bool readFunctionSummary(FunctionSummary &FS);
-  bool readFunctionSummaryList();
-  bool readModuleSummaryMetadata();
-  bool readVirtualMethodInfo(VFuncSlot slot);
-  bool readVFuncTableList();
+  bool readModuleMetadata();
 
 public:
   Deserializer(MemoryBufferRef inputBuffer, ModuleSummaryIndex &moduleSummary)
@@ -245,8 +241,7 @@ bool Deserializer::enterTopLevelBlock() {
   return false;
 }
 
-// TODO: Rename to readModuleMetadata
-bool Deserializer::readModuleSummaryMetadata() {
+bool Deserializer::readModuleMetadata() {
   Expected<BitstreamEntry> maybeEntry = Cursor.advance();
   if (!maybeEntry)
     report_fatal_error("Should have next entry");
@@ -273,191 +268,6 @@ bool Deserializer::readModuleSummaryMetadata() {
   return false;
 }
 
-bool Deserializer::readFunctionSummary(FunctionSummary &FS) {
-  using namespace record_block;
-
-  Expected<BitstreamEntry> entry = Cursor.advance();
-  if (!entry)
-    report_fatal_error("Should have next entry");
-
-  if (entry->Kind != BitstreamEntry::Record) {
-    return false;
-  }
-
-  Scratch.clear();
-  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-
-  if (!recordID)
-    report_fatal_error("Should have kind");
-
-  while (recordID.get() == record_block::CALL_GRAPH_EDGE) {
-    unsigned edgeKindID;
-    GUID targetGUID;
-    CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
-    auto callKind = getEdgeKind(edgeKindID);
-    if (!callKind)
-      report_fatal_error("Bad edge kind");
-
-    FS.addCall(targetGUID, BlobData.str(), callKind.getValue());
-
-    entry = Cursor.advance();
-    if (!entry)
-      report_fatal_error("Should have next entry");
-
-    if (entry->Kind != BitstreamEntry::Record) {
-      return false;
-    }
-
-    Scratch.clear();
-    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-
-    if (!recordID)
-      report_fatal_error("Should have kind");
-  }
-
-  return false;
-}
-
-bool Deserializer::readVirtualMethodInfo(VFuncSlot slot) {
-  using namespace record_block;
-  Expected<BitstreamEntry> entry = Cursor.advance();
-  if (!entry) {
-    return true;
-  }
-
-  Scratch.clear();
-  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-
-  if (!recordID)
-    report_fatal_error("Should have kind");
-
-  while (entry->Kind == BitstreamEntry::Record &&
-         recordID.get() == record_block::METHOD_IMPL) {
-    GUID implGUID;
-    MethodImplLayout::readRecord(Scratch, implGUID);
-    moduleSummary.addImplementation(slot, implGUID);
-
-    entry = Cursor.advance();
-    if (!entry)
-      report_fatal_error("Should have next entry");
-
-    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-
-    if (!recordID)
-      report_fatal_error("Should have kind");
-    Scratch.clear();
-  }
-
-  return false;
-}
-
-bool Deserializer::readFunctionSummaryList() {
-  using namespace record_block;
-  unsigned recordID;
-  std::unique_ptr<FunctionSummary> NewFSOwner;
-  FunctionSummary *Current;
-
-  do {
-    Expected<BitstreamEntry> entry = Cursor.advance();
-    if (!entry) {
-      return false;
-    }
-
-    if (entry->Kind != BitstreamEntry::Record) {
-      return false;
-    }
-    auto maybeRecordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-    if (!maybeRecordID) {
-      return false;
-    }
-    recordID = maybeRecordID.get();
-    switch (recordID) {
-    case record_block::FUNC_METADATA: {
-      if (auto &FS = NewFSOwner) {
-        moduleSummary.addFunctionSummary(std::move(FS));
-      }
-      GUID guid;
-      std::string Name;
-
-      unsigned isLive, isPreserved;
-      FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
-      Name = BlobData.str();
-      if (auto summary = moduleSummary.getFunctionSummary(guid)) {
-        Current = summary;
-      } else {
-        NewFSOwner = std::make_unique<FunctionSummary>(guid);
-        Current = NewFSOwner.get();
-      }
-      Current->setLive(isLive);
-      Current->setPreserved(isPreserved);
-      Current->setName(Name);
-      break;
-    }
-    case record_block::CALL_GRAPH_EDGE: {
-      unsigned edgeKindID;
-      GUID targetGUID;
-      CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
-      auto callKind = getEdgeKind(edgeKindID);
-      if (!callKind)
-        report_fatal_error("Bad edge kind");
-
-      Current->addCall(targetGUID, BlobData.str(), callKind.getValue());
-      break;
-    }
-    default:
-      break;
-    }
-  } while (recordID == record_block::FUNC_METADATA ||
-           recordID == record_block::CALL_GRAPH_EDGE);
-
-  if (auto &FS = NewFSOwner) {
-    moduleSummary.addFunctionSummary(std::move(FS));
-  }
-  return false;
-}
-
-bool Deserializer::readVFuncTableList() {
-  using namespace record_block;
-  Expected<BitstreamEntry> entry = Cursor.advance();
-  if (!entry) {
-    // No vfunc table
-    return false;
-  }
-
-  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-  if (!recordID) {
-    return false;
-  }
-
-  while (entry->Kind == BitstreamEntry::Record &&
-         recordID.get() == record_block::METHOD_METADATA) {
-    unsigned rawVFuncKind;
-    GUID vFuncGUID;
-    MethodMetadataLayout::readRecord(Scratch, rawVFuncKind, vFuncGUID);
-
-    auto Kind = getSlotKind(rawVFuncKind);
-    if (!Kind) {
-      return true;
-    }
-
-    VFuncSlot slot = VFuncSlot(Kind.getValue(), vFuncGUID);
-
-    if (readVirtualMethodInfo(slot)) {
-      return true;
-    }
-
-    entry = Cursor.advance();
-    if (!entry)
-      report_fatal_error("Should have next entry");
-    Scratch.clear();
-    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
-    if (!recordID) {
-      return false;
-    }
-  }
-  return false;
-}
-
 bool Deserializer::readModuleSummary() {
   using namespace record_block;
   if (readSignature()) {
@@ -467,7 +277,7 @@ bool Deserializer::readModuleSummary() {
     return true;
   }
 
-  if (readModuleSummaryMetadata()) {
+  if (readModuleMetadata()) {
     return true;
   }
 
