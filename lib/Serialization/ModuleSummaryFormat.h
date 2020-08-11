@@ -17,30 +17,21 @@ using llvm::BCRecordLayout;
 using llvm::BCVBR;
 
 const unsigned char MODULE_SUMMARY_SIGNATURE[] = {'M', 'O', 'D', 'S'};
+const unsigned RECORD_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID;
 
-enum BlockID {
-  MODULE_SUMMARY_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID,
-
-  FUNCTION_SUMMARY_ID,
-
-  VIRTUAL_METHOD_INFO_ID,
-};
-
-namespace module_summary {
+namespace record_block {
 enum {
   MODULE_METADATA,
+  FUNC_METADATA,
+  CALL_GRAPH_EDGE,
+  METHOD_METADATA,
+  METHOD_IMPL,
 };
 
 using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
                                             BCBlob // Module name
                                             >;
-}; // namespace module_summary
 
-namespace virtual_method_info {
-enum {
-  METHOD_METADATA,
-  METHOD_IMPL,
-};
 
 using MethodMetadataLayout =
     BCRecordLayout<METHOD_METADATA,
@@ -51,13 +42,6 @@ using MethodMetadataLayout =
 using MethodImplLayout = BCRecordLayout<METHOD_IMPL,
                                         BCVBR<16> // Impl func GUID
                                         >;
-}; // namespace virtual_method_info
-
-namespace function_summary {
-enum {
-  FUNC_METADATA,
-  CALL_GRAPH_EDGE,
-};
 
 using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
                                               BCVBR<16>,  // Function GUID
@@ -71,7 +55,7 @@ using CallGraphEdgeLayout =
                    BCVBR<16>,   // Target Function GUID
                    BCBlob       // Name string
                    >;
-} // namespace function_summary
+} // namespace record_block
 } // namespace modulesummary
 } // namespace swift
 
