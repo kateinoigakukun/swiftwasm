@@ -8,6 +8,18 @@
 // RUN: %swift-module-summary-test --to-yaml %t/tables.swiftmodule.summary -o - | %FileCheck %s
 
 
+// CHECK:      767048646313834908:
+// CHECK-NEXT:     name:            '$s6tables1SVAA1PA2aDP11protoMemberyyFTW'
+// CHECK:      11756327503593502600:
+// CHECK-NEXT:    name:            '$s6tables1DC11classMemberyyF'
+// CHECK:      17602567966448237004:
+// CHECK-NEXT:    name:            '$s6tables1CC11classMemberyyF'
+
+// CHECK: witness_tables:
+// CHECK:   2682576275888919121: [ 767048646313834908 ]
+// CHECK: vtables:
+// CHECK:   17602567966448237004: [ 17602567966448237004, 11756327503593502600 ]
+
 protocol P {
     func protoMember()
 }
