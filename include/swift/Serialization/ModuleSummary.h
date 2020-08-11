@@ -29,14 +29,6 @@ struct VFuncSlot {
   VFuncSlot(SILDeclRef VirtualFuncRef, KindTy Kind) : Kind(Kind) {
       VFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
   }
-
-  bool operator<(const VFuncSlot &rhs)  const {
-    if (Kind > rhs.Kind)
-      return false;
-    if (Kind < rhs.Kind)
-      return true;
-    return VFuncID < rhs.VFuncID;
-  }
 };
 
 class FunctionSummary {
@@ -62,53 +54,8 @@ public:
     KindTy getKind() const { return Kind; }
     GUID getCallee() const { return Callee; }
     std::string getName() const { return Name; };
-    
-    void dump(llvm::raw_ostream &os) const {
-      os << "call: (kind: ";
-      switch (Kind) {
-      case KindTy::Witness: {
-        os << "witness";
-        break;
-      }
-      case KindTy::VTable: {
-        os << "vtable";
-        break;
-      }
-      case KindTy::Direct: {
-        os << "direct";
-        break;
-      }
-      case KindTy::kindCount: {
-        llvm_unreachable("impossible");
-      }
-      }
-      os << ", name: " << getName() << " , callee: " << getCallee()
-         << ")\n";
-    }
-
-    VFuncSlot slot() const {
-      VFuncSlot::KindTy slotKind;
-      switch (Kind) {
-      case KindTy::Witness: {
-        slotKind = VFuncSlot::KindTy::Witness;
-        break;
-      }
-      case KindTy::VTable: {
-        slotKind = VFuncSlot::KindTy::VTable;
-        break;
-      }
-      case KindTy::Direct: {
-        llvm_unreachable("Can't get slot for static call");
-      }
-      case KindTy::kindCount: {
-        llvm_unreachable("impossible");
-      }
-      }
-      return VFuncSlot(slotKind, Callee);
-    }
   };
 
-  
   struct FlagsTy {
     bool Live;
     bool Preserved;
