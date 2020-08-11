@@ -130,8 +130,8 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
 
 void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kind) {
   for (auto &pair : T) {
-    auto &guid = pair.first;
-    auto impls = pair.second;
+    GUID guid = pair.first;
+    std::vector<GUID> impls = pair.second;
     using namespace record_block;
 
     VFuncMetadataLayout::emitRecord(Out, ScratchRecord,
@@ -300,7 +300,6 @@ bool Deserializer::readModuleSummary() {
     return true;
   }
 
-  std::unique_ptr<FunctionSummary> NewFSOwner;
   FunctionSummary *CurrentFunc;
   Optional<VFuncSlot> CurrentSlot;
 
@@ -336,11 +335,11 @@ bool Deserializer::readModuleSummary() {
       llvm::report_fatal_error("Unexpected MODULE_METADATA record");
     case FUNC_METADATA: {
       GUID guid;
-      std::string Name;
+      std::string name;
       unsigned isLive, isPreserved;
 
       FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
-      Name = BlobData.str();
+      name = BlobData.str();
       if (auto summary = moduleSummary.getFunctionSummary(guid)) {
         CurrentFunc = summary;
       } else {
@@ -350,7 +349,7 @@ bool Deserializer::readModuleSummary() {
       }
       CurrentFunc->setLive(isLive);
       CurrentFunc->setPreserved(isPreserved);
-      CurrentFunc->setName(Name);
+      CurrentFunc->setName(name);
       break;
     }
     case CALL_GRAPH_EDGE: {
@@ -358,15 +357,15 @@ bool Deserializer::readModuleSummary() {
       if (!CurrentFunc) {
         report_fatal_error("Unexpected CALL_GRAPH_EDGE record");
       }
-      unsigned edgeKindID;
-      GUID targetGUID;
-      CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
+      unsigned callKindID;
+      GUID calleeGUID;
+      CallGraphEdgeLayout::readRecord(Scratch, callKindID, calleeGUID);
 
-      auto callKind = getCallKind(edgeKindID);
+      auto callKind = getCallKind(callKindID);
       if (!callKind) {
         report_fatal_error("Bad call kind");
       }
-      CurrentFunc->addCall(targetGUID, BlobData.str(), callKind.getValue());
+      CurrentFunc->addCall(calleeGUID, BlobData.str(), callKind.getValue());
       break;
     }
     case VFUNC_METADATA: {
