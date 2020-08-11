@@ -24,24 +24,13 @@ enum {
   MODULE_METADATA,
   FUNC_METADATA,
   CALL_GRAPH_EDGE,
-  METHOD_METADATA,
-  METHOD_IMPL,
+  VFUNC_METADATA,
+  VFUNC_IMPL,
 };
 
 using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
                                             BCBlob // Module name
                                             >;
-
-
-using MethodMetadataLayout =
-    BCRecordLayout<METHOD_METADATA,
-                   BCFixed<1>, // KindTy (WitnessTable or VTable)
-                   BCVBR<16>   // VirtualFunc GUID
-                   >;
-
-using MethodImplLayout = BCRecordLayout<METHOD_IMPL,
-                                        BCVBR<16> // Impl func GUID
-                                        >;
 
 using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
                                               BCVBR<16>,  // Function GUID
@@ -55,6 +44,16 @@ using CallGraphEdgeLayout =
                    BCVBR<16>,  // Target Function GUID
                    BCBlob      // Name string
                    >;
+
+using VFuncMetadataLayout =
+    BCRecordLayout<VFUNC_METADATA,
+                   BCFixed<1>, // KindTy (WitnessTable or VTable)
+                   BCVBR<16>   // VirtualFunc GUID
+                   >;
+
+using VFuncImplLayout = BCRecordLayout<VFUNC_IMPL,
+                                       BCVBR<16> // Impl func GUID
+                                       >;
 } // namespace record_block
 } // namespace modulesummary
 } // namespace swift

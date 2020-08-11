@@ -101,8 +101,8 @@ void Serializer::writeBlockInfoBlock() {
   BLOCK_RECORD(record_block, FUNC_METADATA);
   BLOCK_RECORD(record_block, CALL_GRAPH_EDGE);
 
-  BLOCK_RECORD(record_block, METHOD_METADATA);
-  BLOCK_RECORD(record_block, METHOD_IMPL);
+  BLOCK_RECORD(record_block, VFUNC_METADATA);
+  BLOCK_RECORD(record_block, VFUNC_IMPL);
 }
 
 void Serializer::emitHeader() {
@@ -134,13 +134,13 @@ void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kin
     auto impls = pair.second;
     using namespace record_block;
 
-    MethodMetadataLayout::emitRecord(Out, ScratchRecord,
-                                     AbbrCodes[MethodMetadataLayout::Code],
-                                     unsigned(kind), guid);
+    VFuncMetadataLayout::emitRecord(Out, ScratchRecord,
+                                    AbbrCodes[VFuncMetadataLayout::Code],
+                                    unsigned(kind), guid);
 
     for (auto impl : impls) {
-      MethodImplLayout::emitRecord(Out, ScratchRecord,
-                                   AbbrCodes[MethodImplLayout::Code], impl);
+      VFuncImplLayout::emitRecord(Out, ScratchRecord,
+                                  AbbrCodes[VFuncImplLayout::Code], impl);
     }
   }
 }
@@ -153,8 +153,8 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   registerRecordAbbr<ModuleMetadataLayout>();
   registerRecordAbbr<FunctionMetadataLayout>();
   registerRecordAbbr<CallGraphEdgeLayout>();
-  registerRecordAbbr<MethodMetadataLayout>();
-  registerRecordAbbr<MethodImplLayout>();
+  registerRecordAbbr<VFuncMetadataLayout>();
+  registerRecordAbbr<VFuncImplLayout>();
 
   ModuleMetadataLayout::emitRecord(Out, ScratchRecord,
                                    AbbrCodes[ModuleMetadataLayout::Code],
@@ -369,10 +369,10 @@ bool Deserializer::readModuleSummary() {
       CurrentFunc->addCall(targetGUID, BlobData.str(), callKind.getValue());
       break;
     }
-    case METHOD_METADATA: {
+    case VFUNC_METADATA: {
       unsigned rawVFuncKind;
       GUID vFuncGUID;
-      MethodMetadataLayout::readRecord(Scratch, rawVFuncKind, vFuncGUID);
+      VFuncMetadataLayout::readRecord(Scratch, rawVFuncKind, vFuncGUID);
 
       auto Kind = getSlotKind(rawVFuncKind);
       if (!Kind) {
@@ -381,13 +381,13 @@ bool Deserializer::readModuleSummary() {
       CurrentSlot = VFuncSlot(Kind.getValue(), vFuncGUID);
       break;
     }
-    case METHOD_IMPL: {
-      // METHOD_IMPL must follow a METHOD_METADATA.
+    case VFUNC_IMPL: {
+      // VFUNC_IMPL must follow a VFUNC_METADATA.
       if (!CurrentSlot) {
         report_fatal_error("Unexpected METHOD_IMPL record");
       }
       GUID implGUID;
-      MethodImplLayout::readRecord(Scratch, implGUID);
+      VFuncImplLayout::readRecord(Scratch, implGUID);
       moduleSummary.addImplementation(CurrentSlot.getValue(), implGUID);
       break;
     }
