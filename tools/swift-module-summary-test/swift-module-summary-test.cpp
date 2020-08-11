@@ -131,7 +131,7 @@ struct CustomMappingTraits<VFuncToImplsMapTy> {
 
 void MappingTraits<ModuleSummaryIndex>::mapping(IO &io, ModuleSummaryIndex &V) {
   io.mapRequired("module_name", V.Name);
-  io.mapRequired("functions", V.FunctionSummaryInfoMap);
+  io.mapRequired("functions", V.FunctionSummaryMap);
   io.mapRequired("witness_tables", V.WitnessTableMethodMap);
   io.mapRequired("vtables", V.VTableMethodMap);
 }

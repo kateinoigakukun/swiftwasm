@@ -158,7 +158,7 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
 
   ModuleMetadataLayout::emitRecord(Out, ScratchRecord,
                                    AbbrCodes[ModuleMetadataLayout::Code],
-                                   index.getModuleName());
+                                   index.getName());
   for (auto FI = index.functions_begin(), FE = index.functions_end(); FI != FE;
        ++FI) {
     emitFunctionSummary(FI->second.get());
@@ -180,6 +180,7 @@ class Deserializer {
 
   ModuleSummaryIndex &moduleSummary;
 
+  // These all return true if there was an error.
   bool readSignature();
   bool enterTopLevelBlock();
   bool readModuleMetadata();
