@@ -9,12 +9,9 @@ namespace swift {
 
 namespace modulesummary {
 
-using llvm::BCArray;
 using llvm::BCBlob;
 using llvm::BCFixed;
-using llvm::BCGenericRecordLayout;
 using llvm::BCRecordLayout;
-using llvm::BCVBR;
 
 const unsigned char MODULE_SUMMARY_SIGNATURE[] = {'M', 'O', 'D', 'S'};
 const unsigned RECORD_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID;
@@ -28,31 +25,33 @@ enum {
   VFUNC_IMPL,
 };
 
+using BCGUID = llvm::BCVBR<16>;
+
 using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
-                                            BCBlob // Module name
+                                            BCBlob // module name
                                             >;
 
 using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
-                                              BCVBR<16>,  // Function GUID
+                                              BCGUID,  // function guid
                                               BCFixed<1>, // live
                                               BCFixed<1>, // preserved
-                                              BCBlob      // Name string
+                                              BCBlob      // name (debug purpose)
                                               >;
 using CallGraphEdgeLayout =
     BCRecordLayout<CALL_GRAPH_EDGE,
-                   BCFixed<2>, // FunctionSummary::Edge::Kind
-                   BCVBR<16>,  // Target Function GUID
-                   BCBlob      // Name string
+                   BCFixed<2>, // call kind (direct, vtable or witness)
+                   BCGUID,  // callee func guid
+                   BCBlob      // name (debug purpose)
                    >;
 
 using VFuncMetadataLayout =
     BCRecordLayout<VFUNC_METADATA,
-                   BCFixed<1>, // KindTy (WitnessTable or VTable)
-                   BCVBR<16>   // VirtualFunc GUID
+                   BCFixed<1>, // vfunc kind (vtable or witness)
+                   BCGUID   // vfunc guid
                    >;
 
 using VFuncImplLayout = BCRecordLayout<VFUNC_IMPL,
-                                       BCVBR<16> // Impl func GUID
+                                       BCGUID // impl func guid
                                        >;
 } // namespace record_block
 } // namespace modulesummary
