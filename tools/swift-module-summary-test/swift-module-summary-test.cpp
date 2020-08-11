@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    if (emitModuleSummaryIndex(summary, diags, options::OutputFilename)) {
+    if (writeModuleSummaryIndex(summary, diags, options::OutputFilename)) {
       llvm::errs() << "Failed to write binary module summary\n";
       return 1;
     }

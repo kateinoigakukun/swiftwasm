@@ -177,7 +177,7 @@ public:
 
 std::unique_ptr<ModuleSummaryIndex> buildModuleSummaryIndex(SILModule &M);
 
-bool emitModuleSummaryIndex(const ModuleSummaryIndex &index,
+bool writeModuleSummaryIndex(const ModuleSummaryIndex &index,
                             DiagnosticEngine &diags, StringRef path);
 
 bool loadModuleSummaryIndex(llvm::MemoryBufferRef inputBuffer,

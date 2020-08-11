@@ -440,7 +440,7 @@ bool Deserializer::readModuleSummary() {
 
 }; // namespace
 
-bool modulesummary::emitModuleSummaryIndex(const ModuleSummaryIndex &index,
+bool modulesummary::writeModuleSummaryIndex(const ModuleSummaryIndex &index,
                                            DiagnosticEngine &diags,
                                            StringRef path) {
   return withOutputFile(diags, path, [&](raw_ostream &out) {
