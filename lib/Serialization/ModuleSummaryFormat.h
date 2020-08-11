@@ -51,9 +51,9 @@ using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
                                               >;
 using CallGraphEdgeLayout =
     BCRecordLayout<CALL_GRAPH_EDGE,
-                   BCFixed<32>, // FunctionSummary::Edge::Kind
-                   BCVBR<16>,   // Target Function GUID
-                   BCBlob       // Name string
+                   BCFixed<2>, // FunctionSummary::Edge::Kind
+                   BCVBR<16>,  // Target Function GUID
+                   BCBlob      // Name string
                    >;
 } // namespace record_block
 } // namespace modulesummary

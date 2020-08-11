@@ -151,7 +151,7 @@ void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kin
 void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   using namespace record_block;
 
-  BCBlockRAII restoreBlock(Out, RECORD_BLOCK_ID, 4);
+  BCBlockRAII restoreBlock(Out, RECORD_BLOCK_ID, 32);
   ModuleMetadataLayout MDLayout(Out);
   MDLayout.emit(ScratchRecord, index.getModuleName());
   for (auto FI = index.functions_begin(), FE = index.functions_end(); FI != FE;
@@ -177,10 +177,10 @@ class Deserializer {
 
   bool readSignature();
   bool enterTopLevelBlock();
-  bool readFunctionSummary(const BitstreamEntry &);
+  bool readFunctionSummary(FunctionSummary &FS);
   bool readFunctionSummaryList();
   bool readModuleSummaryMetadata();
-  bool readVirtualMethodInfo(const BitstreamEntry &entry);
+  bool readVirtualMethodInfo(VFuncSlot slot);
   bool readVFuncTableList();
 
 public:
@@ -273,61 +273,142 @@ bool Deserializer::readModuleSummaryMetadata() {
   return false;
 }
 
-bool Deserializer::readFunctionSummary(const BitstreamEntry &entry) {
+bool Deserializer::readFunctionSummary(FunctionSummary &FS) {
   using namespace record_block;
-  assert(entry.ID == record_block::FUNC_METADATA);
-  BitstreamEntry next = entry;
 
-  GUID guid;
-  std::string Name;
-  FunctionSummary *FS;
-  std::unique_ptr<FunctionSummary> NewFSOwner;
-
-  unsigned isLive, isPreserved;
-  FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
-  Name = BlobData.str();
-  if (auto summary = moduleSummary.getFunctionSummary(guid)) {
-    FS = summary;
-  } else {
-    NewFSOwner = std::make_unique<FunctionSummary>(guid);
-    FS = NewFSOwner.get();
-  }
-  FS->setLive(isLive);
-  FS->setPreserved(isPreserved);
-  FS->setName(Name);
-
-  auto maybeNext = Cursor.advance();
-  if (!maybeNext)
+  Expected<BitstreamEntry> entry = Cursor.advance();
+  if (!entry)
     report_fatal_error("Should have next entry");
 
-  next = maybeNext.get();
+  if (entry->Kind != BitstreamEntry::Record) {
+    return false;
+  }
 
-  while (next.Kind == BitstreamEntry::Record &&
-         next.ID == record_block::CALL_GRAPH_EDGE) {
-    Scratch.clear();
+  Scratch.clear();
+  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
 
-    auto maybeKind = Cursor.readRecord(next.ID, Scratch, &BlobData);
+  if (!recordID)
+    report_fatal_error("Should have kind");
 
-    if (!maybeKind)
-      report_fatal_error("Should have kind");
-
+  while (recordID.get() == record_block::CALL_GRAPH_EDGE) {
     unsigned edgeKindID;
     GUID targetGUID;
     CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
     auto callKind = getEdgeKind(edgeKindID);
     if (!callKind)
       report_fatal_error("Bad edge kind");
-    if (!FS)
-      report_fatal_error("Invalid state");
 
-    FS->addCall(targetGUID, BlobData.str(), callKind.getValue());
+    FS.addCall(targetGUID, BlobData.str(), callKind.getValue());
 
-    auto maybeNext = Cursor.advance();
-    if (!maybeNext)
+    entry = Cursor.advance();
+    if (!entry)
       report_fatal_error("Should have next entry");
 
-    next = maybeNext.get();
+    if (entry->Kind != BitstreamEntry::Record) {
+      return false;
+    }
+
+    Scratch.clear();
+    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+
+    if (!recordID)
+      report_fatal_error("Should have kind");
   }
+
+  return false;
+}
+
+bool Deserializer::readVirtualMethodInfo(VFuncSlot slot) {
+  using namespace record_block;
+  Expected<BitstreamEntry> entry = Cursor.advance();
+  if (!entry) {
+    return true;
+  }
+
+  Scratch.clear();
+  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+
+  if (!recordID)
+    report_fatal_error("Should have kind");
+
+  while (entry->Kind == BitstreamEntry::Record &&
+         recordID.get() == record_block::METHOD_IMPL) {
+    GUID implGUID;
+    MethodImplLayout::readRecord(Scratch, implGUID);
+    moduleSummary.addImplementation(slot, implGUID);
+
+    entry = Cursor.advance();
+    if (!entry)
+      report_fatal_error("Should have next entry");
+
+    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+
+    if (!recordID)
+      report_fatal_error("Should have kind");
+    Scratch.clear();
+  }
+
+  return false;
+}
+
+bool Deserializer::readFunctionSummaryList() {
+  using namespace record_block;
+  unsigned recordID;
+  std::unique_ptr<FunctionSummary> NewFSOwner;
+  FunctionSummary *Current;
+
+  do {
+    Expected<BitstreamEntry> entry = Cursor.advance();
+    if (!entry) {
+      return false;
+    }
+
+    if (entry->Kind != BitstreamEntry::Record) {
+      return false;
+    }
+    auto maybeRecordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+    if (!maybeRecordID) {
+      return false;
+    }
+    recordID = maybeRecordID.get();
+    switch (recordID) {
+    case record_block::FUNC_METADATA: {
+      if (auto &FS = NewFSOwner) {
+        moduleSummary.addFunctionSummary(std::move(FS));
+      }
+      GUID guid;
+      std::string Name;
+
+      unsigned isLive, isPreserved;
+      FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
+      Name = BlobData.str();
+      if (auto summary = moduleSummary.getFunctionSummary(guid)) {
+        Current = summary;
+      } else {
+        NewFSOwner = std::make_unique<FunctionSummary>(guid);
+        Current = NewFSOwner.get();
+      }
+      Current->setLive(isLive);
+      Current->setPreserved(isPreserved);
+      Current->setName(Name);
+      break;
+    }
+    case record_block::CALL_GRAPH_EDGE: {
+      unsigned edgeKindID;
+      GUID targetGUID;
+      CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
+      auto callKind = getEdgeKind(edgeKindID);
+      if (!callKind)
+        report_fatal_error("Bad edge kind");
+
+      Current->addCall(targetGUID, BlobData.str(), callKind.getValue());
+      break;
+    }
+    default:
+      break;
+    }
+  } while (recordID == record_block::FUNC_METADATA ||
+           recordID == record_block::CALL_GRAPH_EDGE);
 
   if (auto &FS = NewFSOwner) {
     moduleSummary.addFunctionSummary(std::move(FS));
@@ -335,93 +416,50 @@ bool Deserializer::readFunctionSummary(const BitstreamEntry &entry) {
   return false;
 }
 
-bool Deserializer::readVirtualMethodInfo(const BitstreamEntry &entry) {
-  using namespace record_block;
-  assert(entry.ID == record_block::FUNC_METADATA);
-  BitstreamEntry next = entry;
-
-  Optional<VFuncSlot> slot;
-
-  using namespace record_block;
-
-  unsigned methodKindID;
-  GUID virtualFuncGUID;
-  MethodMetadataLayout::readRecord(Scratch, methodKindID, virtualFuncGUID);
-
-  auto Kind = getSlotKind(methodKindID);
-  if (!Kind)
-    report_fatal_error("Bad method kind");
-
-  slot = VFuncSlot(Kind.getValue(), virtualFuncGUID);
-
-  auto maybeNext = Cursor.advance();
-  if (!maybeNext)
-    report_fatal_error("Should have next entry");
-
-  next = maybeNext.get();
-
-  while (next.Kind == BitstreamEntry::Record &&
-         next.ID == record_block::METHOD_IMPL) {
-    Scratch.clear();
-
-    auto maybeKind = Cursor.readRecord(next.ID, Scratch, &BlobData);
-
-    if (!maybeKind)
-      report_fatal_error("Should have kind");
-
-    GUID implGUID;
-    MethodImplLayout::readRecord(Scratch, implGUID);
-    if (!slot)
-      report_fatal_error("Slot should be set before impl");
-    moduleSummary.addImplementation(slot.getValue(), implGUID);
-
-    auto maybeNext = Cursor.advance();
-    if (!maybeNext)
-      report_fatal_error("Should have next entry");
-
-    next = maybeNext.get();
-  }
-
-  return false;
-}
-
-bool Deserializer::readFunctionSummaryList() {
-  Expected<BitstreamEntry> maybeNext = Cursor.advance();
-  if (!maybeNext) {
-    // No function summary
-    return false;
-  }
-
-  BitstreamEntry next = maybeNext.get();
-
-  while (next.Kind == BitstreamEntry::Record &&
-         next.ID == record_block::FUNC_METADATA) {
-    if (readFunctionSummary(next)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 bool Deserializer::readVFuncTableList() {
-  Expected<BitstreamEntry> maybeNext = Cursor.advance();
-  if (!maybeNext) {
+  using namespace record_block;
+  Expected<BitstreamEntry> entry = Cursor.advance();
+  if (!entry) {
     // No vfunc table
     return false;
   }
 
-  BitstreamEntry next = maybeNext.get();
+  auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+  if (!recordID) {
+    return false;
+  }
 
-  while (next.Kind == BitstreamEntry::Record &&
-         next.ID == record_block::METHOD_METADATA) {
-    if (readVirtualMethodInfo(next)) {
+  while (entry->Kind == BitstreamEntry::Record &&
+         recordID.get() == record_block::METHOD_METADATA) {
+    unsigned rawVFuncKind;
+    GUID vFuncGUID;
+    MethodMetadataLayout::readRecord(Scratch, rawVFuncKind, vFuncGUID);
+
+    auto Kind = getSlotKind(rawVFuncKind);
+    if (!Kind) {
       return true;
+    }
+
+    VFuncSlot slot = VFuncSlot(Kind.getValue(), vFuncGUID);
+
+    if (readVirtualMethodInfo(slot)) {
+      return true;
+    }
+
+    entry = Cursor.advance();
+    if (!entry)
+      report_fatal_error("Should have next entry");
+    Scratch.clear();
+    recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+    if (!recordID) {
+      return false;
     }
   }
   return false;
 }
 
 bool Deserializer::readModuleSummary() {
+  using namespace record_block;
   if (readSignature()) {
     return true;
   }
@@ -433,12 +471,90 @@ bool Deserializer::readModuleSummary() {
     return true;
   }
 
-  if (readFunctionSummaryList()) {
-    return true;
-  }
+  std::unique_ptr<FunctionSummary> NewFSOwner;
+  FunctionSummary *CurrentFunc;
+  Optional<VFuncSlot> CurrentSlot;
 
-  if (readVFuncTableList()) {
-    return true;
+  while (!Cursor.AtEndOfStream()) {
+    Scratch.clear();
+    Expected<BitstreamEntry> entry = Cursor.advance();
+    if (!entry) {
+      // no content
+      return false;
+    }
+    if (entry->Kind == llvm::BitstreamEntry::EndBlock) {
+      Cursor.ReadBlockEnd();
+      break;
+    }
+
+    if (entry->Kind != llvm::BitstreamEntry::Record) {
+      llvm::report_fatal_error("Bad bitstream entry kind");
+    }
+
+    auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
+    if (!recordID) {
+      return true;
+    }
+
+    switch (recordID.get()) {
+    case MODULE_METADATA:
+      // METADATA must appear at the beginning and is handled by
+      // readModuleSummaryMetadata().
+      llvm::report_fatal_error("Unexpected MODULE_METADATA record");
+    case FUNC_METADATA: {
+      GUID guid;
+      std::string Name;
+
+      unsigned isLive, isPreserved;
+      FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
+      Name = BlobData.str();
+      if (auto summary = moduleSummary.getFunctionSummary(guid)) {
+        CurrentFunc = summary;
+      } else {
+        auto NewFS = std::make_unique<FunctionSummary>(guid);
+        CurrentFunc = NewFS.get();
+        moduleSummary.addFunctionSummary(std::move(NewFS));
+      }
+      CurrentFunc->setLive(isLive);
+      CurrentFunc->setPreserved(isPreserved);
+      CurrentFunc->setName(Name);
+      break;
+    }
+    case CALL_GRAPH_EDGE: {
+      if (!CurrentFunc) {
+        report_fatal_error("Unexpected CALL_GRAPH_EDGE record");
+      }
+      unsigned edgeKindID;
+      GUID targetGUID;
+      CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
+      auto callKind = getEdgeKind(edgeKindID);
+      if (!callKind)
+        report_fatal_error("Bad edge kind");
+      CurrentFunc->addCall(targetGUID, BlobData.str(), callKind.getValue());
+      break;
+    }
+    case METHOD_METADATA: {
+      unsigned rawVFuncKind;
+      GUID vFuncGUID;
+      MethodMetadataLayout::readRecord(Scratch, rawVFuncKind, vFuncGUID);
+
+      auto Kind = getSlotKind(rawVFuncKind);
+      if (!Kind) {
+        return true;
+      }
+      CurrentSlot = VFuncSlot(Kind.getValue(), vFuncGUID);
+      break;
+    }
+    case METHOD_IMPL: {
+      if (!CurrentSlot) {
+        report_fatal_error("Unexpected METHOD_IMPL record");
+      }
+      GUID implGUID;
+      MethodImplLayout::readRecord(Scratch, implGUID);
+      moduleSummary.addImplementation(CurrentSlot.getValue(), implGUID);
+      break;
+    }
+    }
   }
 
   return false;
