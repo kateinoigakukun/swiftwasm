@@ -28,18 +28,6 @@ static cl::opt<bool> ModuleSummaryEmbedDebugName(
     cl::desc("Embed function names for debugging purpose"));
 
 namespace {
-static Optional<FunctionSummary::Call::KindTy> getEdgeKind(unsigned edgeKind) {
-  if (edgeKind < unsigned(FunctionSummary::Call::KindTy::kindCount))
-    return FunctionSummary::Call::KindTy(edgeKind);
-  return None;
-}
-
-
-static Optional<VFuncSlot::KindTy> getSlotKind(unsigned kind) {
-  if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
-    return VFuncSlot::KindTy(kind);
-  return None;
-}
 
 class Serializer {
   SmallVector<char, 0> Buffer;
@@ -268,6 +256,20 @@ bool Deserializer::readModuleMetadata() {
   return false;
 }
 
+
+static Optional<FunctionSummary::Call::KindTy> getCallKind(unsigned kind) {
+  if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
+    return FunctionSummary::Call::KindTy(kind);
+  return None;
+}
+
+
+static Optional<VFuncSlot::KindTy> getSlotKind(unsigned kind) {
+  if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
+    return VFuncSlot::KindTy(kind);
+  return None;
+}
+
 bool Deserializer::readModuleSummary() {
   using namespace record_block;
   if (readSignature()) {
@@ -288,10 +290,13 @@ bool Deserializer::readModuleSummary() {
   while (!Cursor.AtEndOfStream()) {
     Scratch.clear();
     Expected<BitstreamEntry> entry = Cursor.advance();
+
     if (!entry) {
-      // no content
+      // Success if there is no content
+      consumeError(entry.takeError());
       return false;
     }
+
     if (entry->Kind == llvm::BitstreamEntry::EndBlock) {
       Cursor.ReadBlockEnd();
       break;
@@ -303,6 +308,7 @@ bool Deserializer::readModuleSummary() {
 
     auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
     if (!recordID) {
+      consumeError(recordID.takeError());
       return true;
     }
 
@@ -314,8 +320,8 @@ bool Deserializer::readModuleSummary() {
     case FUNC_METADATA: {
       GUID guid;
       std::string Name;
-
       unsigned isLive, isPreserved;
+
       FunctionMetadataLayout::readRecord(Scratch, guid, isLive, isPreserved);
       Name = BlobData.str();
       if (auto summary = moduleSummary.getFunctionSummary(guid)) {
@@ -331,15 +337,18 @@ bool Deserializer::readModuleSummary() {
       break;
     }
     case CALL_GRAPH_EDGE: {
+      // CALL_GRAPH_EDGE must follow a FUNC_METADATA.
       if (!CurrentFunc) {
         report_fatal_error("Unexpected CALL_GRAPH_EDGE record");
       }
       unsigned edgeKindID;
       GUID targetGUID;
       CallGraphEdgeLayout::readRecord(Scratch, edgeKindID, targetGUID);
-      auto callKind = getEdgeKind(edgeKindID);
-      if (!callKind)
-        report_fatal_error("Bad edge kind");
+
+      auto callKind = getCallKind(edgeKindID);
+      if (!callKind) {
+        report_fatal_error("Bad call kind");
+      }
       CurrentFunc->addCall(targetGUID, BlobData.str(), callKind.getValue());
       break;
     }
@@ -350,12 +359,13 @@ bool Deserializer::readModuleSummary() {
 
       auto Kind = getSlotKind(rawVFuncKind);
       if (!Kind) {
-        return true;
+        report_fatal_error("Bad vfunc slot kind");
       }
       CurrentSlot = VFuncSlot(Kind.getValue(), vFuncGUID);
       break;
     }
     case METHOD_IMPL: {
+      // METHOD_IMPL must follow a METHOD_METADATA.
       if (!CurrentSlot) {
         report_fatal_error("Unexpected METHOD_IMPL record");
       }
