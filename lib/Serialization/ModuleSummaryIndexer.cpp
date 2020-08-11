@@ -118,7 +118,7 @@ class ModuleSummaryIndexer {
   std::unique_ptr<ModuleSummaryIndex> TheSummary;
   const SILModule &Mod;
   void ensurePreserved(const SILFunction &F);
-  void ensurePreserved(const SILDeclRef &Ref, VirtualMethodSlot::KindTy Kind);
+  void ensurePreserved(const SILDeclRef &Ref, VFuncSlot::KindTy Kind);
   void preserveKeyPathFunctions(const SILProperty &P);
   void indexWitnessTable(const SILWitnessTable &WT);
   void indexVTable(const SILVTable &VT);
@@ -139,8 +139,8 @@ void ModuleSummaryIndexer::ensurePreserved(const SILFunction &F) {
 }
 
 void ModuleSummaryIndexer::ensurePreserved(const SILDeclRef &Ref,
-                                           VirtualMethodSlot::KindTy Kind) {
-  VirtualMethodSlot slot(Ref, Kind);
+                                           VFuncSlot::KindTy Kind) {
+  VFuncSlot slot(Ref, Kind);
   auto Impls = TheSummary->getImplementations(slot);
   if (Impls.empty())
     return;
@@ -163,9 +163,9 @@ void ModuleSummaryIndexer::preserveKeyPathFunctions(const SILProperty &P) {
       [&](SILDeclRef method) {
         auto decl = cast<AbstractFunctionDecl>(method.getDecl());
         if (isa<ClassDecl>(decl->getDeclContext())) {
-          ensurePreserved(method, VirtualMethodSlot::VTable);
+          ensurePreserved(method, VFuncSlot::VTable);
         } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
-          ensurePreserved(method, VirtualMethodSlot::Witness);
+          ensurePreserved(method, VFuncSlot::Witness);
         } else {
           llvm_unreachable(
               "key path keyed by a non-class, non-protocol method");
@@ -185,8 +185,8 @@ void ModuleSummaryIndexer::indexWitnessTable(const SILWitnessTable &WT) {
     auto Witness = methodWitness.Witness;
     if (!Witness)
       continue;
-    VirtualMethodSlot slot(methodWitness.Requirement,
-                           VirtualMethodSlot::Witness);
+    VFuncSlot slot(methodWitness.Requirement,
+                           VFuncSlot::Witness);
     TheSummary->addImplementation(slot,
                                   getGUIDFromUniqueName(Witness->getName()));
 
@@ -212,7 +212,7 @@ void ModuleSummaryIndexer::indexVTable(const SILVTable &VT) {
     if (entry.getKind() == SILVTableEntry::Override && isExternalMethod) {
       ensurePreserved(*Impl);
     }
-    VirtualMethodSlot slot(entry.getMethod(), VirtualMethodSlot::VTable);
+    VFuncSlot slot(entry.getMethod(), VFuncSlot::VTable);
     TheSummary->addImplementation(slot, getGUIDFromUniqueName(Impl->getName()));
   }
 }

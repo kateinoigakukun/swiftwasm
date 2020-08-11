@@ -35,9 +35,9 @@ static Optional<FunctionSummary::Call::KindTy> getEdgeKind(unsigned edgeKind) {
 }
 
 
-static Optional<VirtualMethodSlot::KindTy> getSlotKind(unsigned kind) {
+static Optional<VFuncSlot::KindTy> getSlotKind(unsigned kind) {
   if (kind < unsigned(FunctionSummary::Call::KindTy::kindCount))
-    return VirtualMethodSlot::KindTy(kind);
+    return VFuncSlot::KindTy(kind);
   return None;
 }
 
@@ -55,7 +55,7 @@ class Serializer {
 
   void emitRecordID(unsigned ID, StringRef name,
                     SmallVectorImpl<unsigned char> &nameBuffer);
-  void emitVFuncTable(const VFuncToImplsMapTy T, VirtualMethodSlot::KindTy kind);
+  void emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kind);
 public:
   void emitHeader();
   void emitModuleSummary(const ModuleSummaryIndex &index);
@@ -134,7 +134,7 @@ void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   }
 }
 
-void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VirtualMethodSlot::KindTy kind) {
+void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kind) {
   for (auto &pair : T) {
     BCBlockRAII restoreBlock(Out, VIRTUAL_METHOD_INFO_ID, 32);
     auto &guid = pair.first;
@@ -163,8 +163,8 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
     emitFunctionSummary(FI->second.get());
   }
 
-  emitVFuncTable(index.getWitnessTableMethodMap(), VirtualMethodSlot::Witness);
-  emitVFuncTable(index.getVTableMethodMap(), VirtualMethodSlot::VTable);
+  emitVFuncTable(index.getWitnessTableMethodMap(), VFuncSlot::Witness);
+  emitVFuncTable(index.getVTableMethodMap(), VFuncSlot::VTable);
 }
 
 void Serializer::write(raw_ostream &os) {
@@ -313,7 +313,7 @@ bool Deserializer::readVirtualMethodInfo() {
 
   BitstreamEntry next = maybeNext.get();
 
-  Optional<VirtualMethodSlot> slot;
+  Optional<VFuncSlot> slot;
 
   while (next.Kind == BitstreamEntry::Record) {
     Scratch.clear();
@@ -334,7 +334,7 @@ bool Deserializer::readVirtualMethodInfo() {
       if (!Kind)
         report_fatal_error("Bad method kind");
 
-      slot = VirtualMethodSlot(Kind.getValue(), virtualFuncGUID);
+      slot = VFuncSlot(Kind.getValue(), virtualFuncGUID);
       break;
     }
     case virtual_method_info::METHOD_IMPL: {

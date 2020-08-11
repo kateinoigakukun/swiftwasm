@@ -15,7 +15,7 @@ using GUID = uint64_t;
 
 GUID getGUIDFromUniqueName(llvm::StringRef Name);
 
-struct VirtualMethodSlot {
+struct VFuncSlot {
   enum KindTy {
     Witness,
     VTable,
@@ -24,13 +24,13 @@ struct VirtualMethodSlot {
 
   KindTy Kind;
   GUID VFuncID;
-  VirtualMethodSlot(KindTy Kind, GUID VFuncID)
+  VFuncSlot(KindTy Kind, GUID VFuncID)
     : Kind(Kind), VFuncID(VFuncID) { }
-  VirtualMethodSlot(SILDeclRef VirtualFuncRef, KindTy Kind) : Kind(Kind) {
+  VFuncSlot(SILDeclRef VirtualFuncRef, KindTy Kind) : Kind(Kind) {
       VFuncID = getGUIDFromUniqueName(VirtualFuncRef.mangle());
   }
 
-  bool operator<(const VirtualMethodSlot &rhs)  const {
+  bool operator<(const VFuncSlot &rhs)  const {
     if (Kind > rhs.Kind)
       return false;
     if (Kind < rhs.Kind)
@@ -86,15 +86,15 @@ public:
          << ")\n";
     }
 
-    VirtualMethodSlot slot() const {
-      VirtualMethodSlot::KindTy slotKind;
+    VFuncSlot slot() const {
+      VFuncSlot::KindTy slotKind;
       switch (Kind) {
       case KindTy::Witness: {
-        slotKind = VirtualMethodSlot::KindTy::Witness;
+        slotKind = VFuncSlot::KindTy::Witness;
         break;
       }
       case KindTy::VTable: {
-        slotKind = VirtualMethodSlot::KindTy::VTable;
+        slotKind = VFuncSlot::KindTy::VTable;
         break;
       }
       case KindTy::Direct: {
@@ -104,7 +104,7 @@ public:
         llvm_unreachable("impossible");
       }
       }
-      return VirtualMethodSlot(slotKind, Callee);
+      return VFuncSlot(slotKind, Callee);
     }
   };
 
@@ -154,20 +154,20 @@ class ModuleSummaryIndex {
   VFuncToImplsMapTy VTableMethodMap;
 
   std::string Name;
-  VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) {
+  VFuncToImplsMapTy &getVFuncMap(VFuncSlot::KindTy kind) {
       switch (kind) {
-          case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
-          case VirtualMethodSlot::VTable: return VTableMethodMap;
-          case VirtualMethodSlot::kindCount: {
+          case VFuncSlot::Witness: return WitnessTableMethodMap;
+          case VFuncSlot::VTable: return VTableMethodMap;
+          case VFuncSlot::kindCount: {
               llvm_unreachable("impossible");
           }
       }
   }
-  const VFuncToImplsMapTy &getVFuncMap(VirtualMethodSlot::KindTy kind) const {
+  const VFuncToImplsMapTy &getVFuncMap(VFuncSlot::KindTy kind) const {
       switch (kind) {
-          case VirtualMethodSlot::Witness: return WitnessTableMethodMap;
-          case VirtualMethodSlot::VTable: return VTableMethodMap;
-          case VirtualMethodSlot::kindCount: {
+          case VFuncSlot::Witness: return WitnessTableMethodMap;
+          case VFuncSlot::VTable: return VTableMethodMap;
+          case VFuncSlot::kindCount: {
               llvm_unreachable("impossible");
           }
       }
@@ -193,7 +193,7 @@ public:
     return entry.get();
   }
 
-  void addImplementation(VirtualMethodSlot slot, GUID funcGUID) {
+  void addImplementation(VFuncSlot slot, GUID funcGUID) {
     VFuncToImplsMapTy &table = getVFuncMap(slot.Kind);
     auto found = table.find(slot.VFuncID);
     if (found == table.end()) {
@@ -204,7 +204,7 @@ public:
   }
 
   ArrayRef<GUID>
-  getImplementations(VirtualMethodSlot slot) const {
+  getImplementations(VFuncSlot slot) const {
     const VFuncToImplsMapTy &table = getVFuncMap(slot.Kind);
     auto found = table.find(slot.VFuncID);
     if (found == table.end()) {
