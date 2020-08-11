@@ -31,9 +31,9 @@ enum {
   MODULE_METADATA,
 };
 
-using MetadataLayout = BCRecordLayout<MODULE_METADATA,
-                                      BCBlob // Module name
-                                      >;
+using ModuleMetadataLayout = BCRecordLayout<MODULE_METADATA,
+                                            BCBlob // Module name
+                                            >;
 }; // namespace module_summary
 
 namespace virtual_method_info {
@@ -55,16 +55,16 @@ using MethodImplLayout = BCRecordLayout<METHOD_IMPL,
 
 namespace function_summary {
 enum {
-  METADATA,
+  FUNC_METADATA,
   CALL_GRAPH_EDGE,
 };
 
-using MetadataLayout = BCRecordLayout<METADATA,
-                                      BCVBR<16>,  // Function GUID
-                                      BCFixed<1>, // live
-                                      BCFixed<1>, // preserved
-                                      BCBlob      // Name string
-                                      >;
+using FunctionMetadataLayout = BCRecordLayout<FUNC_METADATA,
+                                              BCVBR<16>,  // Function GUID
+                                              BCFixed<1>, // live
+                                              BCFixed<1>, // preserved
+                                              BCBlob      // Name string
+                                              >;
 using CallGraphEdgeLayout =
     BCRecordLayout<CALL_GRAPH_EDGE,
                    BCFixed<32>, // FunctionSummary::Edge::Kind

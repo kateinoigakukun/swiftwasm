@@ -102,7 +102,7 @@ void Serializer::writeBlockInfoBlock() {
   BLOCK_RECORD(module_summary, MODULE_METADATA);
 
   BLOCK(FUNCTION_SUMMARY);
-  BLOCK_RECORD(function_summary, METADATA);
+  BLOCK_RECORD(function_summary, FUNC_METADATA);
   BLOCK_RECORD(function_summary, CALL_GRAPH_EDGE);
 
   BLOCK(VIRTUAL_METHOD_INFO);
@@ -118,7 +118,7 @@ void Serializer::emitHeader() {
 void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   BCBlockRAII restoreBlock(Out, FUNCTION_SUMMARY_ID, 32);
   using namespace function_summary;
-  function_summary::MetadataLayout MDlayout(Out);
+  function_summary::FunctionMetadataLayout MDlayout(Out);
   StringRef debugFuncName =
       ModuleSummaryEmbedDebugName ? summary->getName() : "";
   MDlayout.emit(ScratchRecord, summary->getGUID(),
@@ -156,7 +156,7 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   using namespace module_summary;
 
   BCBlockRAII restoreBlock(Out, MODULE_SUMMARY_ID, 4);
-  module_summary::MetadataLayout MDLayout(Out);
+  module_summary::ModuleMetadataLayout MDLayout(Out);
   MDLayout.emit(ScratchRecord, index.getModuleName());
   for (auto FI = index.functions_begin(), FE = index.functions_end(); FI != FE;
        ++FI) {
@@ -257,10 +257,10 @@ bool Deserializer::readFunctionSummary() {
       report_fatal_error("Should have kind");
 
     switch (maybeKind.get()) {
-    case function_summary::METADATA: {
+    case function_summary::FUNC_METADATA: {
       unsigned isLive, isPreserved;
-      function_summary::MetadataLayout::readRecord(Scratch, guid, isLive,
-                                                   isPreserved);
+      function_summary::FunctionMetadataLayout::readRecord(Scratch, guid,
+                                                           isLive, isPreserved);
       Name = BlobData.str();
       if (auto summary = moduleSummary.getFunctionSummary(guid)) {
         FS = summary;
