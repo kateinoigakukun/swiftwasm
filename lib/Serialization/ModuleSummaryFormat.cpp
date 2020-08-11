@@ -36,6 +36,15 @@ class Serializer {
   /// A reusable buffer for emitting records.
   SmallVector<uint64_t, 64> ScratchRecord;
 
+  std::array<unsigned, 256> AbbrCodes;
+
+  template <typename Layout> void registerRecordAbbr() {
+    using AbbrArrayTy = decltype(AbbrCodes);
+    static_assert(Layout::Code <= std::tuple_size<AbbrArrayTy>::value,
+                  "layout has invalid record code");
+    AbbrCodes[Layout::Code] = Layout::emitAbbrev(Out);
+  }
+
   void writeSignature();
   void writeBlockInfoBlock();
   void emitBlockID(unsigned ID, StringRef name,
@@ -103,19 +112,19 @@ void Serializer::emitHeader() {
 
 void Serializer::emitFunctionSummary(const FunctionSummary *summary) {
   using namespace record_block;
-  FunctionMetadataLayout MDlayout(Out);
   StringRef debugFuncName =
       ModuleSummaryEmbedDebugName ? summary->getName() : "";
-  MDlayout.emit(ScratchRecord, summary->getGUID(),
-                unsigned(summary->isLive()),
-                unsigned(summary->isPreserved()), debugFuncName);
+  FunctionMetadataLayout::emitRecord(
+      Out, ScratchRecord, AbbrCodes[FunctionMetadataLayout::Code],
+      summary->getGUID(), unsigned(summary->isLive()),
+      unsigned(summary->isPreserved()), debugFuncName);
 
   for (auto call : summary->calls()) {
-    CallGraphEdgeLayout edgeLayout(Out);
     StringRef debugName =
         ModuleSummaryEmbedDebugName ? call.getName() : "";
-    edgeLayout.emit(ScratchRecord, unsigned(call.getKind()),
-                    call.getCallee(), debugName);
+    CallGraphEdgeLayout::emitRecord(
+        Out, ScratchRecord, AbbrCodes[CallGraphEdgeLayout::Code],
+        unsigned(call.getKind()), call.getCallee(), debugName);
   }
 }
 
@@ -125,13 +134,13 @@ void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kin
     auto impls = pair.second;
     using namespace record_block;
 
-    MethodMetadataLayout MDLayout(Out);
-
-    MDLayout.emit(ScratchRecord, unsigned(kind), guid);
+    MethodMetadataLayout::emitRecord(Out, ScratchRecord,
+                                     AbbrCodes[MethodMetadataLayout::Code],
+                                     unsigned(kind), guid);
 
     for (auto impl : impls) {
-      MethodImplLayout ImplLayout(Out);
-      ImplLayout.emit(ScratchRecord, impl);
+      MethodImplLayout::emitRecord(Out, ScratchRecord,
+                                   AbbrCodes[MethodImplLayout::Code], impl);
     }
   }
 }
@@ -139,9 +148,17 @@ void Serializer::emitVFuncTable(const VFuncToImplsMapTy T, VFuncSlot::KindTy kin
 void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   using namespace record_block;
 
-  BCBlockRAII restoreBlock(Out, RECORD_BLOCK_ID, 32);
-  ModuleMetadataLayout MDLayout(Out);
-  MDLayout.emit(ScratchRecord, index.getModuleName());
+  BCBlockRAII restoreBlock(Out, RECORD_BLOCK_ID, 8);
+
+  registerRecordAbbr<ModuleMetadataLayout>();
+  registerRecordAbbr<FunctionMetadataLayout>();
+  registerRecordAbbr<CallGraphEdgeLayout>();
+  registerRecordAbbr<MethodMetadataLayout>();
+  registerRecordAbbr<MethodImplLayout>();
+
+  ModuleMetadataLayout::emitRecord(Out, ScratchRecord,
+                                   AbbrCodes[ModuleMetadataLayout::Code],
+                                   index.getModuleName());
   for (auto FI = index.functions_begin(), FE = index.functions_end(); FI != FE;
        ++FI) {
     emitFunctionSummary(FI->second.get());
