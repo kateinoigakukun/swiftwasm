@@ -95,10 +95,6 @@ public:
   FunctionSummary() = default;
   FunctionSummary(GUID guid) : Guid(guid), Flags({false, false}) {}
 
-  void addCall(GUID calleeGUID, std::string name, Call::KindTy kind) {
-    CallGraphEdgeList.emplace_back(calleeGUID, name, kind);
-  }
-
   /// Add a call to the list.
   void addCall(Call call) { CallGraphEdgeList.push_back(call); }
 
@@ -132,10 +128,6 @@ struct VFuncSlot {
   GUID VFuncID;
 
   VFuncSlot(KindTy Kind, GUID VFuncID) : Kind(Kind), VFuncID(VFuncID) {}
-
-  VFuncSlot(SILDeclRef VFuncRef, KindTy Kind) : Kind(Kind) {
-    VFuncID = getGUIDFromUniqueName(VFuncRef.mangle());
-  }
 };
 
 using FunctionSummaryMapTy = std::map<GUID, std::unique_ptr<FunctionSummary>>;

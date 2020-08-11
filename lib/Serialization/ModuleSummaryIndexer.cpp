@@ -139,9 +139,13 @@ void ModuleSummaryIndexer::ensurePreserved(const SILFunction &F) {
   FS->setPreserved(true);
 }
 
+static VFuncSlot createVFuncSlot(SILDeclRef VFuncRef, VFuncSlot::KindTy Kind) {
+  return VFuncSlot(Kind, getGUIDFromUniqueName(VFuncRef.mangle()));
+}
+
 void ModuleSummaryIndexer::ensurePreserved(const SILDeclRef &Ref,
                                            VFuncSlot::KindTy Kind) {
-  VFuncSlot slot(Ref, Kind);
+  auto slot = createVFuncSlot(Ref, Kind);
   auto Impls = TheSummary->getImplementations(slot);
   if (Impls.empty())
     return;
@@ -186,7 +190,7 @@ void ModuleSummaryIndexer::indexWitnessTable(const SILWitnessTable &WT) {
     auto Witness = methodWitness.Witness;
     if (!Witness)
       continue;
-    VFuncSlot slot(methodWitness.Requirement, VFuncSlot::Witness);
+    auto slot = createVFuncSlot(methodWitness.Requirement, VFuncSlot::Witness);
     TheSummary->addImplementation(slot,
                                   getGUIDFromUniqueName(Witness->getName()));
 
@@ -212,7 +216,7 @@ void ModuleSummaryIndexer::indexVTable(const SILVTable &VT) {
     if (entry.getKind() == SILVTableEntry::Override && isExternalMethod) {
       ensurePreserved(*Impl);
     }
-    VFuncSlot slot(entry.getMethod(), VFuncSlot::VTable);
+    auto slot = createVFuncSlot(entry.getMethod(), VFuncSlot::VTable);
     TheSummary->addImplementation(slot, getGUIDFromUniqueName(Impl->getName()));
   }
 }

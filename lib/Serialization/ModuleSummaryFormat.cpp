@@ -365,7 +365,8 @@ bool Deserializer::readModuleSummary() {
       if (!callKind) {
         report_fatal_error("Bad call kind");
       }
-      CurrentFunc->addCall(calleeGUID, BlobData.str(), callKind.getValue());
+      FunctionSummary::Call call(calleeGUID, BlobData.str(), callKind.getValue());
+      CurrentFunc->addCall(call);
       break;
     }
     case VFUNC_METADATA: {
