@@ -207,8 +207,8 @@ struct CallGraph {
   struct Node {
     GUID Guid;
     CallGraph *Parent;
-    std::vector<Node *> Children;
-    std::vector<Node *> PredChildren;
+    std::vector<Node *> Callees;
+    std::vector<Node *> Callers;
     std::vector<Edge> Edges;
 
     CallGraph *getParent() const { return Parent; }
@@ -247,8 +247,8 @@ CallGraph::CallGraph(ModuleSummaryIndex Summary) : Nodes(), EntryNode() {
     node->Parent = this;
     NodeMap[FI->first] = node;
     if (FI->second->isPreserved()) {
-      EntryNode.Children.push_back(node);
-      EntryNode.PredChildren.push_back(node);
+      EntryNode.Callees.push_back(node);
+      node->Callers.push_back(&EntryNode);
     }
   }
   EntryNode.Parent = this;
@@ -262,16 +262,16 @@ CallGraph::CallGraph(ModuleSummaryIndex Summary) : Nodes(), EntryNode() {
         VFuncSlot slot = createVFuncSlot(call);
         for (auto Impl : Summary.getImplementations(slot)) {
           Node *CalleeNode = NodeMap[Impl.Guid];
-          node.Children.push_back(CalleeNode);
-          node.PredChildren.push_back(CalleeNode);
+          node.Callees.push_back(CalleeNode);
+          CalleeNode->Callers.push_back(&node);
           node.Edges.push_back({call, Impl.Guid});
         }
         break;
       }
       case FunctionSummary::Call::Direct: {
         Node *CalleeNode = NodeMap[call.getCallee()];
-        node.Children.push_back(CalleeNode);
-        node.PredChildren.push_back(CalleeNode);
+        node.Callees.push_back(CalleeNode);
+        CalleeNode->Callers.push_back(&node);
         node.Edges.push_back({call, call.getCallee()});
         break;
       }
@@ -291,10 +291,10 @@ namespace llvm {
   
     static NodeRef getEntryNode(NodeRef N) { return N; }
     static inline ChildIteratorType child_begin(NodeRef N) {
-      return N->Children.begin();
+      return N->Callees.begin();
     }
     static inline ChildIteratorType child_end(NodeRef N) {
-      return N->Children.end();
+      return N->Callees.end();
     }
   };
 
@@ -306,10 +306,10 @@ namespace llvm {
       return G.Graph;
     }
     static inline ChildIteratorType child_begin(NodeRef N) {
-      return N->PredChildren.begin();
+      return N->Callers.begin();
     }
     static inline ChildIteratorType child_end(NodeRef N) {
-      return N->PredChildren.end();
+      return N->Callers.end();
     }
   };
 
@@ -355,7 +355,7 @@ namespace llvm {
     static std::string getEdgeAttributes(const CallGraph::Node *Node,
                                          CallGraph::child_iterator I,
                                          const CallGraph *Graph) {
-      unsigned ChildIdx = I - Node->Children.begin();
+      unsigned ChildIdx = I - Node->Callees.begin();
       std::string Label;
       raw_string_ostream O(Label);
       Demangle::Context DCtx;
