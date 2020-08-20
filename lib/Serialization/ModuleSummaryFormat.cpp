@@ -189,6 +189,7 @@ void Serializer::emitModuleSummary(const ModuleSummaryIndex &index) {
   emitVFuncTable(index.getWitnessTableMethodMap(), VFuncSlot::Witness);
   emitVFuncTable(index.getVTableMethodMap(), VFuncSlot::VTable);
 
+  emitUsedTypeList(index.getUsedTypeList());
 }
 
 void Serializer::write(raw_ostream &os) {
@@ -438,9 +439,9 @@ bool Deserializer::readModuleSummary() {
       break;
     }
     case USED_TYPE: {
-      // Remove me
       GUID typeGUID;
       UsedTypeLayout::readRecord(Scratch, typeGUID);
+      moduleSummary.markUsedType(typeGUID);
     }
     }
   }
