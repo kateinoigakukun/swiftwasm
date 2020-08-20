@@ -49,7 +49,7 @@ static llvm::DenseSet<GUID> computePreservedGUIDs(ModuleSummaryIndex *summary) {
 
 class LivenessTrace {
 public:
-  enum ReasonTy { Preserved, StaticRef, IndirectRef };
+  enum ReasonTy { Preserved, StaticReferenced, IndirectReferenced };
   std::shared_ptr<LivenessTrace> markedBy;
   std::string symbol;
   GUID guid;
@@ -86,27 +86,6 @@ public:
   }
 };
 
-namespace CallGraph {
-struct Node {
-  FunctionSummary *FS;
-  std::set<GUID> RetainedTypeRefs;
-  bool Dirty = true;
-
-  void retain(Node *Parent) {
-    auto beforeSize = RetainedTypeRefs.size();
-    auto &parentTypeRefs = Parent->RetainedTypeRefs;
-    RetainedTypeRefs.insert(parentTypeRefs.begin(), parentTypeRefs.end());
-    Dirty |= beforeSize != RetainedTypeRefs.size();
-  }
-};
-struct Work {
-  GUID Target;
-  std::shared_ptr<LivenessTrace> Trace;
-};
-
-void computeDeadSymbols(ModuleSummaryIndex &M);
-}; // namespace CallGraph
-
 VFuncSlot createVFuncSlot(FunctionSummary::Call call) {
   VFuncSlot::KindTy slotKind;
   switch (call.getKind()) {
@@ -128,58 +107,80 @@ VFuncSlot createVFuncSlot(FunctionSummary::Call call) {
   return VFuncSlot(slotKind, call.getCallee());
 }
 
-void markDeadSymbols(ModuleSummaryIndex &M,
-                     llvm::DenseSet<GUID> &PreservedGUIDs) {
-  using namespace CallGraph;
+void markDeadTypeRef(ModuleSummaryIndex &summary, const llvm::DenseSet<GUID> &PreservedGUIDs) {
+  SmallVector<GUID, 8> Worklist;
+  SmallSetVector<GUID, 16> beenInWorklist;
+  SmallSetVector<GUID, 16> UseMarkedTypes;
 
-  std::vector<Node> Nodes;
-  Nodes.resize(M.functions_size());
-  std::map<GUID, Node *> NodeMap;
-  SmallVector<Work, 8> Worklist;
-
-  int idx = 0;
-  for (auto FI = M.functions_begin(), FE = M.functions_end(); FI != FE; ++FI) {
-    Node *node = &Nodes[idx++];
-    node->FS = FI->second.get();
-    auto typeRefs = FI->second->typeRefs();
-    for (auto ref : typeRefs) {
-      node->RetainedTypeRefs.insert(ref.Guid);
-    }
-
-    NodeMap[FI->first] = node;
-    if (FI->second->isPreserved()) {
-      auto trace = std::make_shared<LivenessTrace>(nullptr, FI->first,
-                                                   LivenessTrace::Preserved);
-      if (!FI->second->getName().empty()) {
-        trace->setName(FI->second->getName());
-      }
-      Worklist.push_back({FI->first, trace});
-    }
-  }
-
-  unsigned LiveSymbols = 0;
-
-  std::set<std::shared_ptr<LivenessTrace>> dumpTargets;
+  Worklist.append(PreservedGUIDs.begin(), PreservedGUIDs.end());
+  
   while (!Worklist.empty()) {
-    Work work = Worklist.pop_back_val();
-    auto trace = work.Trace;
-
-    auto targetNodePair = NodeMap.find(work.Target);
-    if (targetNodePair == NodeMap.end()) {
-      llvm_unreachable("Bad GUID");
-    }
-    auto targetNode = targetNodePair->second;
-
-    if (!targetNode->Dirty) {
+    auto target = Worklist.pop_back_val();
+    if (!beenInWorklist.insert(target)) {
       continue;
     }
-    targetNode->Dirty = false;
-    if (targetNode->FS->getGUID() == 5323152069524157394) {
-      llvm::dbgs() << "[katei debug] Hit breakpoint\n";
+    auto maybeSummary = summary.getFunctionSummary(target);
+    if (!maybeSummary) {
+      llvm_unreachable("Bad GUID");
     }
+    auto FS = maybeSummary;
 
-    auto &selfTypeRefs = targetNode->RetainedTypeRefs;
-    auto FS = targetNode->FS;
+    for (auto typeRef : FS->typeRefs()) {
+      if (UseMarkedTypes.insert(typeRef.Guid)) {
+        summary.markUsedType(typeRef.Guid);
+      }
+    }
+    for (auto Call : FS->calls()) {
+      switch (Call.getKind()) {
+      case FunctionSummary::Call::Direct: {
+        Worklist.push_back(Call.getCallee());
+        continue;
+      }
+      case FunctionSummary::Call::Witness:
+      case FunctionSummary::Call::VTable: {
+        VFuncSlot slot = createVFuncSlot(Call);
+        auto Impls = summary.getImplementations(slot);
+        for (auto Impl : Impls) {
+          Worklist.push_back(Impl.Guid);
+        }
+        break;
+      }
+      case FunctionSummary::Call::kindCount:
+        llvm_unreachable("impossible");
+      }
+    }
+  }
+}
+
+void markDeadSymbols(ModuleSummaryIndex &summary, llvm::DenseSet<GUID> &PreservedGUIDs) {
+
+  SmallVector<std::shared_ptr<LivenessTrace>, 8> Worklist;
+  auto UsedTypesList = summary.getUsedTypeList();
+  std::set<GUID> UsedTypesSet(UsedTypesList.begin(), UsedTypesList.end());
+  unsigned LiveSymbols = 0;
+
+  for (auto GUID : PreservedGUIDs) {
+    auto trace = std::make_shared<LivenessTrace>(
+        nullptr, GUID, LivenessTrace::Preserved);
+    auto maybeFS = summary.getFunctionSummary(GUID);
+    if (!maybeFS) {
+      llvm_unreachable("Bad GUID");
+    }
+    if (!maybeFS->getName().empty()) {
+      trace->setName(maybeFS->getName());
+    }
+    Worklist.push_back(trace);
+  }
+  std::set<std::shared_ptr<LivenessTrace>> dumpTargets;
+  while (!Worklist.empty()) {
+    auto trace = Worklist.pop_back_val();
+
+    auto maybeSummary = summary.getFunctionSummary(trace->guid);
+    if (!maybeSummary) {
+      llvm_unreachable("Bad GUID");
+    }
+    auto FS = maybeSummary;
+    if (FS->isLive()) continue;
 
     if (!FS->getName().empty()) {
       LLVM_DEBUG(llvm::dbgs() << "Mark " << FS->getName() << " as live\n");
@@ -190,9 +191,7 @@ void markDeadSymbols(ModuleSummaryIndex &M,
     LiveSymbols++;
 
     auto queueWorklist = [&](std::shared_ptr<LivenessTrace> trace) {
-      auto nextNode = NodeMap[trace->guid];
-      nextNode->retain(targetNode);
-      auto maybeCallee = M.getFunctionSummary(trace->guid);
+      auto maybeCallee = summary.getFunctionSummary(trace->guid);
       if (!maybeCallee) {
         llvm_unreachable("Bad GUID");
       }
@@ -203,26 +202,26 @@ void markDeadSymbols(ModuleSummaryIndex &M,
           dumpTargets.insert(trace);
         }
       }
-      Worklist.push_back({trace->guid, trace});
+      Worklist.push_back(trace);
     };
 
     for (auto Call : FS->calls()) {
       switch (Call.getKind()) {
       case FunctionSummary::Call::Direct: {
         queueWorklist(std::make_shared<LivenessTrace>(
-            trace, Call.getCallee(), LivenessTrace::StaticRef));
+            trace, Call.getCallee(), LivenessTrace::StaticReferenced));
         continue;
       }
       case FunctionSummary::Call::Witness:
       case FunctionSummary::Call::VTable: {
         VFuncSlot slot = createVFuncSlot(Call);
-        auto Impls = M.getImplementations(slot);
+        auto Impls = summary.getImplementations(slot);
         for (auto Impl : Impls) {
-          if (selfTypeRefs.find(Impl.TypeGuid) == selfTypeRefs.end()) {
+          if (UsedTypesSet.find(Impl.TypeGuid) == UsedTypesSet.end()) {
             continue;
           }
           queueWorklist(std::make_shared<LivenessTrace>(
-              trace, Impl.Guid, LivenessTrace::IndirectRef));
+              trace, Impl.Guid, LivenessTrace::IndirectReferenced));
         }
         break;
       }
@@ -273,7 +272,7 @@ int cross_module_opt_main(ArrayRef<const char *> Args, const char *Argv0,
   TheSummary->setName("combined");
   
   auto PreservedGUIDs = computePreservedGUIDs(TheSummary.get());
-  //  markDeadTypeRef(*TheSummary.get(), PreservedGUIDs);
+  markDeadTypeRef(*TheSummary.get(), PreservedGUIDs);
   markDeadSymbols(*TheSummary.get(), PreservedGUIDs);
 
   modulesummary::writeModuleSummaryIndex(*TheSummary, Instance.getDiags(),
