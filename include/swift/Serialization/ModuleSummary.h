@@ -172,9 +172,6 @@ class ModuleSummaryIndex {
   VFuncToImplsMapTy WitnessTableMethodMap;
   /// Map from virtual function GUID to list of implementations for vtables.
   VFuncToImplsMapTy VTableMethodMap;
-  /// In per-module summary, always empty map.
-  /// In combined summary, map from type GUID to liveness of the type.
-  UsedTypeListTy UsedTypeList;
   /// The symbol name of the module.
   std::string Name;
 
@@ -245,17 +242,11 @@ public:
     return ArrayRef<VFuncImpl>(found->second);
   }
 
-  void markUsedType(GUID typeGUID) { UsedTypeList.push_back(typeGUID); }
-
   const VFuncToImplsMapTy &getWitnessTableMethodMap() const {
     return WitnessTableMethodMap;
   }
   const VFuncToImplsMapTy &getVTableMethodMap() const {
     return VTableMethodMap;
-  }
-
-  ArrayRef<GUID> getUsedTypeList() const {
-    return ArrayRef<GUID>(UsedTypeList);
   }
 
   FunctionSummaryMapTy::const_iterator functions_begin() const {
