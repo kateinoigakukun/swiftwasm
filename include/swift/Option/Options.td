@@ -471,6 +471,12 @@ def emit_module_summary_path :
          ArgumentIsPath, SupplementaryOutput]>,
   MetaVarName<"<path>">, HelpText<"Output module summary file to <path>">;
 
+def module_summary_path :
+  Separate<["-"], "module-summary-path">,
+  Flags<[FrontendOption, NoInteractiveOption, DoesNotAffectIncrementalBuild,
+         ArgumentIsPath, SupplementaryOutput]>,
+  MetaVarName<"<path>">, HelpText<"Combined module summary file <path>">;
+
 def emit_private_module_interface_path :
   Separate<["-"], "emit-private-module-interface-path">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden,
