@@ -1543,6 +1543,10 @@ namespace {
     }
 
     void addMethod(SILDeclRef fn) {
+      auto entry = VTable->getEntry(IGM.getSILModule(), fn);
+      if (entry && entry->getMethod() != fn) {
+        return;
+      }
       if (!VTable || methodRequiresReifiedVTableEntry(IGM, VTable, fn)) {
         VTableEntries.push_back(fn);
       } else {
