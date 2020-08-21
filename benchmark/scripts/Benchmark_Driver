@@ -73,6 +73,8 @@ class BenchmarkDriver(object):
     def test_harness(self):
         """Full path to test harness binary."""
         suffix = self.args.optimization if hasattr(self.args, "optimization") else "O"
+        if hasattr(self.args, "lto") and self.args.lto:
+            suffix += "-lto"
         if hasattr(self.args, "architecture") and self.args.architecture:
             suffix += "-" + self.args.architecture + "*"
         pattern = os.path.join(self.args.tests, "Benchmark_" + suffix)
@@ -918,6 +920,9 @@ def parse_args(args):
         choices=["O", "Onone", "Osize"],
         help="optimization level to use: {O,Onone,Osize}, (default: O)",
         default="O",
+    )
+    shared_benchmarks_parser.add_argument(
+        "--lto", action="store_true", help="use link-time-optimized variant"
     )
     shared_benchmarks_parser.add_argument(
         "--architecture",
