@@ -518,6 +518,12 @@ ToolChain::constructInvocation(const CompileJobAction &job,
       Arguments.push_back("-index-system-modules");
   }
 
+  if (auto moduleSummary = context.Args.getLastArg(
+          options::OPT_module_summary_path)) {
+    Arguments.push_back("-module-summary-path");
+    Arguments.push_back(moduleSummary->getValue());
+  }
+
   if (context.Args.hasArg(options::OPT_debug_info_store_invocation) ||
       shouldStoreInvocationInDebugInfo()) {
     Arguments.push_back("-debug-info-store-invocation");
