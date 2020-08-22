@@ -467,6 +467,7 @@ function (swift_benchmark_compile_archopts)
   set(SWIFT_BENCH_OBJFILES)
   set(SWIFT_BENCH_SIBFILES)
   set(SWIFT_BENCH_SUMMARYFILES)
+  set(bench_module_swiftmodules)
   foreach(module_name_path ${SWIFT_BENCH_MODULES})
     get_filename_component(module_name "${module_name_path}" NAME)
 
@@ -481,6 +482,7 @@ function (swift_benchmark_compile_archopts)
       set(swiftmodule "${objdir}/${module_name}.swiftmodule")
       set(source "${srcdir}/${module_name_path}.swift")
       list(APPEND bench_library_swiftmodules "${swiftmodule}")
+      list(APPEND bench_module_swiftmodules "${swiftmodule}")
 
       if ("${bench_flags}" MATCHES "-whole-module.*")
         set(output_option "-o" "${objfile}")
@@ -623,15 +625,15 @@ function (swift_benchmark_compile_archopts)
   if(BENCH_COMPILE_ARCHOPTS_LTO)
     set(sibfile "${objdir}/${module_name}.sib")
     set(summaryfile "${objdir}/${module_name}.swiftmodule.summary")
-    list(APPEND SWIFT_BENCH_SIBFILES "${sibfile}")
-    list(APPEND SWIFT_BENCH_SUMMARYFILES "${summaryfile}")
     add_custom_command(
         OUTPUT "${sibfile}" "${summaryfile}"
         DEPENDS
           ${stdlib_dependencies}
           ${bench_library_objects} ${bench_driver_objects}
           ${bench_library_sibfiles} ${bench_driver_sibfiles}
-          ${bench_library_swiftmodules}
+          ${bench_module_swiftmodules}
+          ${SWIFT_BENCH_OBJFILES}
+          ${SWIFT_BENCH_SIBFILES}
           "${source}"
         COMMAND "${SWIFT_EXEC}"
         ${common_swift4_options}
@@ -643,6 +645,8 @@ function (swift_benchmark_compile_archopts)
         "-I" "${objdir}"
         "-o" "${sibfile}"
         "${source}")
+    list(APPEND SWIFT_BENCH_SIBFILES "${sibfile}")
+    list(APPEND SWIFT_BENCH_SUMMARYFILES "${summaryfile}")
 
     set(mergedfile "${objdir}/${module_name}.swiftmodule.merged-summary")
     add_custom_command(
@@ -673,6 +677,8 @@ function (swift_benchmark_compile_archopts)
           ${compile_common_options}
           ${extra_options}
           ${sibfile}
+          "-parse-as-library"
+          "-whole-module-optimization"
           "-module-summary-path" ${mergedfile}
           "-I" "${objdir}"
           "-o" "${objfile}")
