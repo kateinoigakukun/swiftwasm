@@ -718,6 +718,7 @@ SILPassPipelinePlan
 SILPassPipelinePlan::getCrossModuleEliminatorPassPipeline(const SILOptions &Options) {
   SILPassPipelinePlan P(Options);
   addCrossModuleOptimizationsPipeline(P, Options);
+  P.addCodeSinking();
   return P;
 }
 
