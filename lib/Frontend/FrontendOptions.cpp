@@ -296,6 +296,7 @@ bool FrontendOptions::canActionEmitModuleSummary(ActionType action) {
   case ActionType::Typecheck:
   case ActionType::MergeModules:
   case ActionType::EmitModuleOnly:
+  case ActionType::ScanClangDependencies:
   case ActionType::PrintVersion:
     return false;
   case ActionType::EmitSIL:

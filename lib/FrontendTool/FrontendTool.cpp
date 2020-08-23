@@ -1904,11 +1904,10 @@ static bool serializeModuleSummary(SILModule *SM,
                                    const PrimarySpecificPaths &PSPs,
                                    const ASTContext &Context) {
   auto summaryOutputPath = PSPs.SupplementaryOutputs.ModuleSummaryOutputPath;
-  return withOutputFile(Context.Diags, summaryOutputPath,
-                        [&](llvm::raw_ostream &out) {
-                          out << "Some stuff";
-                          return false;
-                        });
+  auto Summary = modulesummary::buildModuleSummaryIndex(*SM);
+
+  return modulesummary::writeModuleSummaryIndex(*Summary.get(), Context.Diags,
+                                                summaryOutputPath);
 }
 
 static GeneratedModule
