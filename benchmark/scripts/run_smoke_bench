@@ -48,13 +48,14 @@ VERBOSE = False
 class DriverArgs(object):
     """Arguments for BenchmarkDriver."""
 
-    def __init__(self, tests, optimization="O", architecture=None):
+    def __init__(self, tests, optimization="O", architecture=None, lto=False):
         """Initialize with path to the build-dir and optimization level."""
         self.benchmarks = None
         self.filters = None
         self.tests = os.path.join(tests, "bin")
         self.optimization = optimization
         self.architecture = architecture
+        self.lto = lto
 
 
 def log(msg):
