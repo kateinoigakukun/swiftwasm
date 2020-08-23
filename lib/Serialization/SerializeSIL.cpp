@@ -392,8 +392,8 @@ void SILSerializer::writeSILFunction(const SILFunction &F, bool DeclOnly) {
   SILLinkage Linkage = F.getLinkage();
 
   // Check if we need to emit a body for this function.
-  bool NoBody = DeclOnly || isAvailableExternally(Linkage) ||
-                F.isExternalDeclaration();
+  bool NoBody = (DeclOnly || (isAvailableExternally(Linkage) && !ShouldSerializeAll) ||
+                F.isExternalDeclaration());
 
   // If we don't emit a function body then make sure to mark the declaration
   // as available externally.
@@ -2614,6 +2614,10 @@ void SILSerializer::writeSILDifferentiabilityWitness(
 bool SILSerializer::shouldEmitFunctionBody(const SILFunction *F,
                                            bool isReference) {
 
+  // If we are asked to serialize everything, go ahead and do it.
+  if (ShouldSerializeAll)
+    return true;
+
   // If F is a declaration, it has no body to emit...
   // The declaration will be serialized anyways if it is referenced anywhere.
   if (F->isExternalDeclaration())
@@ -2627,9 +2631,6 @@ bool SILSerializer::shouldEmitFunctionBody(const SILFunction *F,
       !(isReference && hasSharedVisibility(F->getLinkage())))
     return false;
 
-  // If we are asked to serialize everything, go ahead and do it.
-  if (ShouldSerializeAll)
-    return true;
 
   // If F is serialized, we should always emit its body.
   if (F->isSerialized() == IsSerialized)
