@@ -424,7 +424,6 @@ static void addCrossModuleOptimizationsPipeline(SILPassPipelinePlan &P,
   if (!Options.ModuleSummaryPath.empty()) {
     P.addCrossDeadFunctionElimination();
   }
-  P.addMandatorySILLinker();
 }
 
 static void addPrepareOptimizationsPipeline(SILPassPipelinePlan &P) {
