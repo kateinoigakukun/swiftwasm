@@ -1,0 +1,79 @@
+name: Build toolchain
+on: [push]
+jobs:
+  build_toolchain:
+    timeout-minutes: 0
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          path: swift
+      - name: Prepare ccache timestamp
+        id: sccache_cache_timestamp
+        shell: cmake -P {0}
+        run: |
+          string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+          message("::set-output name=timestamp::${current_date}")
+      - uses: pat-s/always-upload-cache@v2.1.0
+        with:
+          path: ~/build-cache
+          key: ${{ runner.os }}-sccache-v1-${{ steps.sccache_cache_timestamp.outputs.timestamp }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-v1-
+      - name: Install dependencies
+        run: |
+          brew uninstall python@2 || true
+          brew install ninja sccache
+      - name: Build macOS installable archive
+        env:
+          INSTALL_PATH: ${{ runner.temp }}/install
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer/
+          export WORKSPACE="${GITHUB_WORKSPACE}/../"
+          export SHA1=$(echo ${GITHUB_SHA} | cut -c1-8)
+          export SCCACHE_DIR="$HOME/build-cache"
+          export TOOLCHAIN_IDENTIFIER="LTO-PROTOTYPE-${SHA1}"
+          export BUNDLE_IDENTIFIER="org.swift.lto-prototype.${SHA1}"
+          export TOOLCHAIN_DISPLAY_NAME="Swift LTO Prototype - ${SHA1}"
+          export TOOLCHAIN_VERSION="${GITHUB_RUN_NUMBER}.999.0"
+
+          "$WORKSPACE/swift/utils/update-checkout" --clone --skip-repository swift
+          "$WORKSPACE/swift/utils/build-script" \
+            '--swift-install-components=compiler;clang-resource-dir-symlink;stdlib;sdk-overlay;parser-lib;toolchain-tools;license;sourcekit-xpc-service;swift-remote-mirror;swift-remote-mirror-headers' \
+            '--llvm-install-components=llvm-cov;llvm-profdata;IndexStore;clang;clang-resource-headers;compiler-rt;clangd;dsymutil' \
+            --llbuild --swiftpm --swift-driver \
+            --swiftevolve --libcxx \
+            --swiftsyntax-verify-generated-files \
+            --release --compiler-vendor=apple \
+            --lldb-no-debugserver --lldb-use-system-debugserver --lldb-build-type=Release \
+            --verbose-build --build-swift-stdlib-unittest-extra \
+            '--extra-cmake-options=-DLLDB_FRAMEWORK_COPY_SWIFT_RESOURCES=0' \
+            --install-llvm --install-swift --install-llbuild --install-swiftpm \
+            --install-swift-driver --install-swiftsyntax --install-skstresstester --install-swiftevolve \
+            --install-playgroundsupport --install-libcxx --install-sourcekit-lsp \
+            --install-destdir="$INSTALL_PATH/swift-nightly-install" \
+            --darwin-install-extract-symbols \
+            --install-symroot="$INSTALL_PATH/swift-nightly-symroot" \
+            --install-prefix="/Library/Developer/Toolchains/swift-$TOOLCHAIN_IDENTIFIER.xctoolchain/usr" \
+            --toolchain-benchmarks \
+            --reconfigure \
+            --installable-package="$INSTALL_PATH/swift-$TOOLCHAIN_IDENTIFIER-osx.tar.gz" \
+            --symbols-package="$INSTALL_PATH/swift-$TOOLCHAIN_IDENTIFIER-osx-symbols.tar.gz" \
+            --darwin-toolchain-bundle-identifier="$BUNDLE_IDENTIFIER" \
+            --darwin-toolchain-display-name="$TOOLCHAIN_DISPLAY_NAME" \
+            --darwin-toolchain-display-name-short="$TOOLCHAIN_DISPLAY_NAME" \
+            --darwin-toolchain-name="swift-$TOOLCHAIN_IDENTIFIER" \
+            --darwin-toolchain-version="$TOOLCHAIN_VERSION" \
+            --darwin-toolchain-alias=swift-lto-prototype \
+            --swift-darwin-supported-archs 'x86_64' \
+            --build-subdir=buildbot_osx \
+            --assertions --swift-enable-ast-verifier=0 --no-swift-stdlib-assertions \
+            --skip-test-swift --skip-test-swiftpm --skip-test-swift-driver --skip-test-llbuild --skip-test-lldb \
+            --skip-test-cmark --skip-test-playgroundsupport --skip-test-swiftsyntax --skip-test-skstresstester --skip-test-swiftevolve \
+            '--extra-cmake-options=-DCMAKE_C_FLAGS="-gline-tables-only" -DCMAKE_CXX_FLAGS="-gline-tables-only"' \
+            --cmake-c-launcher /usr/local/bin/sccache --cmake-cxx-launcher /usr/local/bin/sccache
+      - name: Upload macOS toolchain
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos-toolchain
+          path: ${{ runner.temp }}/install
