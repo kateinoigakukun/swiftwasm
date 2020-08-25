@@ -518,6 +518,12 @@ ToolChain::constructInvocation(const CompileJobAction &job,
       Arguments.push_back("-index-system-modules");
   }
 
+  if (auto moduleSummary = context.Args.getLastArg(
+          options::OPT_module_summary_path)) {
+    Arguments.push_back("-module-summary-path");
+    Arguments.push_back(moduleSummary->getValue());
+  }
+
   if (context.Args.hasArg(options::OPT_debug_info_store_invocation) ||
       shouldStoreInvocationInDebugInfo()) {
     Arguments.push_back("-debug-info-store-invocation");
@@ -620,6 +626,7 @@ const char *ToolChain::JobContext::computeFrontendModeForCompile() const {
   case file_types::TY_BitstreamOptRecord:
   case file_types::TY_SwiftModuleInterfaceFile:
   case file_types::TY_PrivateSwiftModuleInterfaceFile:
+  case file_types::TY_SwiftModuleSummaryFile:
   case file_types::TY_SwiftSourceInfoFile:
   case file_types::TY_SwiftCrossImportDir:
   case file_types::TY_SwiftOverlayFile:
@@ -765,6 +772,9 @@ void ToolChain::JobContext::addFrontendSupplementaryOutputArguments(
                    "-emit-loaded-module-trace-path");
   addOutputsOfType(arguments, Output, Args, file_types::TY_TBD,
                    "-emit-tbd-path");
+  addOutputsOfType(arguments, Output, Args,
+                   file_types::TY_SwiftModuleSummaryFile,
+                   "-emit-module-summary-path");
 }
 
 ToolChain::InvocationInfo
@@ -877,6 +887,7 @@ ToolChain::constructInvocation(const BackendJobAction &job,
     case file_types::TY_BitstreamOptRecord:
     case file_types::TY_SwiftModuleInterfaceFile:
     case file_types::TY_PrivateSwiftModuleInterfaceFile:
+    case file_types::TY_SwiftModuleSummaryFile:
     case file_types::TY_SwiftSourceInfoFile:
     case file_types::TY_SwiftCrossImportDir:
     case file_types::TY_SwiftOverlayFile:

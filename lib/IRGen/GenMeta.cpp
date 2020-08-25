@@ -899,6 +899,8 @@ namespace {
         if (!entry.isValid() || entry.getKind() != SILWitnessTable::Method ||
             entry.getMethodWitness().Requirement != func)
           continue;
+        if (!entry.getMethodWitness().Witness)
+          continue;
         return IGM.getAddrOfSILFunction(entry.getMethodWitness().Witness,
                                         NotForDefinition);
       }
@@ -1541,6 +1543,10 @@ namespace {
     }
 
     void addMethod(SILDeclRef fn) {
+      auto entry = VTable->getEntry(IGM.getSILModule(), fn);
+      if (entry && entry->getMethod() != fn) {
+        return;
+      }
       if (!VTable || methodRequiresReifiedVTableEntry(IGM, VTable, fn)) {
         VTableEntries.push_back(fn);
       } else {

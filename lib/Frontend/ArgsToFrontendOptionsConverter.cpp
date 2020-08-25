@@ -57,6 +57,9 @@ bool ArgsToFrontendOptionsConverter::convert(
   if (const Arg *A = Args.getLastArg(OPT_group_info_path)) {
     Opts.GroupInfoPath = A->getValue();
   }
+  if (const Arg *A = Args.getLastArg(OPT_emit_module_summary_path)) {
+    Opts.ModuleSummaryOutputPath = A->getValue();
+  }
   if (const Arg *A = Args.getLastArg(OPT_index_store_path)) {
     Opts.IndexStorePath = A->getValue();
   }
@@ -560,6 +563,11 @@ bool ArgsToFrontendOptionsConverter::checkUnusedSupplementaryOutputPaths()
       (Opts.InputsAndOutputs.hasModuleInterfaceOutputPath() ||
        Opts.InputsAndOutputs.hasPrivateModuleInterfaceOutputPath())) {
     Diags.diagnose(SourceLoc(), diag::error_mode_cannot_emit_interface);
+    return true;
+  }
+  if (!FrontendOptions::canActionEmitModuleSummary(Opts.RequestedAction) &&
+      Opts.InputsAndOutputs.hasModuleSummaryOutputPath()) {
+    Diags.diagnose(SourceLoc(), diag::error_mode_cannot_emit_module_summary);
     return true;
   }
   return false;

@@ -329,7 +329,7 @@ function(add_swift_multisource_nonwmo_benchmark_library objfiles_out)
 endfunction()
 
 function (swift_benchmark_compile_archopts)
-  cmake_parse_arguments(BENCH_COMPILE_ARCHOPTS "" "PLATFORM;ARCH;OPT" "" ${ARGN})
+  cmake_parse_arguments(BENCH_COMPILE_ARCHOPTS "" "PLATFORM;ARCH;OPT;LTO" "" ${ARGN})
   set(is_darwin ${${BENCH_COMPILE_ARCHOPTS_PLATFORM}_is_darwin})
   set(sdk ${${BENCH_COMPILE_ARCHOPTS_PLATFORM}_sdk})
   set(vendor ${${BENCH_COMPILE_ARCHOPTS_PLATFORM}_vendor})
@@ -338,7 +338,11 @@ function (swift_benchmark_compile_archopts)
 
   set(target "${BENCH_COMPILE_ARCHOPTS_ARCH}-${vendor}-${triple_platform}${ver}")
 
-  set(objdir "${CMAKE_CURRENT_BINARY_DIR}/${BENCH_COMPILE_ARCHOPTS_OPT}-${target}")
+  set(opt_ver)
+  if(BENCH_COMPILE_ARCHOPTS_LTO)
+    set(lto_ver "-lto")
+  endif()
+  set(objdir "${CMAKE_CURRENT_BINARY_DIR}/${BENCH_COMPILE_ARCHOPTS_OPT}${lto_ver}-${target}")
   file(MAKE_DIRECTORY "${objdir}")
 
   string(REGEX REPLACE "_.*" "" optflag "${BENCH_COMPILE_ARCHOPTS_OPT}")
@@ -352,7 +356,6 @@ function (swift_benchmark_compile_archopts)
   set(bench_flags "${${benchvar}}")
 
   set(common_options
-      "-c"
       "-target" "${target}"
       "-${BENCH_COMPILE_ARCHOPTS_OPT}" ${PAGE_ALIGNMENT_OPTION})
 
@@ -383,6 +386,7 @@ function (swift_benchmark_compile_archopts)
   endif()
 
   set(common_swift4_options ${common_options} "-swift-version" "4")
+  set(compile_common_options "-c" ${common_swift4_options})
 
   # Always optimize the driver modules, unless we're building benchmarks for
   # debugger testing.
@@ -421,7 +425,7 @@ function (swift_benchmark_compile_archopts)
       SOURCE_DIR "${srcdir}"
       OBJECT_DIR "${objdir}"
       SOURCES ${sources}
-      LIBRARY_FLAGS ${common_swift4_options})
+      LIBRARY_FLAGS ${compile_common_options})
     precondition(objfile_out)
     list(APPEND bench_library_objects "${objfile_out}")
     list(APPEND bench_library_swiftmodules "${swiftmodule_out}")
@@ -462,6 +466,8 @@ function (swift_benchmark_compile_archopts)
 
   set(SWIFT_BENCH_OBJFILES)
   set(SWIFT_BENCH_SIBFILES)
+  set(SWIFT_BENCH_SUMMARYFILES)
+  set(bench_module_swiftmodules)
   foreach(module_name_path ${SWIFT_BENCH_MODULES})
     get_filename_component(module_name "${module_name_path}" NAME)
 
@@ -475,8 +481,8 @@ function (swift_benchmark_compile_archopts)
       set(objfile "${objdir}/${module_name}.o")
       set(swiftmodule "${objdir}/${module_name}.swiftmodule")
       set(source "${srcdir}/${module_name_path}.swift")
-      list(APPEND SWIFT_BENCH_OBJFILES "${objfile}")
       list(APPEND bench_library_swiftmodules "${swiftmodule}")
+      list(APPEND bench_module_swiftmodules "${swiftmodule}")
 
       if ("${bench_flags}" MATCHES "-whole-module.*")
         set(output_option "-o" "${objfile}")
@@ -487,40 +493,85 @@ function (swift_benchmark_compile_archopts)
                           "${objdir}/${module_name}-outputmap.json")
       endif()
 
-      add_custom_command(
-          OUTPUT "${objfile}"
-          DEPENDS
-            ${stdlib_dependencies} ${bench_library_objects}
-            "${srcdir}/${module_name_path}.swift"
-          COMMAND "${SWIFT_EXEC}"
-          ${common_swift4_options}
-          ${extra_options}
-          "-parse-as-library"
-          ${bench_flags}
-          ${SWIFT_BENCHMARK_EXTRA_FLAGS}
-          "-module-name" "${module_name}"
-          "-emit-module-path" "${swiftmodule}"
-          "-I" "${objdir}"
-          ${output_option}
-          "${source}")
-      if (SWIFT_BENCHMARK_EMIT_SIB)
+      if(BENCH_COMPILE_ARCHOPTS_LTO)
         set(sibfile "${objdir}/${module_name}.sib")
+        set(summaryfile "${objdir}/${module_name}.swiftmodule.summary")
         list(APPEND SWIFT_BENCH_SIBFILES "${sibfile}")
+        list(APPEND SWIFT_BENCH_SUMMARYFILES "${summaryfile}")
         add_custom_command(
-            OUTPUT "${sibfile}"
+            OUTPUT "${sibfile}" "${summaryfile}"
             DEPENDS
-              ${stdlib_dependencies} ${bench_library_sibfiles}
+              ${stdlib_dependencies} ${bench_library_objects}
               "${srcdir}/${module_name_path}.swift"
             COMMAND "${SWIFT_EXEC}"
             ${common_swift4_options}
+            ${extra_options}
             "-parse-as-library"
             ${bench_flags}
             ${SWIFT_BENCHMARK_EXTRA_FLAGS}
             "-module-name" "${module_name}"
             "-I" "${objdir}"
             "-emit-sib"
+            "-emit-module-summary"
+            "-Xllvm" "-module-summary-embed-debug-name"
+            "-whole-module-optimization"
             "-o" "${sibfile}"
             "${source}")
+
+        add_custom_command(
+            OUTPUT "${swiftmodule}"
+            DEPENDS
+              ${stdlib_dependencies} ${bench_library_objects}
+              "${srcdir}/${module_name_path}.swift"
+            COMMAND "${SWIFT_EXEC}"
+            ${common_swift4_options}
+            ${extra_options}
+            "-parse-as-library"
+            ${bench_flags}
+            ${SWIFT_BENCHMARK_EXTRA_FLAGS}
+            "-module-name" "${module_name}"
+            "-I" "${objdir}"
+            "-emit-module"
+            "-whole-module-optimization"
+            "-o" "${swiftmodule}"
+            "${source}")
+      else()
+        list(APPEND SWIFT_BENCH_OBJFILES "${objfile}")
+        add_custom_command(
+            OUTPUT "${objfile}"
+            DEPENDS
+              ${stdlib_dependencies} ${bench_library_objects}
+              "${srcdir}/${module_name_path}.swift"
+            COMMAND "${SWIFT_EXEC}"
+            ${compile_common_options}
+            ${extra_options}
+            "-parse-as-library"
+            ${bench_flags}
+            ${SWIFT_BENCHMARK_EXTRA_FLAGS}
+            "-module-name" "${module_name}"
+            "-emit-module-path" "${swiftmodule}"
+            "-I" "${objdir}"
+            ${output_option}
+            "${source}")
+        if (SWIFT_BENCHMARK_EMIT_SIB)
+          set(sibfile "${objdir}/${module_name}.sib")
+          list(APPEND SWIFT_BENCH_SIBFILES "${sibfile}")
+          add_custom_command(
+              OUTPUT "${sibfile}"
+              DEPENDS
+                ${stdlib_dependencies} ${bench_library_sibfiles}
+                "${srcdir}/${module_name_path}.swift"
+              COMMAND "${SWIFT_EXEC}"
+              ${common_swift4_options}
+              "-parse-as-library"
+              ${bench_flags}
+              ${SWIFT_BENCHMARK_EXTRA_FLAGS}
+              "-module-name" "${module_name}"
+              "-I" "${objdir}"
+              "-emit-sib"
+              "-o" "${sibfile}"
+              "${source}")
+        endif()
       endif()
 
       if(opt_view_main_dir)
@@ -543,7 +594,7 @@ function (swift_benchmark_compile_archopts)
         SOURCE_DIR "${srcdir}"
         OBJECT_DIR "${objdir}"
         SOURCES ${${module_name}_sources}
-        LIBRARY_FLAGS ${common_swift4_options} ${bench_flags} ${SWIFT_BENCHMARK_EXTRA_FLAGS}
+        LIBRARY_FLAGS ${compile_common_options} ${bench_flags} ${SWIFT_BENCHMARK_EXTRA_FLAGS}
         DEPENDS ${bench_library_objects} ${stdlib_dependencies})
       precondition(objfile_out)
       list(APPEND SWIFT_BENCH_OBJFILES "${objfile_out}")
@@ -561,7 +612,7 @@ function (swift_benchmark_compile_archopts)
         SOURCE_DIR "${srcdir}"
         OBJECT_DIR "${objdir}"
         SOURCES ${${module_name}_sources}
-        LIBRARY_FLAGS ${common_swift4_options} ${bench_flags} ${SWIFT_BENCHMARK_EXTRA_FLAGS}
+        LIBRARY_FLAGS ${compile_common_options} ${bench_flags} ${SWIFT_BENCHMARK_EXTRA_FLAGS}
         DEPENDS ${bench_library_objects} ${stdlib_dependencies})
       precondition(objfiles_out)
       list(APPEND SWIFT_BENCH_OBJFILES ${objfiles_out})
@@ -570,21 +621,85 @@ function (swift_benchmark_compile_archopts)
 
   set(module_name "main")
   set(source "${srcdir}/utils/${module_name}.swift")
-  add_custom_command(
-      OUTPUT "${objdir}/${module_name}.o"
-      DEPENDS
-        ${stdlib_dependencies}
-        ${bench_library_objects} ${bench_driver_objects} ${SWIFT_BENCH_OBJFILES}
-        ${bench_library_sibfiles} ${bench_driver_sibfiles}
-        ${SWIFT_BENCH_SIBFILES} "${source}"
-      COMMAND "${SWIFT_EXEC}"
-      ${common_swift4_options}
-      "-whole-module-optimization"
-      "-emit-module" "-module-name" "${module_name}"
-      "-I" "${objdir}"
-      "-o" "${objdir}/${module_name}.o"
-      "${source}")
-  list(APPEND SWIFT_BENCH_OBJFILES "${objdir}/${module_name}.o")
+
+  if(BENCH_COMPILE_ARCHOPTS_LTO)
+    set(sibfile "${objdir}/${module_name}.sib")
+    set(summaryfile "${objdir}/${module_name}.swiftmodule.summary")
+    add_custom_command(
+        OUTPUT "${sibfile}" "${summaryfile}"
+        DEPENDS
+          ${stdlib_dependencies}
+          ${bench_library_objects} ${bench_driver_objects}
+          ${bench_library_sibfiles} ${bench_driver_sibfiles}
+          ${bench_module_swiftmodules}
+          ${SWIFT_BENCH_OBJFILES}
+          ${SWIFT_BENCH_SIBFILES}
+          "${source}"
+        COMMAND "${SWIFT_EXEC}"
+        ${common_swift4_options}
+        "-emit-sib"
+        "-whole-module-optimization"
+        "-module-name" "${module_name}"
+        "-emit-module-summary"
+        "-Xllvm" "-module-summary-embed-debug-name"
+        "-I" "${objdir}"
+        "-o" "${sibfile}"
+        "${source}")
+    list(APPEND SWIFT_BENCH_SIBFILES "${sibfile}")
+    list(APPEND SWIFT_BENCH_SUMMARYFILES "${summaryfile}")
+
+    set(mergedfile "${objdir}/${module_name}.swiftmodule.merged-summary")
+    add_custom_command(
+        OUTPUT "${mergedfile}"
+        DEPENDS ${SWIFT_BENCH_SUMMARYFILES}
+        COMMAND "${SWIFT_EXEC}"
+        "-cross-module-opt"
+        ${SWIFT_BENCH_SUMMARYFILES}
+        "-module-summary-embed-debug-name"
+        "-o" "${mergedfile}")
+
+    foreach(sibfile ${SWIFT_BENCH_SIBFILES})
+      get_filename_component(module_name "${sibfile}" NAME_WE)
+      set(objfile "${objdir}/${module_name}.o")
+      list(APPEND SWIFT_BENCH_OBJFILES "${objfile}")
+
+      set(extra_options "")
+      # For this file we disable automatic bridging between Foundation and swift.
+      if("${module_name}" STREQUAL "ObjectiveCNoBridgingStubs")
+        set(extra_options "-Xfrontend"
+                          "-disable-swift-bridge-attr")
+      endif()
+
+      add_custom_command(
+          OUTPUT "${objfile}"
+          DEPENDS ${sibfile} ${mergedfile}
+          COMMAND "${SWIFT_EXEC}"
+          ${compile_common_options}
+          ${extra_options}
+          ${sibfile}
+          "-parse-as-library"
+          "-whole-module-optimization"
+          "-module-summary-path" ${mergedfile}
+          "-I" "${objdir}"
+          "-o" "${objfile}")
+    endforeach()
+  else()
+    add_custom_command(
+        OUTPUT "${objdir}/${module_name}.o"
+        DEPENDS
+          ${stdlib_dependencies}
+          ${bench_library_objects} ${bench_driver_objects} ${SWIFT_BENCH_OBJFILES}
+          ${bench_library_sibfiles} ${bench_driver_sibfiles}
+          ${SWIFT_BENCH_SIBFILES} "${source}"
+        COMMAND "${SWIFT_EXEC}"
+        ${compile_common_options}
+        "-whole-module-optimization"
+        "-emit-module" "-module-name" "${module_name}"
+        "-I" "${objdir}"
+        "-o" "${objdir}/${module_name}.o"
+        "${source}")
+    list(APPEND SWIFT_BENCH_OBJFILES "${objdir}/${module_name}.o")
+  endif()
 
   set(objcfile)
   if (is_darwin)
@@ -614,10 +729,10 @@ function (swift_benchmark_compile_archopts)
 
   if(is_darwin)
     # If host == target.
-    set(OUTPUT_EXEC "${benchmark-bin-dir}/Benchmark_${BENCH_COMPILE_ARCHOPTS_OPT}-${target}")
+    set(OUTPUT_EXEC "${benchmark-bin-dir}/Benchmark_${BENCH_COMPILE_ARCHOPTS_OPT}${lto_ver}-${target}")
   else()
     # If we are on Linux, we do not support cross compiling.
-    set(OUTPUT_EXEC "${benchmark-bin-dir}/Benchmark_${BENCH_COMPILE_ARCHOPTS_OPT}")
+    set(OUTPUT_EXEC "${benchmark-bin-dir}/Benchmark_${BENCH_COMPILE_ARCHOPTS_OPT}${lto_ver}")
   endif()
 
   # TODO: Unify the linux and darwin builds here.
@@ -711,11 +826,14 @@ function(swift_benchmark_compile)
   foreach(arch ${${SWIFT_BENCHMARK_COMPILE_PLATFORM}_arch})
     set(platform_executables)
     foreach(optset ${SWIFT_OPTIMIZATION_LEVELS})
-      swift_benchmark_compile_archopts(
-        PLATFORM "${platform}"
-        ARCH "${arch}"
-        OPT "${optset}")
-      list(APPEND platform_executables ${new_output_exec})
+      foreach(lto TRUE FALSE)
+        swift_benchmark_compile_archopts(
+          PLATFORM "${platform}"
+          ARCH "${arch}"
+          OPT "${optset}"
+          LTO "${lto}")
+        list(APPEND platform_executables ${new_output_exec})
+      endforeach()
     endforeach()
 
     # If we are building standalone as part of a subcmake build, we add the

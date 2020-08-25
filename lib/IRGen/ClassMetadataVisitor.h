@@ -174,6 +174,10 @@ private:
 
   friend SILVTableVisitor<Impl>;
   void addMethod(SILDeclRef declRef) {
+    auto entry = VTable->getEntry(IGM.getSILModule(), declRef);
+    if (entry && entry->getMethod() != declRef) {
+      return;
+    }
     // Does this method require a reified runtime vtable entry?
     if (!VTable || methodRequiresReifiedVTableEntry(IGM, VTable, declRef)) {
       asImpl().addReifiedVTableEntry(declRef);
