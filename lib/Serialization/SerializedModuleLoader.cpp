@@ -1120,7 +1120,7 @@ void SerializedASTFile::collectLinkLibrariesFromImports(
 
   // Make sure the top-level module is first; we want pre-order-ish traversal.
   auto topLevelModule =
-      ModuleDecl::ImportedModule{ModuleDecl::AccessPathTy(), getParentModule()};
+      ModuleDecl::ImportedModule{ImportPath::Access(), getParentModule()};
   stack.emplace_back(topLevelModule);
 
   while (!stack.empty()) {
